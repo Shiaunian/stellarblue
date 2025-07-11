@@ -6,389 +6,452 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
 body {
-  font-family: "微軟正黑體", Arial, sans-serif;
-  background: linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 50%, #0f1419 100%);
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-  color: #e8eaed;
+font-family: "微軟正黑體", Arial, sans-serif;
+background: linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 50%, #0f1419 100%);
+min-height: 100vh;
+margin: 0;
+padding: 0;
+color: #e8eaed;
 }
 
 /* 星空背景 */
 .stars {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: -1;
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+pointer-events: none;
+z-index: -1;
 }
 .star {
-  position: absolute;
-  background: #3b82f6;
-  border-radius: 50%;
-  animation: twinkle 3s infinite ease-in-out;
+position: absolute;
+background: #3b82f6;
+border-radius: 50%;
+animation: twinkle 3s infinite ease-in-out;
 }
 .star:nth-child(odd) {
-  animation-delay: 1s;
-  background: #60a5fa;
+animation-delay: 1s;
+background: #60a5fa;
 }
 .star:nth-child(3n) {
-  animation-delay: 2s;
-  background: #93c5fd;
+animation-delay: 2s;
+background: #93c5fd;
 }
 @keyframes twinkle {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.2); }
+0%, 100% { opacity: 0.3; transform: scale(1); }
+50% { opacity: 1; transform: scale(1.2); }
 }
 
 /* 主要內容區塊 */
 .main-content {
-  width: 94vw;
-  max-width: 450px;
-  margin: 7vw auto 0 auto;
-  padding: 7vw 4vw 6vw 4vw;
-  background: rgba(20, 25, 35, 0.95);
-  border-radius: 15px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 16px rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  backdrop-filter: blur(10px);
+width: 94vw;
+max-width: 450px;
+margin: 7vw auto 0 auto;
+padding: 7vw 4vw 6vw 4vw;
+background: rgba(20, 25, 35, 0.95);
+border-radius: 15px;
+box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 16px rgba(59, 130, 246, 0.1);
+border: 1px solid rgba(59, 130, 246, 0.2);
+backdrop-filter: blur(10px);
 }
 
 /* 頁面標題 */
 .page-title {
-  font-size: 1.45rem;
-  font-weight: bold;
-  color: #3b82f6;
-  margin-bottom: 1.1em;
-  letter-spacing: 2px;
-  text-align: center;
-  text-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
+font-size: 1.45rem;
+font-weight: bold;
+color: #3b82f6;
+margin-bottom: 1.1em;
+letter-spacing: 2px;
+text-align: center;
+text-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 10px;
 }
 
 .page-title::before {
-  content: "⭐";
-  font-size: 1.8rem;
-  filter: drop-shadow(0 2px 8px rgba(59, 130, 246, 0.4));
+content: "⭐";
+font-size: 1.8rem;
+filter: drop-shadow(0 2px 8px rgba(59, 130, 246, 0.4));
+}
+
+/* 玩家狀態顯示 */
+.player-status {
+background: rgba(59, 130, 246, 0.1);
+border: 1px solid rgba(59, 130, 246, 0.3);
+border-radius: 10px;
+padding: 1em;
+margin-bottom: 1.5em;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+
+.player-info {
+display: flex;
+gap: 1em;
+align-items: center;
+}
+
+.player-avatar {
+width: 40px;
+height: 40px;
+background: linear-gradient(135deg, #3b82f6, #1e40af);
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.2em;
+}
+
+.player-details h3 {
+margin: 0;
+color: #60a5fa;
+font-size: 1.1em;
+}
+
+.player-stats {
+font-size: 0.9em;
+color: #d1d5db;
+display: flex;
+gap: 1em;
+}
+
+.sync-status {
+font-size: 0.8em;
+padding: 0.3em 0.6em;
+border-radius: 20px;
+background: rgba(34, 197, 94, 0.2);
+color: #22c55e;
+border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.sync-status.syncing {
+background: rgba(245, 158, 11, 0.2);
+color: #f59e0b;
+border-color: rgba(245, 158, 11, 0.3);
+}
+
+.sync-status.error {
+background: rgba(239, 68, 68, 0.2);
+color: #ef4444;
+border-color: rgba(239, 68, 68, 0.3);
 }
 
 /* 通知看板 */
 .notice-board {
-  background: rgba(30, 64, 175, 0.1);
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  padding: 1.2em 1em 1em 1em;
-  max-height: 240px;
-  overflow-y: auto;
-  margin-bottom: 2.2em;
-  border-left: 6px solid #3b82f6;
+background: rgba(30, 64, 175, 0.1);
+border-radius: 10px;
+box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+border: 1px solid rgba(59, 130, 246, 0.3);
+padding: 1.2em 1em 1em 1em;
+max-height: 240px;
+overflow-y: auto;
+margin-bottom: 2.2em;
+border-left: 6px solid #3b82f6;
 }
 
 /* 通知項目 */
 .notice-item {
-  margin-bottom: 1.2em;
+margin-bottom: 1.2em;
 }
 
 /* 通知標題 */
 .notice-title {
-  font-weight: 700;
-  color: #60a5fa;
-  font-size: 1.08em;
-  margin-bottom: 0.3em;
+font-weight: 700;
+color: #60a5fa;
+font-size: 1.08em;
+margin-bottom: 0.3em;
 }
 
 /* 通知內容 */
 .notice-content {
-  color: #d1d5db;
-  font-size: 0.99em;
-  line-height: 1.7;
-  margin-left: 0.5em;
+color: #d1d5db;
+font-size: 0.99em;
+line-height: 1.7;
+margin-left: 0.5em;
 }
 
 /* 按鈕群組 */
 .btn-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.8em;
-  justify-content: center;
-  margin-bottom: 1.5em;
+display: flex;
+flex-wrap: wrap;
+gap: 0.8em;
+justify-content: center;
+margin-bottom: 1.5em;
 }
 
 /* 功能按鈕 */
 .func-btn {
-  flex: 1 1 40%;
-  min-width: 105px;
-  padding: 0.85em 0;
-  background: linear-gradient(90deg, #3b82f6 0%, #1e40af 100%);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 1.07rem;
-  font-weight: 600;
-  letter-spacing: 1px;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
-  transition: all 0.3s ease;
+flex: 1 1 40%;
+min-width: 105px;
+padding: 0.85em 0;
+background: linear-gradient(90deg, #3b82f6 0%, #1e40af 100%);
+color: #fff;
+border: none;
+border-radius: 8px;
+font-size: 1.07rem;
+font-weight: 600;
+letter-spacing: 1px;
+cursor: pointer;
+box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+transition: all 0.3s ease;
 }
 
 .func-btn:hover {
-  background: linear-gradient(90deg, #1e40af 0%, #3b82f6 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+background: linear-gradient(90deg, #1e40af 0%, #3b82f6 100%);
+transform: translateY(-2px);
+box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
 }
 
 /* 排行榜按鈕 - 獨立放置 */
 .ranking-btn {
-  width: 100%;
-  padding: 1em 0;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  cursor: pointer;
-  margin-bottom: 1.5em;
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5em;
+width: 100%;
+padding: 1em 0;
+background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+color: #fff;
+border: none;
+border-radius: 10px;
+font-size: 1.1rem;
+font-weight: 700;
+letter-spacing: 1px;
+cursor: pointer;
+margin-bottom: 1.5em;
+box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+transition: all 0.3s ease;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 0.5em;
 }
 
 .ranking-btn:hover {
-  background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+transform: translateY(-3px);
+box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
 }
 
 /* 登出按鈕 */
 .logout-btn {
-  width: 100%;
-  padding: 16px 0;
-  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 1.18rem;
-  font-weight: 600;
-  letter-spacing: 1px;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
-  transition: all 0.3s ease;
-  margin-top: 1em;
+width: 100%;
+padding: 16px 0;
+background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+color: #fff;
+border: none;
+border-radius: 8px;
+font-size: 1.18rem;
+font-weight: 600;
+letter-spacing: 1px;
+cursor: pointer;
+box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+transition: all 0.3s ease;
+margin-top: 1em;
 }
 
 .logout-btn:hover {
-  background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+transform: translateY(-2px);
+box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
 }
 
 /* 彈窗樣式 */
 .modal-bg {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  z-index: 999;
-  justify-content: center;
-  align-items: center;
-  backdrop-filter: blur(10px);
+display: none;
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: rgba(0, 0, 0, 0.7);
+z-index: 999;
+justify-content: center;
+align-items: center;
+backdrop-filter: blur(10px);
 }
 
 .modal-bg.active {
-  display: flex;
+display: flex;
 }
 
 /* 模態容器 */
 .modal {
-  background: rgba(20, 25, 35, 0.98);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 15px;
-  min-width: 300px;
-  max-width: 600px;
-  width: 90vw;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  padding: 0;
-  position: relative;
-  animation: modalSlideIn 0.3s ease-out;
-  display: flex;
-  flex-direction: column;
-  max-height: 85vh;
-  overflow: hidden;
-  backdrop-filter: blur(15px);
+background: rgba(20, 25, 35, 0.98);
+border: 1px solid rgba(59, 130, 246, 0.3);
+border-radius: 15px;
+min-width: 300px;
+max-width: 600px;
+width: 90vw;
+box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+padding: 0;
+position: relative;
+animation: modalSlideIn 0.3s ease-out;
+display: flex;
+flex-direction: column;
+max-height: 85vh;
+overflow: hidden;
+backdrop-filter: blur(15px);
 }
 
 @keyframes modalSlideIn {
-  from {
-    transform: scale(0.9) translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-  }
+from {
+  transform: scale(0.9) translateY(-20px);
+  opacity: 0;
+}
+to {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
 }
 
 /* 模態標題區 */
 .modal-header {
-  padding: 1.2em 1.5em;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 64, 175, 0.2) 100%);
-  border-radius: 15px 15px 0 0;
-  font-weight: bold;
-  color: #60a5fa;
-  font-size: 1.2em;
-  letter-spacing: 1px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 2px solid rgba(59, 130, 246, 0.3);
+padding: 1.2em 1.5em;
+background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 64, 175, 0.2) 100%);
+border-radius: 15px 15px 0 0;
+font-weight: bold;
+color: #60a5fa;
+font-size: 1.2em;
+letter-spacing: 1px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+border-bottom: 2px solid rgba(59, 130, 246, 0.3);
 }
 
 /* 模態關閉按鈕 */
 .modal-close {
-  background: #ef4444;
-  border: none;
-  border-radius: 50%;
-  width: 35px;
-  height: 35px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #fff;
-  font-size: 1.2em;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
+background: #ef4444;
+border: none;
+border-radius: 50%;
+width: 35px;
+height: 35px;
+display: flex;
+justify-content: center;
+align-items: center;
+color: #fff;
+font-size: 1.2em;
+font-weight: bold;
+cursor: pointer;
+transition: all 0.2s ease;
 }
 
 .modal-close:hover {
-  background: #dc2626;
-  transform: scale(1.1);
+background: #dc2626;
+transform: scale(1.1);
 }
 
 /* 模態內容區 */
 .modal-body {
-  padding: 1.5em;
-  overflow-y: auto;
-  flex: 1 1 auto;
-  color: #e8eaed;
-  font-size: 1em;
-  line-height: 1.6;
+padding: 1.5em;
+overflow-y: auto;
+flex: 1 1 auto;
+color: #e8eaed;
+font-size: 1em;
+line-height: 1.6;
 }
 
 /* 跑馬燈容器 */
 .marquee-container {
-  width: 100%;
-  overflow: hidden;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(30, 64, 175, 0.1) 100%);
-  border-radius: 10px;
-  margin-bottom: 1.5em;
-  padding: 0.8em 0;
-  border: 2px solid rgba(59, 130, 246, 0.3);
+width: 100%;
+overflow: hidden;
+background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(30, 64, 175, 0.1) 100%);
+border-radius: 10px;
+margin-bottom: 1.5em;
+padding: 0.8em 0;
+border: 2px solid rgba(59, 130, 246, 0.3);
 }
 
 .marquee-content {
-  display: inline-block;
-  white-space: nowrap;
-  animation: marquee 30s linear infinite;
-  color: #60a5fa;
-  font-weight: 600;
+display: inline-block;
+white-space: nowrap;
+animation: marquee 30s linear infinite;
+color: #60a5fa;
+font-weight: 600;
 }
 
 @keyframes marquee {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+0% { transform: translateX(100%); }
+100% { transform: translateX(-100%); }
 }
 
 .marquee-container:hover .marquee-content {
-  animation-play-state: paused;
+animation-play-state: paused;
 }
 
 /* 排行榜分頁標籤 */
 .ranking-tabs {
-  display: flex;
-  gap: 0.5em;
-  margin-bottom: 1.5em;
-  border-bottom: 2px solid rgba(59, 130, 246, 0.3);
+display: flex;
+gap: 0.5em;
+margin-bottom: 1.5em;
+border-bottom: 2px solid rgba(59, 130, 246, 0.3);
 }
 
 .ranking-tab {
-  padding: 0.8em 1.2em;
-  background: rgba(31, 41, 55, 0.8);
-  border: none;
-  border-radius: 8px 8px 0 0;
-  cursor: pointer;
-  font-weight: 600;
-  color: #9ca3af;
-  transition: all 0.3s ease;
-  border-bottom: 3px solid transparent;
+padding: 0.8em 1.2em;
+background: rgba(31, 41, 55, 0.8);
+border: none;
+border-radius: 8px 8px 0 0;
+cursor: pointer;
+font-weight: 600;
+color: #9ca3af;
+transition: all 0.3s ease;
+border-bottom: 3px solid transparent;
 }
 
 .ranking-tab.active {
-  background: #3b82f6;
-  color: white;
-  border-bottom-color: #f59e0b;
+background: #3b82f6;
+color: white;
+border-bottom-color: #f59e0b;
 }
 
 .ranking-tab:hover:not(.active) {
-  background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
+background: rgba(59, 130, 246, 0.2);
+color: #60a5fa;
 }
 
 /* 排行榜內容 */
 .ranking-content {
-  display: none;
+display: none;
 }
 
 .ranking-content.active {
-  display: block;
+display: block;
 }
 
 /* 排行榜列表 - 加上滾動條 */
 .ranking-list {
-  margin-top: 1em;
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 0.5em;
+margin-top: 1em;
+max-height: 400px;
+overflow-y: auto;
+padding-right: 0.5em;
 }
 
 .ranking-item {
-  display: flex;
-  align-items: center;
-  padding: 1em;
-  margin-bottom: 0.8em;
-  background: rgba(31, 41, 55, 0.6);
-  border-radius: 10px;
-  border-left: 5px solid #3b82f6;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+display: flex;
+align-items: center;
+padding: 1em;
+margin-bottom: 0.8em;
+background: rgba(31, 41, 55, 0.6);
+border-radius: 10px;
+border-left: 5px solid #3b82f6;
+transition: all 0.3s ease;
+border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .ranking-item:hover {
-  transform: translateX(5px);
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.4);
+transform: translateX(5px);
+box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+border-color: rgba(59, 130, 246, 0.4);
 }
 
 .ranking-number {
-  font-size: 1.5em;
-  font-weight: bold;
-  margin-right: 1em;
-  min-width: 40px;
-  text-align: center;
+font-size: 1.5em;
+font-weight: bold;
+margin-right: 1em;
+min-width: 40px;
+text-align: center;
 }
 
 .ranking-number.first { color: #ffd700; }
@@ -396,135 +459,135 @@ body {
 .ranking-number.third { color: #cd7f32; }
 
 .ranking-info {
-  flex: 1;
+flex: 1;
 }
 
 .ranking-name {
-  font-weight: bold;
-  font-size: 1.1em;
-  margin-bottom: 0.3em;
-  color: #e8eaed;
+font-weight: bold;
+font-size: 1.1em;
+margin-bottom: 0.3em;
+color: #e8eaed;
 }
 
 .score-bar-container {
-  background: rgba(31, 41, 55, 0.8);
-  border-radius: 10px;
-  height: 20px;
-  overflow: hidden;
-  position: relative;
+background: rgba(31, 41, 55, 0.8);
+border-radius: 10px;
+height: 20px;
+overflow: hidden;
+position: relative;
 }
 
 .score-bar {
-  height: 100%;
-  border-radius: 10px;
-  transition: width 0.8s ease;
-  position: relative;
+height: 100%;
+border-radius: 10px;
+transition: width 0.8s ease;
+position: relative;
 }
 
 .score-text {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.9em;
-  font-weight: bold;
-  color: #e8eaed;
+position: absolute;
+right: 10px;
+top: 50%;
+transform: translateY(-50%);
+font-size: 0.9em;
+font-weight: bold;
+color: #e8eaed;
 }
 
 /* 待更新提示 */
 .update-notice {
-  text-align: center;
-  color: #9ca3af;
-  font-style: italic;
-  padding: 2em;
-  background: rgba(31, 41, 55, 0.5);
-  border-radius: 8px;
-  border: 2px dashed rgba(59, 130, 246, 0.3);
+text-align: center;
+color: #9ca3af;
+font-style: italic;
+padding: 2em;
+background: rgba(31, 41, 55, 0.5);
+border-radius: 8px;
+border: 2px dashed rgba(59, 130, 246, 0.3);
 }
 
 /* 內容樣式 */
 .section-title {
-  color: #60a5fa;
-  font-size: 1.3em;
-  font-weight: bold;
-  margin: 1.5em 0 1em 0;
-  border-bottom: 2px solid rgba(59, 130, 246, 0.3);
-  padding-bottom: 0.5em;
+color: #60a5fa;
+font-size: 1.3em;
+font-weight: bold;
+margin: 1.5em 0 1em 0;
+border-bottom: 2px solid rgba(59, 130, 246, 0.3);
+padding-bottom: 0.5em;
 }
 
 .content-block {
-  margin-bottom: 1.5em;
-  padding: 1em;
-  background: rgba(31, 41, 55, 0.3);
-  border-radius: 8px;
-  border-left: 4px solid #3b82f6;
+margin-bottom: 1.5em;
+padding: 1em;
+background: rgba(31, 41, 55, 0.3);
+border-radius: 8px;
+border-left: 4px solid #3b82f6;
 }
 
 .sub-title {
-  color: #93c5fd;
-  font-weight: bold;
-  margin-bottom: 0.8em;
-  font-size: 1.1em;
+color: #93c5fd;
+font-weight: bold;
+margin-bottom: 0.8em;
+font-size: 1.1em;
 }
 
 .content-list {
-  margin: 0;
-  padding-left: 1.2em;
+margin: 0;
+padding-left: 1.2em;
 }
 
 .content-list li {
-  margin-bottom: 0.5em;
-  color: #d1d5db;
+margin-bottom: 0.5em;
+color: #d1d5db;
 }
 
 .warning-text {
-  color: #fbbf24;
+color: #fbbf24;
 }
 
 .indent {
-  margin-left: 1em;
+margin-left: 1em;
 }
 
 .highlight-box {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
-  padding: 1em;
-  margin: 1em 0;
-  color: #93c5fd;
+background: rgba(59, 130, 246, 0.1);
+border: 1px solid rgba(59, 130, 246, 0.3);
+border-radius: 8px;
+padding: 1em;
+margin: 1em 0;
+color: #93c5fd;
 }
 
 /* 滾動條美化 */
 ::-webkit-scrollbar {
-  width: 8px;
+width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(31, 41, 55, 0.5);
-  border-radius: 10px;
+background: rgba(31, 41, 55, 0.5);
+border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #3b82f6, #1e40af);
-  border-radius: 10px;
+background: linear-gradient(135deg, #3b82f6, #1e40af);
+border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #1e40af, #3b82f6);
+background: linear-gradient(135deg, #1e40af, #3b82f6);
 }
 
 /* 版權區塊 */
 .copyright-floating {
-  position: fixed; right: 8px; bottom: 8px;
-  background: rgba(20, 25, 35, 0.9); color: #9ca3af;
-  font-size: 13px; padding: 4px 13px 4px 8px;
-  border-radius: 20px 0 20px 20px; 
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  z-index: 9999; letter-spacing: 1px; display: flex;
-  align-items: center; gap: 5px; user-select: none; pointer-events: none;
-  font-weight: 500;
-  backdrop-filter: blur(10px);
+position: fixed; right: 8px; bottom: 8px;
+background: rgba(20, 25, 35, 0.9); color: #9ca3af;
+font-size: 13px; padding: 4px 13px 4px 8px;
+border-radius: 20px 0 20px 20px; 
+box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+border: 1px solid rgba(59, 130, 246, 0.2);
+z-index: 9999; letter-spacing: 1px; display: flex;
+align-items: center; gap: 5px; user-select: none; pointer-events: none;
+font-weight: 500;
+backdrop-filter: blur(10px);
 }
 </style>
 </head>
@@ -542,44 +605,60 @@ Stellarblue © 念念 智能助理系統
 <div class="main-content">
 <div class="page-title">Stellarblue行動祕書</div>
 
+<!-- 玩家狀態顯示 -->
+<div class="player-status">
+<div class="player-info">
+  <div class="player-avatar" id="playerAvatar">👤</div>
+  <div class="player-details">
+    <h3 id="playerName">載入中...</h3>
+    <div class="player-stats">
+      <span>💰 <span id="playerCoins">0</span></span>
+      <span>⭐ <span id="playerPoints">0</span></span>
+      <span>🏆 <span id="playerLevel">1</span></span>
+    </div>
+  </div>
+</div>
+<div class="sync-status" id="syncStatus">同步中...</div>
+</div>
+
 <!-- 公告跑馬燈 -->
 <div class="marquee-container">
-  <div class="marquee-content">
-    🌟 Stellarblue 智能助理系統已上線，各項功能持續優化中，敬請期待！
-  </div>
+<div class="marquee-content">
+  🌟 Stellarblue 智能助理系統已上線，Firebase 雲端同步功能已啟用！
+</div>
 </div>
 
 <!-- 通知看板 -->
 <div class="notice-board" id="noticeBoard">
-  <div class="notice-item">
-    <div class="notice-title">系統更新通知</div>
-    <div class="notice-content">Stellarblue 智能助理功能模組正在開發中</div>
-  </div>
-  <div class="notice-item">
-    <div class="notice-title">新功能預告</div>
-    <div class="notice-content">AI智能助理、數據分析模組即將上線</div>
-  </div>
-  <div class="notice-item">
-    <div class="notice-title">使用提醒</div>
-    <div class="notice-content">請定期更新系統以獲得最佳體驗</div>
-  </div>
+<div class="notice-item">
+  <div class="notice-title">🔥 Firebase 雲端同步已啟用</div>
+  <div class="notice-content">您的遊戲進度將自動保存到雲端</div>
+</div>
+<div class="notice-item">
+  <div class="notice-title">新功能預告</div>
+  <div class="notice-content">AI智能助理、數據分析模組即將上線</div>
+</div>
+<div class="notice-item">
+  <div class="notice-title">使用提醒</div>
+  <div class="notice-content">請定期更新系統以獲得最佳體驗</div>
+</div>
 </div>
 
 <!-- 功能按鈕 -->
 <div class="btn-group">
-  <button class="func-btn" data-modal="🤖AI助理">🤖AI助理</button>
-  <button class="func-btn" data-modal="📊數據分析">📊數據分析</button>
-  <button class="func-btn" data-modal="📋任務管理">📋任務管理</button>
-  <button class="func-btn" data-modal="📅行程規劃">📅行程規劃</button>
-  <button class="func-btn" data-modal="🔍智能搜尋">🔍智能搜尋</button>
-  <button class="func-btn" data-modal="⚙️系統設定">⚙️系統設定</button>
-  <button class="func-btn" data-modal="🔗快速連結">🔗快速連結</button>
-  <button class="func-btn" data-modal="📱應用工具">📱應用工具</button>
+<button class="func-btn" data-modal="🤖AI助理">🤖AI助理</button>
+<button class="func-btn" data-modal="📊數據分析">📊數據分析</button>
+<button class="func-btn" data-modal="📋任務管理">📋任務管理</button>
+<button class="func-btn" data-modal="📅行程規劃">📅行程規劃</button>
+<button class="func-btn" data-modal="🔍智能搜尋">🔍智能搜尋</button>
+<button class="func-btn" data-modal="⚙️系統設定">⚙️系統設定</button>
+<button class="func-btn" data-modal="🔗快速連結">🔗快速連結</button>
+<button class="func-btn" data-modal="🎮遊戲模組" onclick="simulateGameplay()">🎮遊戲模組</button>
 </div>
 
 <!-- 排行榜按鈕 -->
 <button class="ranking-btn" onclick="openRankingModal()">
-  🏆 效能排行榜
+🏆 效能排行榜
 </button>
 
 <!-- 登出按鈕 -->
@@ -589,283 +668,469 @@ Stellarblue © 念念 智能助理系統
 <!-- 彈窗 -->
 <div class="modal-bg" id="modalBg">
 <div class="modal" id="modalBox">
-  <div class="modal-header" id="modalHeader">
-    <span id="modalTitle">標題</span>
-    <button class="modal-close" id="modalClose">×</button>
-  </div>
-  <div class="modal-body" id="modalBody">
-    內容載入中...
-  </div>
+<div class="modal-header" id="modalHeader">
+  <span id="modalTitle">標題</span>
+  <button class="modal-close" id="modalClose">×</button>
+</div>
+<div class="modal-body" id="modalBody">
+  內容載入中...
+</div>
 </div>
 </div>
 
-<script>
+<script type="module">
+// Firebase 配置和初始化
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getDatabase, ref, set, get, onValue, push, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+const firebaseConfig = {
+apiKey: "AIzaSyBvKmn0jCTS_jIgEYOuQjc8vyYU40Q5F3I",
+authDomain: "stellarblue-system.firebaseapp.com",
+databaseURL: "https://stellarblue-system-default-rtdb.firebaseio.com/",
+projectId: "stellarblue-system",
+storageBucket: "stellarblue-system.firebasestorage.app",
+messagingSenderId: "803212433649",
+appId: "1:803212433649:web:887080d10a51d533b23150",
+measurementId: "G-YY94484DV9"
+};
+
+let app, database;
+let currentPlayer = null;
+
+// 初始化 Firebase
+try {
+app = initializeApp(firebaseConfig);
+database = getDatabase(app);
+console.log('🔥 Firebase 初始化成功');
+} catch (error) {
+console.error('❌ Firebase 初始化失敗:', error);
+}
+
 // 檢查登入狀態
 function checkLoginStatus() {
-  const loginStatus = localStorage.getItem('stellarblue_login');
-  const loginTime = localStorage.getItem('stellarblue_login_time');
-  const currentTime = Date.now();
-  const LIMIT = 3600000; // 1小時
+const loginStatus = localStorage.getItem('stellarblue_login');
+const loginTime = localStorage.getItem('stellarblue_login_time');
+const currentTime = Date.now();
+const LIMIT = 3600000; // 1小時
 
-  if (loginStatus !== 'yes' || !loginTime || (currentTime - parseInt(loginTime)) > LIMIT) {
-    // 未登入或登入已過期，跳轉到登入頁面
-    window.location.href = 'index.html';
-    return false;
+if (loginStatus !== 'yes' || !loginTime || (currentTime - parseInt(loginTime)) > LIMIT) {
+  window.location.href = 'index.html';
+  return false;
+}
+return true;
+}
+
+// 獲取當前玩家ID（基於登入時間生成唯一ID）
+function getCurrentPlayerId() {
+let playerId = localStorage.getItem('stellarblue_player_id');
+if (!playerId) {
+  playerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  localStorage.setItem('stellarblue_player_id', playerId);
+}
+return playerId;
+}
+
+// 初始化玩家數據
+async function initializePlayerData() {
+const playerId = getCurrentPlayerId();
+const playerRef = ref(database, `stellarblue_game/users/${playerId}`);
+
+updateSyncStatus('syncing', '同步中...');
+
+try {
+  const snapshot = await get(playerRef);
+  
+  if (snapshot.exists()) {
+    // 玩家已存在，載入數據
+    currentPlayer = snapshot.val();
+    console.log('📊 載入現有玩家數據:', currentPlayer);
+  } else {
+    // 新玩家，建立初始數據
+    currentPlayer = {
+      name: `玩家${Math.floor(Math.random() * 1000)}`,
+      points: 0,
+      coins: 100,
+      level: 1,
+      experience: 0,
+      achievements: [],
+      lastLogin: new Date().toISOString(),
+      settings: {
+        sound: true,
+        notifications: true
+      },
+      stats: {
+        totalGamesPlayed: 0,
+        totalTimeSpent: 0,
+        highestScore: 0
+      }
+    };
+    
+    await set(playerRef, currentPlayer);
+    console.log('🎮 建立新玩家數據:', currentPlayer);
   }
-  return true;
+  
+  // 更新最後登入時間
+  await update(playerRef, { lastLogin: new Date().toISOString() });
+  
+  // 更新UI
+  updatePlayerUI();
+  updateSyncStatus('success', '已同步');
+  
+  // 設定自動保存
+  setupAutoSave();
+  
+} catch (error) {
+  console.error('❌ 玩家數據初始化失敗:', error);
+  updateSyncStatus('error', '同步失敗');
+}
+}
+
+// 更新玩家UI顯示
+function updatePlayerUI() {
+if (!currentPlayer) return;
+
+document.getElementById('playerName').textContent = currentPlayer.name;
+document.getElementById('playerCoins').textContent = currentPlayer.coins;
+document.getElementById('playerPoints').textContent = currentPlayer.points;
+document.getElementById('playerLevel').textContent = currentPlayer.level;
+
+// 更新頭像
+const avatars = ['👤', '🎮', '⭐', '🚀', '👑', '🎯'];
+const avatarIndex = currentPlayer.level % avatars.length;
+document.getElementById('playerAvatar').textContent = avatars[avatarIndex];
+}
+
+// 更新同步狀態
+function updateSyncStatus(status, text) {
+const syncElement = document.getElementById('syncStatus');
+syncElement.className = `sync-status ${status}`;
+syncElement.textContent = text;
+}
+
+// 保存玩家數據到Firebase
+async function savePlayerData() {
+if (!currentPlayer || !database) return;
+
+const playerId = getCurrentPlayerId();
+const playerRef = ref(database, `stellarblue_game/users/${playerId}`);
+
+try {
+  updateSyncStatus('syncing', '保存中...');
+  await update(playerRef, currentPlayer);
+  updateSyncStatus('success', '已同步');
+  console.log('💾 玩家數據已保存');
+} catch (error) {
+  console.error('❌ 保存失敗:', error);
+  updateSyncStatus('error', '保存失敗');
+}
+}
+
+// 設定自動保存
+function setupAutoSave() {
+// 每30秒自動保存一次
+setInterval(savePlayerData, 30000);
+console.log('⏰ 自動保存已啟用 (30秒間隔)');
+}
+
+// 模擬遊戲玩法（測試用）
+function simulateGameplay() {
+if (!currentPlayer) return;
+
+// 隨機獲得積分和金幣
+const pointsGained = Math.floor(Math.random() * 50) + 10;
+const coinsGained = Math.floor(Math.random() * 20) + 5;
+
+currentPlayer.points += pointsGained;
+currentPlayer.coins += coinsGained;
+currentPlayer.stats.totalGamesPlayed += 1;
+
+// 檢查升級
+const newLevel = Math.floor(currentPlayer.points / 100) + 1;
+if (newLevel > currentPlayer.level) {
+  currentPlayer.level = newLevel;
+  showNotification(`🎉 恭喜升級到 ${newLevel} 級！`);
+}
+
+// 更新UI和保存
+updatePlayerUI();
+savePlayerData();
+
+showNotification(`🎮 獲得 ${pointsGained} 積分和 ${coinsGained} 金幣！`);
+}
+
+// 顯示通知
+function showNotification(message) {
+const notification = document.createElement('div');
+notification.style.cssText = `
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+  padding: 1em 1.5em;
+  border-radius: 10px;
+  font-weight: bold;
+  z-index: 10000;
+  animation: slideIn 0.3s ease;
+`;
+notification.textContent = message;
+document.body.appendChild(notification);
+
+setTimeout(() => {
+  notification.style.animation = 'slideOut 0.3s ease';
+  setTimeout(() => notification.remove(), 300);
+}, 3000);
 }
 
 // 創建星空背景
 function createStars() {
-  const starsContainer = document.getElementById('stars');
-  const starCount = 50;
-  
-  for (let i = 0; i < starCount; i++) {
-    const star = document.createElement('div');
-    star.className = 'star';
-    star.style.left = Math.random() * 100 + '%';
-    star.style.top = Math.random() * 100 + '%';
-    star.style.width = Math.random() * 3 + 1 + 'px';
-    star.style.height = star.style.width;
-    star.style.animationDelay = Math.random() * 3 + 's';
-    starsContainer.appendChild(star);
-  }
+const starsContainer = document.getElementById('stars');
+const starCount = 50;
+
+for (let i = 0; i < starCount; i++) {
+  const star = document.createElement('div');
+  star.className = 'star';
+  star.style.left = Math.random() * 100 + '%';
+  star.style.top = Math.random() * 100 + '%';
+  star.style.width = Math.random() * 3 + 1 + 'px';
+  star.style.height = star.style.width;
+  star.style.animationDelay = Math.random() * 3 + 's';
+  starsContainer.appendChild(star);
+}
 }
 
-// ==========================================
-// 🔧 內部設定區域 - 你在這裡修改資料
-// ==========================================
+// 排行榜數據（從Firebase獲取）
+async function loadRankingData() {
+try {
+  const rankingRef = ref(database, 'stellarblue_game/users');
+  const snapshot = await get(rankingRef);
+  
+  if (snapshot.exists()) {
+    const users = snapshot.val();
+    const userList = Object.values(users).map(user => ({
+      name: user.name,
+      points: user.points,
+      coins: user.coins,
+      level: user.level
+    }));
+    
+    return {
+      "積分排行": userList.sort((a, b) => b.points - a.points),
+      "金幣排行": userList.sort((a, b) => b.coins - a.coins),
+      "等級排行": userList.sort((a, b) => b.level - a.level)
+    };
+  }
+} catch (error) {
+  console.error('❌ 載入排行榜失敗:', error);
+}
 
-// 排行榜分頁設定
-const rankingCategories = {
-  "AI使用效率": [
-    { name: '張助理', score: 95 },
-    { name: '李秘書', score: 88 },
-    { name: '王經理', score: 92 },
-    { name: '陳專員', score: 85 },
-    { name: '林主管', score: 90 },
-    { name: '測試用戶1', score: 78 },
-    { name: '測試用戶2', score: 82 },
-    { name: '測試用戶3', score: 94 },
-    { name: '測試用戶4', score: 76 },
-    { name: '測試用戶5', score: 89 }
+// 返回預設數據
+return {
+  "積分排行": [
+    { name: currentPlayer?.name || '玩家', points: currentPlayer?.points || 0 }
   ],
-  "任務完成度": [
-    { name: '劉助理', score: 87 },
-    { name: '黃秘書', score: 93 },
-    { name: '吳專員', score: 89 },
-    { name: '許主管', score: 91 },
-    { name: '周助理', score: 84 }
+  "金幣排行": [
+    { name: currentPlayer?.name || '玩家', coins: currentPlayer?.coins || 0 }
   ],
-  "系統活躍度": [
-    { name: '鄭主管', score: 96 },
-    { name: '謝經理', score: 91 },
-    { name: '許助理', score: 84 },
-    { name: '周秘書', score: 88 },
-    { name: '陳經理', score: 93 }
+  "等級排行": [
+    { name: currentPlayer?.name || '玩家', level: currentPlayer?.level || 1 }
   ]
 };
-
-// ==========================================
-// 系統功能區域 - 不要修改這裡
-// ==========================================
-
-// 各按鈕的內容
-const modalContents = {
-  "🤖AI助理": `
-    <div class="section-title">AI智能助理功能</div>
-    
-    <div class="content-block">
-      <div class="sub-title">語音助理</div>
-      <ul class="content-list">
-        <li>語音指令識別與執行</li>
-        <li>智能對話與問答</li>
-        <li>多語言支援</li>
-        <li>個人化學習適應</li>
-      </ul>
-    </div>
-    
-    <div class="content-block">
-      <div class="sub-title">文本處理</div>
-      <ul class="content-list">
-        <li>自動文件摘要</li>
-        <li>智能翻譯服務</li>
-        <li>文本情感分析</li>
-        <li>關鍵詞提取</li>
-      </ul>
-    </div>
-    
-    <div class="highlight-box">
-      <strong>🌟 即將推出：</strong><br>
-      更智能的個人助理功能，包括行程自動安排、郵件智能回覆等
-    </div>
-  `,
-  "📊數據分析": `<div class="update-notice">📊 數據分析模組<br><br>功能開發中，敬請期待</div>`,
-  "📋任務管理": `<div class="update-notice">📋 任務管理系統<br><br>功能開發中，敬請期待</div>`,
-  "📅行程規劃": `<div class="update-notice">📅 智能行程規劃<br><br>功能開發中，敬請期待</div>`,
-  "🔍智能搜尋": `<div class="update-notice">🔍 智能搜尋引擎<br><br>功能開發中，敬請期待</div>`,
-  "⚙️系統設定": `<div class="update-notice">⚙️ 系統設定面板<br><br>功能開發中，敬請期待</div>`,
-  "🔗快速連結": `<div class="update-notice">🔗 快速連結管理<br><br>功能開發中，敬請期待</div>`,
-  "📱應用工具": `<div class="update-notice">📱 應用工具集<br><br>功能開發中，敬請期待</div>`
-};
-
-// 生成分數顏色（根據分數高低）
-function getScoreColor(score) {
-  if (score >= 90) return 'linear-gradient(90deg, #3b82f6 0%, #1e40af 100%)'; // 藍色
-  if (score >= 80) return 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)'; // 黃色
-  if (score >= 70) return 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)'; // 紅色
-  return 'linear-gradient(90deg, #6b7280 0%, #4b5563 100%)'; // 灰色
 }
 
 // 生成排行榜內容
-function generateRankingContent() {
-  const categories = Object.keys(rankingCategories);
-  
-  if (categories.length === 0) {
-    return '<div class="update-notice">🏆 效能排行榜<br><br>數據統計中</div>';
-  }
+async function generateRankingContent() {
+const rankingData = await loadRankingData();
+const categories = Object.keys(rankingData);
 
-  let rankingHTML = `
-    <h3 style="margin: 0 0 1.5em 0; color: #60a5fa; text-align: center;">🏆 Stellarblue 效能排行榜</h3>
-    <div class="ranking-tabs">
+let rankingHTML = `
+  <h3 style="margin: 0 0 1.5em 0; color: #60a5fa; text-align: center;">🏆 Stellarblue 即時排行榜</h3>
+  <div class="ranking-tabs">
+`;
+
+// 生成分頁標籤
+categories.forEach((category, index) => {
+  rankingHTML += `
+    <button class="ranking-tab ${index === 0 ? 'active' : ''}" onclick="switchRankingTab('${category}')">
+      ${category}
+    </button>
+  `;
+});
+
+rankingHTML += '</div>';
+
+// 生成各分頁內容
+categories.forEach((category, index) => {
+  const sortedData = rankingData[category];
+  
+  rankingHTML += `
+    <div class="ranking-content ${index === 0 ? 'active' : ''}" id="ranking-${category}">
+      <div class="ranking-list">
   `;
 
-  // 生成分頁標籤
-  categories.forEach((category, index) => {
-    rankingHTML += `
-      <button class="ranking-tab ${index === 0 ? 'active' : ''}" onclick="switchRankingTab('${category}')">
-        ${category}
-      </button>
-    `;
-  });
+  sortedData.forEach((item, rankIndex) => {
+    const rank = rankIndex + 1;
+    let rankClass = '';
+    let rankIcon = rank;
+    
+    if (rank === 1) { rankClass = 'first'; rankIcon = '🥇'; }
+    else if (rank === 2) { rankClass = 'second'; rankIcon = '🥈'; }
+    else if (rank === 3) { rankClass = 'third'; rankIcon = '🥉'; }
 
-  rankingHTML += '</div>';
-
-  // 生成各分頁內容
-  categories.forEach((category, index) => {
-    const sortedData = [...rankingCategories[category]].sort((a, b) => b.score - a.score);
+    const scoreValue = category.includes('積分') ? item.points : 
+                      category.includes('金幣') ? item.coins : item.level;
+    const maxScore = Math.max(...sortedData.map(u => 
+      category.includes('積分') ? u.points : 
+      category.includes('金幣') ? u.coins : u.level
+    ));
+    const scorePercentage = maxScore > 0 ? (scoreValue / maxScore) * 100 : 0;
     
     rankingHTML += `
-      <div class="ranking-content ${index === 0 ? 'active' : ''}" id="ranking-${category}">
-        <div class="ranking-list">
-    `;
-
-    sortedData.forEach((item, rankIndex) => {
-      const rank = rankIndex + 1;
-      let rankClass = '';
-      let rankIcon = rank;
-      
-      if (rank === 1) { rankClass = 'first'; rankIcon = '🥇'; }
-      else if (rank === 2) { rankClass = 'second'; rankIcon = '🥈'; }
-      else if (rank === 3) { rankClass = 'third'; rankIcon = '🥉'; }
-
-      const scorePercentage = (item.score / 100) * 100;
-      const scoreColor = getScoreColor(item.score);
-      
-      rankingHTML += `
-        <div class="ranking-item">
-          <div class="ranking-number ${rankClass}">${rankIcon}</div>
-          <div class="ranking-info">
-            <div class="ranking-name">${item.name}</div>
-            <div class="score-bar-container">
-              <div class="score-bar" style="width: ${scorePercentage}%; background: ${scoreColor};">
-                <div class="score-text">${item.score}分</div>
-              </div>
+      <div class="ranking-item">
+        <div class="ranking-number ${rankClass}">${rankIcon}</div>
+        <div class="ranking-info">
+          <div class="ranking-name">${item.name}</div>
+          <div class="score-bar-container">
+            <div class="score-bar" style="width: ${scorePercentage}%; background: linear-gradient(90deg, #3b82f6 0%, #1e40af 100%);">
+              <div class="score-text">${scoreValue}</div>
             </div>
           </div>
-        </div>
-      `;
-    });
-
-    rankingHTML += `
         </div>
       </div>
     `;
   });
 
-  return rankingHTML;
+  rankingHTML += `
+      </div>
+    </div>
+  `;
+});
+
+return rankingHTML;
 }
 
-// 切換排行榜分頁
-function switchRankingTab(category) {
-  // 移除所有活動狀態
-  document.querySelectorAll('.ranking-tab').forEach(tab => {
-    tab.classList.remove('active');
-  });
-  document.querySelectorAll('.ranking-content').forEach(content => {
-    content.classList.remove('active');
-  });
+// 各按鈕的內容
+const modalContents = {
+"🤖AI助理": `
+  <div class="section-title">AI智能助理功能</div>
+  
+  <div class="content-block">
+    <div class="sub-title">語音助理</div>
+    <ul class="content-list">
+      <li>語音指令識別與執行</li>
+      <li>智能對話與問答</li>
+      <li>多語言支援</li>
+      <li>個人化學習適應</li>
+    </ul>
+  </div>
+  
+  <div class="highlight-box">
+    <strong>🌟 Firebase 整合完成：</strong><br>
+    您的對話記錄和偏好設定將自動保存到雲端
+  </div>
+`,
+"📊數據分析": `<div class="update-notice">📊 數據分析模組<br><br>Firebase 數據收集中，即將推出個人化分析報告</div>`,
+"📋任務管理": `<div class="update-notice">📋 任務管理系統<br><br>雲端任務同步功能開發中</div>`,
+"📅行程規劃": `<div class="update-notice">📅 智能行程規劃<br><br>整合 Firebase 行程同步功能中</div>`,
+"🔍智能搜尋": `<div class="update-notice">🔍 智能搜尋引擎<br><br>建立雲端搜尋索引中</div>`,
+"⚙️系統設定": `<div class="update-notice">⚙️ 系統設定面板<br><br>Firebase 設定同步開發中</div>`,
+"🔗快速連結": `<div class="update-notice">🔗 快速連結管理<br><br>雲端書籤同步功能開發中</div>`,
+"📱應用工具": `<div class="update-notice">📱 應用工具集<br><br>Firebase 工具整合中</div>`
+};
 
-  // 添加活動狀態
-  event.target.classList.add('active');
-  document.getElementById(`ranking-${category}`).classList.add('active');
+// 切換排行榜分頁
+window.switchRankingTab = function(category) {
+// 移除所有活動狀態
+document.querySelectorAll('.ranking-tab').forEach(tab => {
+  tab.classList.remove('active');
+});
+document.querySelectorAll('.ranking-content').forEach(content => {
+  content.classList.remove('active');
+});
+
+// 添加活動狀態
+event.target.classList.add('active');
+document.getElementById(`ranking-${category}`).classList.add('active');
 }
 
 // 打開排行榜彈窗
-function openRankingModal() {
-  const modalBg = document.getElementById('modalBg');
-  const modalTitle = document.getElementById('modalTitle');
-  const modalBody = document.getElementById('modalBody');
+window.openRankingModal = async function() {
+const modalBg = document.getElementById('modalBg');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
 
-  modalTitle.textContent = '🏆 效能排行榜';
-  modalBody.innerHTML = generateRankingContent();
-  modalBg.classList.add('active');
+modalTitle.textContent = '🏆 即時排行榜';
+modalBody.innerHTML = '<div style="text-align: center; padding: 2em;">載入中...</div>';
+modalBg.classList.add('active');
+
+// 異步載入排行榜數據
+const rankingContent = await generateRankingContent();
+modalBody.innerHTML = rankingContent;
 }
 
-// 彈窗事件處理
+// 模擬遊戲玩法
+window.simulateGameplay = simulateGameplay;
+
+// 頁面載入完成後初始化
 document.addEventListener('DOMContentLoaded', function() {
-  // 檢查登入狀態
-  if (!checkLoginStatus()) {
-    return;
+// 檢查登入狀態
+if (!checkLoginStatus()) {
+  return;
+}
+
+// 創建星空背景
+createStars();
+
+// 初始化 Firebase 和玩家數據
+initializePlayerData();
+
+// 功能按鈕點擊事件
+document.querySelectorAll('.func-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const modalType = this.getAttribute('data-modal');
+    if (modalType === '🎮遊戲模組') return; // 遊戲模組有獨立處理
+    
+    const modalBg = document.getElementById('modalBg');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    modalTitle.textContent = modalType;
+    modalBody.innerHTML = modalContents[modalType] || '<div class="update-notice">功能開發中</div>';
+    modalBg.classList.add('active');
+  });
+});
+
+// 關閉彈窗
+document.getElementById('modalClose').addEventListener('click', function() {
+  document.getElementById('modalBg').classList.remove('active');
+});
+
+// 點擊背景關閉彈窗
+document.getElementById('modalBg').addEventListener('click', function(e) {
+  if (e.target === this) {
+    this.classList.remove('active');
   }
+});
 
-  // 創建星空背景
-  createStars();
+// 登出按鈕
+document.getElementById('logoutBtn').addEventListener('click', function() {
+  localStorage.removeItem('stellarblue_login');
+  localStorage.removeItem('stellarblue_login_time');
+  localStorage.removeItem('stellarblue_player_id');
+  window.location.href = 'index.html';
+});
 
-  // 功能按鈕點擊事件
-  document.querySelectorAll('.func-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const modalType = this.getAttribute('data-modal');
-      const modalBg = document.getElementById('modalBg');
-      const modalTitle = document.getElementById('modalTitle');
-      const modalBody = document.getElementById('modalBody');
-
-      modalTitle.textContent = modalType;
-      modalBody.innerHTML = modalContents[modalType] || '<div class="update-notice">功能開發中</div>';
-      modalBg.classList.add('active');
-    });
-  });
-
-  // 關閉彈窗
-  document.getElementById('modalClose').addEventListener('click', function() {
+// ESC 鍵關閉彈窗
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
     document.getElementById('modalBg').classList.remove('active');
-  });
-
-  // 點擊背景關閉彈窗
-  document.getElementById('modalBg').addEventListener('click', function(e) {
-    if (e.target === this) {
-      this.classList.remove('active');
-    }
-  });
-
-  // 登出按鈕
-  document.getElementById('logoutBtn').addEventListener('click', function() {
-    localStorage.removeItem('stellarblue_login');
-    localStorage.removeItem('stellarblue_login_time');
-    window.location.href = 'index.html';
-  });
-
-  // ESC 鍵關閉彈窗
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-      document.getElementById('modalBg').classList.remove('active');
-    }
-  });
+  }
+});
 });
 
 // 頁面載入時檢查登入狀態
 window.addEventListener('load', function() {
-  checkLoginStatus();
+checkLoginStatus();
 });
 
 </script>

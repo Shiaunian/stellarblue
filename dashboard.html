@@ -681,7 +681,7 @@ Stellarblue © 念念 智能助理系統
 <script type="module">
 // Firebase 配置和初始化
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getDatabase, ref, set, get, onValue, push, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+import { getDatabase, ref, set, get, onValue, push, update, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
 const firebaseConfig = {
 apiKey: "AIzaSyBvKmn0jCTS_jIgEYOuQjc8vyYU40Q5F3I",
@@ -720,7 +720,7 @@ if (loginStatus !== 'yes' || !loginTime || (currentTime - parseInt(loginTime)) >
 return true;
 }
 
-// 🔧 修正：直接使用登入帳號作為玩家ID
+// 🔧 修正：獲取當前玩家ID和姓名
 function getCurrentPlayerId() {
 const currentUser = localStorage.getItem('stellarblue_current_user');
 if (!currentUser) {
@@ -728,16 +728,21 @@ if (!currentUser) {
   window.location.href = 'index.html';
   return null;
 }
-return currentUser; // 直接返回登入帳號（stellarblue, admin, secretary）
+return currentUser; // 直接返回登入帳號
 }
 
-// 初始化玩家數據
+function getCurrentPlayerName() {
+return localStorage.getItem('stellarblue_user_name') || '未知玩家';
+}
+
+// 🔧 修正：初始化玩家數據
 async function initializePlayerData() {
 const playerId = getCurrentPlayerId();
+const playerName = getCurrentPlayerName();
+
 if (!playerId) return;
 
 const playerRef = ref(database, `players/${playerId}`);
-
 updateSyncStatus('syncing', '同步中...');
 
 try {
@@ -746,17 +751,20 @@ try {
   if (snapshot.exists()) {
     // 玩家已存在，載入數據
     currentPlayer = snapshot.val();
+    
+    // 🔧 確保數據完整性
+    if (!currentPlayer.loginAccount) {
+      currentPlayer.loginAccount = playerId;
+    }
+    if (!currentPlayer.displayName) {
+      currentPlayer.displayName = playerName;
+    }
+    
     console.log('📊 載入現有玩家數據:', currentPlayer);
   } else {
     // 新玩家，建立初始數據
-    const playerNames = {
-      'stellarblue': 'Stellarblue',
-      'admin': '系統管理員',
-      'secretary': '智能秘書'
-    };
-
     currentPlayer = {
-      name: playerNames[playerId] || `玩家${playerId}`,
+      name: playerName,
       points: 0,
       coins: 100,
       level: 1,
@@ -772,8 +780,8 @@ try {
         totalTimeSpent: 0,
         highestScore: 0
       },
-      // 🔧 新增：記錄登入帳號
-      loginAccount: playerId,
+      loginAccount: playerId,     // 🔧 登入帳號
+      displayName: playerName,    // 🔧 顯示姓名
       createdAt: new Date().toISOString()
     };
     
@@ -781,10 +789,12 @@ try {
     console.log('🎮 建立新玩家數據:', currentPlayer);
   }
   
-  // 更新最後登入時間
+  // 🔧 每次登入更新
   await update(playerRef, { 
     lastLogin: new Date().toISOString(),
-    loginAccount: playerId // 確保每次都有記錄登入帳號
+    loginAccount: playerId,
+    displayName: playerName,
+    name: playerName  // 🔧 確保姓名同步
   });
   
   // 更新UI
@@ -800,11 +810,11 @@ try {
 }
 }
 
-// 更新玩家UI顯示
+// 🔧 修正：更新玩家UI顯示
 function updatePlayerUI() {
 if (!currentPlayer) return;
 
-document.getElementById('playerName').textContent = currentPlayer.name;
+document.getElementById('playerName').textContent = currentPlayer.displayName || currentPlayer.name;
 document.getElementById('playerCoins').textContent = currentPlayer.coins;
 document.getElementById('playerPoints').textContent = currentPlayer.points;
 document.getElementById('playerLevel').textContent = currentPlayer.level;
@@ -813,7 +823,12 @@ document.getElementById('playerLevel').textContent = currentPlayer.level;
 const avatarMap = {
   'stellarblue': '⭐',
   'admin': '👑',
-  'secretary': '🤖'
+  'secretary': '🤖',
+  'niannian': '💖',
+  'dora': '🐱',
+  'helper': '🛠️',
+  'tester': '🧪',
+  'developer': '💻'
 };
 
 const playerId = getCurrentPlayerId();
@@ -830,15 +845,19 @@ if (accountInfo) {
 // 更新同步狀態
 function updateSyncStatus(status, text) {
 const syncElement = document.getElementById('syncStatus');
-syncElement.className = `sync-status ${status}`;
-syncElement.textContent = text;
+if (syncElement) {
+  syncElement.className = `sync-status ${status}`;
+  syncElement.textContent = text;
+}
 }
 
-// 保存玩家數據到Firebase
+// 🔧 修正：保存玩家數據到Firebase
 async function savePlayerData() {
 if (!currentPlayer || !database) return;
 
 const playerId = getCurrentPlayerId();
+const playerName = getCurrentPlayerName();
+
 if (!playerId) return;
 
 const playerRef = ref(database, `players/${playerId}`);
@@ -846,16 +865,18 @@ const playerRef = ref(database, `players/${playerId}`);
 try {
   updateSyncStatus('syncing', '保存中...');
   
-  // 🔧 確保每次保存都包含登入帳號信息
+  // 🔧 確保每次保存都包含完整信息
   const dataToSave = {
     ...currentPlayer,
     loginAccount: playerId,
+    displayName: playerName,
+    name: playerName,
     lastSaved: new Date().toISOString()
   };
   
   await update(playerRef, dataToSave);
   updateSyncStatus('success', '已同步');
-  console.log('💾 玩家數據已保存 - 帳號:', playerId);
+  console.log('💾 玩家數據已保存 - 帳號:', playerId, '姓名:', playerName);
 } catch (error) {
   console.error('❌ 保存失敗:', error);
   updateSyncStatus('error', '保存失敗');
@@ -867,6 +888,31 @@ function setupAutoSave() {
 // 每30秒自動保存一次
 setInterval(savePlayerData, 30000);
 console.log('⏰ 自動保存已啟用 (30秒間隔)');
+}
+
+// 🆕 清理舊的隨機ID數據
+async function cleanupOldPlayerData() {
+try {
+  const playersRef = ref(database, 'players');
+  const snapshot = await get(playersRef);
+  
+  if (snapshot.exists()) {
+    const players = snapshot.val();
+    
+    for (const playerId in players) {
+      // 🔧 如果是隨機生成的ID格式，標記為待清理
+      if (playerId.startsWith('player_') && playerId.length > 20) {
+        console.log('🧹 發現舊的隨機ID:', playerId, '- 玩家:', players[playerId].name);
+        
+        // 🔧 可以選擇是否自動清理（暫時註解，避免誤刪）
+        // await remove(ref(database, `players/${playerId}`));
+        // console.log('🗑️ 已清理隨機ID:', playerId);
+      }
+    }
+  }
+} catch (error) {
+  console.error('❌ 清理數據時出錯:', error);
+}
 }
 
 // 模擬遊戲玩法（測試用）
@@ -893,7 +939,8 @@ updatePlayerUI();
 savePlayerData();
 
 const playerId = getCurrentPlayerId();
-showNotification(`🎮 ${playerId} 獲得 ${pointsGained} 積分和 ${coinsGained} 金幣！`);
+const playerName = getCurrentPlayerName();
+showNotification(`🎮 ${playerName} 獲得 ${pointsGained} 積分和 ${coinsGained} 金幣！`);
 }
 
 // 顯示通知
@@ -937,7 +984,7 @@ for (let i = 0; i < starCount; i++) {
 }
 }
 
-// 排行榜數據（從Firebase獲取）
+// 🔧 修正：排行榜數據（從Firebase獲取）
 async function loadRankingData() {
 try {
   const rankingRef = ref(database, 'players');
@@ -947,10 +994,10 @@ try {
     const users = snapshot.val();
     const userList = Object.entries(users).map(([key, user]) => ({
       id: key,
-      name: user.name,
-      points: user.points,
-      coins: user.coins,
-      level: user.level,
+      name: user.displayName || user.name || '未知玩家',
+      points: user.points || 0,
+      coins: user.coins || 0,
+      level: user.level || 1,
       loginAccount: user.loginAccount || key // 顯示登入帳號
     }));
     
@@ -967,18 +1014,30 @@ try {
 // 返回預設數據
 return {
   "積分排行": [
-    { name: currentPlayer?.name || '玩家', points: currentPlayer?.points || 0, loginAccount: getCurrentPlayerId() }
+    { 
+      name: getCurrentPlayerName(), 
+      points: currentPlayer?.points || 0, 
+      loginAccount: getCurrentPlayerId() 
+    }
   ],
   "金幣排行": [
-    { name: currentPlayer?.name || '玩家', coins: currentPlayer?.coins || 0, loginAccount: getCurrentPlayerId() }
+    { 
+      name: getCurrentPlayerName(), 
+      coins: currentPlayer?.coins || 0, 
+      loginAccount: getCurrentPlayerId() 
+    }
   ],
   "等級排行": [
-    { name: currentPlayer?.name || '玩家', level: currentPlayer?.level || 1, loginAccount: getCurrentPlayerId() }
+    { 
+      name: getCurrentPlayerName(), 
+      level: currentPlayer?.level || 1, 
+      loginAccount: getCurrentPlayerId() 
+    }
   ]
 };
 }
 
-// 生成排行榜內容
+// 🔧 修正：生成排行榜內容
 async function generateRankingContent() {
 const rankingData = await loadRankingData();
 const categories = Object.keys(rankingData);
@@ -1025,7 +1084,7 @@ categories.forEach((category, index) => {
     ));
     const scorePercentage = maxScore > 0 ? (scoreValue / maxScore) * 100 : 0;
     
-    // 🔧 顯示登入帳號信息
+    // 🔧 顯示姓名和登入帳號
     const accountDisplay = item.loginAccount ? `(${item.loginAccount})` : '';
     
     rankingHTML += `
@@ -1114,8 +1173,10 @@ modalBody.innerHTML = rankingContent;
 // 模擬遊戲玩法
 window.simulateGameplay = simulateGameplay;
 
-// 頁面載入完成後初始化
-document.addEventListener('DOMContentLoaded', function() {
+// 🔧 頁面載入完成後初始化
+document.addEventListener('DOMContentLoaded', async function() {
+console.log('🚀 Dashboard 初始化開始...');
+
 // 檢查登入狀態
 if (!checkLoginStatus()) {
   return;
@@ -1125,7 +1186,10 @@ if (!checkLoginStatus()) {
 createStars();
 
 // 初始化 Firebase 和玩家數據
-initializePlayerData();
+await initializePlayerData();
+
+// 🆕 可選：清理舊數據（第一次執行後可以註解掉）
+// await cleanupOldPlayerData();
 
 // 功能按鈕點擊事件
 document.querySelectorAll('.func-btn').forEach(btn => {
@@ -1155,11 +1219,12 @@ document.getElementById('modalBg').addEventListener('click', function(e) {
   }
 });
 
-// 登出按鈕
+// 🔧 修正：登出按鈕
 document.getElementById('logoutBtn').addEventListener('click', function() {
   localStorage.removeItem('stellarblue_login');
   localStorage.removeItem('stellarblue_login_time');
   localStorage.removeItem('stellarblue_current_user');
+  localStorage.removeItem('stellarblue_user_name');  // 🔧 清理姓名
   window.location.href = 'index.html';
 });
 
@@ -1169,6 +1234,8 @@ document.addEventListener('keydown', function(e) {
     document.getElementById('modalBg').classList.remove('active');
   }
 });
+
+console.log('✅ Dashboard 初始化完成');
 });
 
 // 頁面載入時檢查登入狀態

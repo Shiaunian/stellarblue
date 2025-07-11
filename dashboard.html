@@ -720,20 +720,23 @@ if (loginStatus !== 'yes' || !loginTime || (currentTime - parseInt(loginTime)) >
 return true;
 }
 
-// 獲取當前玩家ID（基於登入時間生成唯一ID）
+// 🔧 修正：直接使用登入帳號作為玩家ID
 function getCurrentPlayerId() {
-let playerId = localStorage.getItem('stellarblue_player_id');
-if (!playerId) {
-  playerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-  localStorage.setItem('stellarblue_player_id', playerId);
+const currentUser = localStorage.getItem('stellarblue_current_user');
+if (!currentUser) {
+  console.error('❌ 未找到登入用戶');
+  window.location.href = 'index.html';
+  return null;
 }
-return playerId;
+return currentUser; // 直接返回登入帳號（stellarblue, admin, secretary）
 }
 
 // 初始化玩家數據
 async function initializePlayerData() {
 const playerId = getCurrentPlayerId();
-const playerRef = ref(database, `players/${playerId}`); // 🔧 修正路徑
+if (!playerId) return;
+
+const playerRef = ref(database, `players/${playerId}`);
 
 updateSyncStatus('syncing', '同步中...');
 
@@ -746,8 +749,14 @@ try {
     console.log('📊 載入現有玩家數據:', currentPlayer);
   } else {
     // 新玩家，建立初始數據
+    const playerNames = {
+      'stellarblue': 'Stellarblue',
+      'admin': '系統管理員',
+      'secretary': '智能秘書'
+    };
+
     currentPlayer = {
-      name: `玩家${Math.floor(Math.random() * 1000)}`,
+      name: playerNames[playerId] || `玩家${playerId}`,
       points: 0,
       coins: 100,
       level: 1,
@@ -762,7 +771,10 @@ try {
         totalGamesPlayed: 0,
         totalTimeSpent: 0,
         highestScore: 0
-      }
+      },
+      // 🔧 新增：記錄登入帳號
+      loginAccount: playerId,
+      createdAt: new Date().toISOString()
     };
     
     await set(playerRef, currentPlayer);
@@ -770,7 +782,10 @@ try {
   }
   
   // 更新最後登入時間
-  await update(playerRef, { lastLogin: new Date().toISOString() });
+  await update(playerRef, { 
+    lastLogin: new Date().toISOString(),
+    loginAccount: playerId // 確保每次都有記錄登入帳號
+  });
   
   // 更新UI
   updatePlayerUI();
@@ -794,10 +809,22 @@ document.getElementById('playerCoins').textContent = currentPlayer.coins;
 document.getElementById('playerPoints').textContent = currentPlayer.points;
 document.getElementById('playerLevel').textContent = currentPlayer.level;
 
-// 更新頭像
-const avatars = ['👤', '🎮', '⭐', '🚀', '👑', '🎯'];
-const avatarIndex = currentPlayer.level % avatars.length;
-document.getElementById('playerAvatar').textContent = avatars[avatarIndex];
+// 🔧 根據登入帳號顯示不同頭像
+const avatarMap = {
+  'stellarblue': '⭐',
+  'admin': '👑',
+  'secretary': '🤖'
+};
+
+const playerId = getCurrentPlayerId();
+const avatar = avatarMap[playerId] || '👤';
+document.getElementById('playerAvatar').textContent = avatar;
+
+// 🔧 顯示登入帳號信息
+const accountInfo = document.getElementById('accountInfo');
+if (accountInfo) {
+  accountInfo.textContent = `登入帳號：${playerId}`;
+}
 }
 
 // 更新同步狀態
@@ -812,13 +839,23 @@ async function savePlayerData() {
 if (!currentPlayer || !database) return;
 
 const playerId = getCurrentPlayerId();
-const playerRef = ref(database, `players/${playerId}`); // 🔧 修正路徑
+if (!playerId) return;
+
+const playerRef = ref(database, `players/${playerId}`);
 
 try {
   updateSyncStatus('syncing', '保存中...');
-  await update(playerRef, currentPlayer);
+  
+  // 🔧 確保每次保存都包含登入帳號信息
+  const dataToSave = {
+    ...currentPlayer,
+    loginAccount: playerId,
+    lastSaved: new Date().toISOString()
+  };
+  
+  await update(playerRef, dataToSave);
   updateSyncStatus('success', '已同步');
-  console.log('💾 玩家數據已保存');
+  console.log('💾 玩家數據已保存 - 帳號:', playerId);
 } catch (error) {
   console.error('❌ 保存失敗:', error);
   updateSyncStatus('error', '保存失敗');
@@ -855,7 +892,8 @@ if (newLevel > currentPlayer.level) {
 updatePlayerUI();
 savePlayerData();
 
-showNotification(`🎮 獲得 ${pointsGained} 積分和 ${coinsGained} 金幣！`);
+const playerId = getCurrentPlayerId();
+showNotification(`🎮 ${playerId} 獲得 ${pointsGained} 積分和 ${coinsGained} 金幣！`);
 }
 
 // 顯示通知
@@ -902,16 +940,18 @@ for (let i = 0; i < starCount; i++) {
 // 排行榜數據（從Firebase獲取）
 async function loadRankingData() {
 try {
-  const rankingRef = ref(database, 'players'); // 🔧 修正路徑
+  const rankingRef = ref(database, 'players');
   const snapshot = await get(rankingRef);
   
   if (snapshot.exists()) {
     const users = snapshot.val();
-    const userList = Object.values(users).map(user => ({
+    const userList = Object.entries(users).map(([key, user]) => ({
+      id: key,
       name: user.name,
       points: user.points,
       coins: user.coins,
-      level: user.level
+      level: user.level,
+      loginAccount: user.loginAccount || key // 顯示登入帳號
     }));
     
     return {
@@ -927,13 +967,13 @@ try {
 // 返回預設數據
 return {
   "積分排行": [
-    { name: currentPlayer?.name || '玩家', points: currentPlayer?.points || 0 }
+    { name: currentPlayer?.name || '玩家', points: currentPlayer?.points || 0, loginAccount: getCurrentPlayerId() }
   ],
   "金幣排行": [
-    { name: currentPlayer?.name || '玩家', coins: currentPlayer?.coins || 0 }
+    { name: currentPlayer?.name || '玩家', coins: currentPlayer?.coins || 0, loginAccount: getCurrentPlayerId() }
   ],
   "等級排行": [
-    { name: currentPlayer?.name || '玩家', level: currentPlayer?.level || 1 }
+    { name: currentPlayer?.name || '玩家', level: currentPlayer?.level || 1, loginAccount: getCurrentPlayerId() }
   ]
 };
 }
@@ -985,11 +1025,14 @@ categories.forEach((category, index) => {
     ));
     const scorePercentage = maxScore > 0 ? (scoreValue / maxScore) * 100 : 0;
     
+    // 🔧 顯示登入帳號信息
+    const accountDisplay = item.loginAccount ? `(${item.loginAccount})` : '';
+    
     rankingHTML += `
       <div class="ranking-item">
         <div class="ranking-number ${rankClass}">${rankIcon}</div>
         <div class="ranking-info">
-          <div class="ranking-name">${item.name}</div>
+          <div class="ranking-name">${item.name} ${accountDisplay}</div>
           <div class="score-bar-container">
             <div class="score-bar" style="width: ${scorePercentage}%; background: linear-gradient(90deg, #3b82f6 0%, #1e40af 100%);">
               <div class="score-text">${scoreValue}</div>
@@ -1026,7 +1069,7 @@ const modalContents = {
   
   <div class="highlight-box">
     <strong>🌟 Firebase 整合完成：</strong><br>
-    您的對話記錄和偏好設定將自動保存到雲端
+    您的對話記錄和偏好設定將自動保存到雲端，並與登入帳號綁定
   </div>
 `,
 "📊數據分析": `<div class="update-notice">📊 數據分析模組<br><br>Firebase 數據收集中，即將推出個人化分析報告</div>`,
@@ -1116,7 +1159,7 @@ document.getElementById('modalBg').addEventListener('click', function(e) {
 document.getElementById('logoutBtn').addEventListener('click', function() {
   localStorage.removeItem('stellarblue_login');
   localStorage.removeItem('stellarblue_login_time');
-  localStorage.removeItem('stellarblue_player_id');
+  localStorage.removeItem('stellarblue_current_user');
   window.location.href = 'index.html';
 });
 

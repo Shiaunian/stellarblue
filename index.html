@@ -202,19 +202,19 @@ for (let i = 0; i < starCount; i++) {
 }
 }
 
-// ===== 登入帳號密碼清單 =====
+// ===== 🔧 修正：登入帳號密碼清單 =====
 const users = [
-  { name: "星藍", username: "stellarblue", password: "2025" },
-  { name: "系統管理員", username: "admin", password: "1234" },
-  { name: "智能秘書", username: "secretary", password: "0128" },
-  // 🆕 新增角色（中文姓名 + 英文帳號）
-  { name: "念念", username: "niannian", password: "1111" },
-  { name: "小助手", username: "helper", password: "2222" },
-  { name: "測試專員", username: "tester", password: "3333" },
-  { name: "開發者", username: "developer", password: "4444" }
+{ name: "星藍", username: "stellarblue", password: "2025" },
+{ name: "系統管理員", username: "admin", password: "1234" },
+{ name: "智能秘書", username: "secretary", password: "0128" },
+{ name: "念念", username: "niannian", password: "1111" },
+{ name: "多拉", username: "dora", password: "1111" },        // 🔧 給多拉固定帳號
+{ name: "小助手", username: "helper", password: "2222" },
+{ name: "測試專員", username: "tester", password: "3333" },
+{ name: "開發者", username: "developer", password: "4444" }
 ];
 
-// ===== 登入表單處理 =====
+// ===== 🔧 修正：登入表單處理 =====
 document.getElementById('loginForm').onsubmit = function(e) {
 e.preventDefault();
 const uname = document.getElementById('username').value.trim().toLowerCase();
@@ -224,10 +224,13 @@ document.getElementById('errorMsg').textContent = "";
 const user = users.find(u => u.username === uname && u.password === pwd);
 
 if (user) {
-  // 儲存登入狀態
+  // 🔧 儲存完整登入資訊
   localStorage.setItem("stellarblue_login", "yes");
   localStorage.setItem("stellarblue_login_time", Date.now().toString());
-  localStorage.setItem("stellarblue_current_user", uname);
+  localStorage.setItem("stellarblue_current_user", uname);        // 帳號
+  localStorage.setItem("stellarblue_user_name", user.name);       // 姓名
+  
+  console.log(`✅ 登入成功: ${user.name} (${uname})`);
   
   // 跳轉到 dashboard.html
   window.location.href = 'dashboard.html';

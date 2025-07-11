@@ -733,7 +733,7 @@ return playerId;
 // 初始化玩家數據
 async function initializePlayerData() {
 const playerId = getCurrentPlayerId();
-const playerRef = ref(database, `stellarblue_game/users/${playerId}`);
+const playerRef = ref(database, `players/${playerId}`); // 🔧 修正路徑
 
 updateSyncStatus('syncing', '同步中...');
 
@@ -812,7 +812,7 @@ async function savePlayerData() {
 if (!currentPlayer || !database) return;
 
 const playerId = getCurrentPlayerId();
-const playerRef = ref(database, `stellarblue_game/users/${playerId}`);
+const playerRef = ref(database, `players/${playerId}`); // 🔧 修正路徑
 
 try {
   updateSyncStatus('syncing', '保存中...');
@@ -902,7 +902,7 @@ for (let i = 0; i < starCount; i++) {
 // 排行榜數據（從Firebase獲取）
 async function loadRankingData() {
 try {
-  const rankingRef = ref(database, 'stellarblue_game/users');
+  const rankingRef = ref(database, 'players'); // 🔧 修正路徑
   const snapshot = await get(rankingRef);
   
   if (snapshot.exists()) {
@@ -1132,7 +1132,6 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', function() {
 checkLoginStatus();
 });
-
 </script>
 </body>
 </html>

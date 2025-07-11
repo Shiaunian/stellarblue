@@ -204,9 +204,14 @@ for (let i = 0; i < starCount; i++) {
 
 // ===== 登入帳號密碼清單 =====
 const users = [
-{ username: "stellarblue", password: "2025" },
-{ username: "admin", password: "1234" },
-{ username: "secretary", password: "0128" }
+  { name: "星藍", username: "stellarblue", password: "2025" },
+  { name: "系統管理員", username: "admin", password: "1234" },
+  { name: "智能秘書", username: "secretary", password: "0128" },
+  // 🆕 新增角色（中文姓名 + 英文帳號）
+  { name: "念念", username: "niannian", password: "1111" },
+  { name: "小助手", username: "helper", password: "2222" },
+  { name: "測試專員", username: "tester", password: "3333" },
+  { name: "開發者", username: "developer", password: "4444" }
 ];
 
 // ===== 登入表單處理 =====

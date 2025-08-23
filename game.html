@@ -454,16 +454,45 @@
   const fmt = (n)=> new Intl.NumberFormat('zh-Hant').format(n);
   const nowMs = ()=>Date.now();
 
-  // === Firebase 初始化 ===
+  // === Firebase 初始化（完整 config + 匿名登入） ===
   const firebaseConfig = {
-    databaseURL: "https://fir-config-1215d-default-rtdb.firebaseio.com/"
+    apiKey: "你的 apiKey",
+    authDomain: "你的專案ID.firebaseapp.com",
+    databaseURL: "https://你的專案ID-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "你的專案ID",
+    storageBucket: "你的專案ID.appspot.com",
+    messagingSenderId: "XXXXXXXXXXXX",
+    appId: "1:XXXXXXXXXXXX:web:YYYYYYYYYYYYYYYY"
   };
 
-  // 初始化 Firebase
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
-  let userId = null; // 用戶 ID，會在登入後設置
+  let userId = null;
 
+  // 若未登入就先匿名登入
+  function loginFirst(next) {
+    const go = () => typeof next === 'function' && next();
+    const u = firebase.auth().currentUser;
+    if (u) { userId = u.uid; go(); return; }
+    firebase.auth().signInAnonymously()
+      .then(cred => { userId = cred.user.uid; go(); })
+      .catch(err => toast('登入失敗：' + err.message));
+  }
+
+  // 監聽登入狀態，首次登入時自動嘗試雲端讀檔
+  firebase.auth().onAuthStateChanged(u => {
+    if (!u) return;
+    userId = u.uid;
+    db.ref(`users/${userId}/gameState`).once('value').then(snap => {
+      if (snap.exists()) {
+        try {
+          state = snap.val();
+          renderAll();
+          toast('已從雲端讀取');
+        } catch {}
+      }
+    });
+  });
 
   // === Icon URLs（可自行替換） ===
   const ICON = {
@@ -698,6 +727,40 @@ function reset() {
   }
 }
 
+  // --- 自動存檔核心（去抖 + 離開前強制） ---
+  let dirty = false;
+  let lastSavedHash = '';
+
+  function markDirty(){ dirty = true; }markDirty();
+
+  function stateHash(){
+    try { return JSON.stringify(state); } catch { return String(Math.random()); }
+  }
+
+  function saveDebounced(force=false){
+    if (!userId) { loginFirst(() => saveDebounced(force)); return; }
+    if (!force && !dirty) return;
+
+    const h = stateHash();
+    if (!force && h === lastSavedHash) { dirty = false; return; }
+
+    db.ref(`users/${userId}/gameState`).set(state)
+      .then(() => { lastSavedHash = h; dirty = false; })
+      .catch(err => toast('自動存檔失敗：' + err.message));
+  }
+
+  // 每 8 秒試一次（有變更才會寫）
+  setInterval(() => {
+    if (navigator.onLine) saveDebounced(false);
+  }, 8000);
+
+  // 視窗被隱藏/關閉時強制存
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveDebounced(true);
+  });
+  window.addEventListener('beforeunload', () => { saveDebounced(true); });
+
+
 
   // ---------------- Attr & Derived ----------------
   function sumEquip(){
@@ -759,10 +822,8 @@ function reset() {
     P.level++;
     P.nextExp = Math.floor(P.nextExp*1.25)+25;
 
-    // 自動小幅成長（先加點）
     P.attrs.STR+=1; P.attrs.AGI+=1; P.attrs.VIT+=2; P.attrs.INT+=1; P.attrs.WIL+=1; P.attrs.SPD+=1;
 
-    // 重新計算一次「升級後」的派生數值，確保回滿用到新上限
     const D2 = derived();
     P.statPoints = (P.statPoints||0) + 5;
     P.hp = D2.hpMax;
@@ -771,12 +832,17 @@ function reset() {
     toast(`升級至 Lv.${P.level}！獲得能力點 +5`);
     log(`升級至 Lv.${P.level}！屬性提升，獲得能力點+5，氣血與真元回滿。`);
 
-    // 即時更新
+    markDirty();
     renderTop(); renderAttrs(); renderBattleBars();
   }
 }
 
-  function addExp(v){ state.player.exp += v; levelUp(); renderTop(); renderAttrs(); }
+  function addExp(v){
+  state.player.exp += v;
+  levelUp();
+  markDirty();
+  renderTop(); renderAttrs();
+}
 
   function healFlat(ctx, key, v){
     const D=derived();
@@ -794,14 +860,19 @@ function reset() {
 
   // ---------------- Inventory ----------------
   function addItem(name, qty=1, payload){
-    const it = state.inventory.find(i=>i.name===name && (!payload || JSON.stringify(i.payload)===JSON.stringify(payload)) );
-    if(it){ it.qty+=qty; }
-    else{ state.inventory.push({name, qty, payload:null}); }
+  const it = state.inventory.find(i=>i.name===name && (!payload || JSON.stringify(i.payload)===JSON.stringify(payload)) );
+  if(it){ it.qty+=qty; }
+  else{ state.inventory.push({name, qty, payload:null}); }
+  markDirty();
   }
   function removeItem(name, qty=1){
-    const idx = state.inventory.findIndex(i=>i.name===name);
-    if(idx>=0){ state.inventory[idx].qty -= qty; if(state.inventory[idx].qty<=0) state.inventory.splice(idx,1); }
+  const idx = state.inventory.findIndex(i=>i.name===name);
+  if(idx>=0){
+    state.inventory[idx].qty -= qty;
+    if(state.inventory[idx].qty<=0) state.inventory.splice(idx,1);
+    markDirty();
   }
+}
   function findItemDef(name){ return ITEMS[name]; }
 
   // ---------------- 屬性/加點（兩欄顯示，去除金木水火） ----------------
@@ -827,9 +898,11 @@ function reset() {
   if((P.statPoints||0)<=0) return toast('沒有可分配點數');
   P.attrs[k] = (P.attrs[k]||0)+1;
   P.statPoints-=1;
-  normalizeHPMP();                 // ★ 新增：加點後把 HP/MP 壓回新上限
+  normalizeHPMP();
+  markDirty();
   renderTop(); renderAttrs(); renderBattleBars();
   }
+
 
   function renderAttrs(){
   const box = $('#attrList'); box.innerHTML='';
@@ -915,14 +988,12 @@ function reset() {
   const slot = def.slot;
   const eq = state.player.equip;
 
-  // 取出目前槽位的舊裝（若有）
   const getOld = ()=>{
     if(slot==='weapon') return eq.weapon;
     if(slot==='cloak')  return eq.cloak;
     if(slot==='shoes')  return eq.shoes;
     if(slot==='ring'){
       const i = eq.rings.findIndex(x=>!x);
-      // 若有空位就不頂掉；若沒空位，預設替換 0 號
       return i>=0 ? null : eq.rings[0];
     }
     if(slot==='medal'){
@@ -939,47 +1010,46 @@ function reset() {
     else if(slot==='ring'){
       const i = eq.rings.findIndex(x=>!x);
       if(i>=0) eq.rings[i] = item;
-      else { addItem(eq.rings[0].name,1); eq.rings[0] = item; } // 頂掉 0 號，舊裝回包
+      else { addItem(eq.rings[0].name,1); eq.rings[0] = item; }
     } else if(slot==='medal'){
       const i = eq.medals.findIndex(x=>!x);
       if(i>=0) eq.medals[i] = item;
-      else { addItem(eq.medals[0].name,1); eq.medals[0] = item; } // 頂掉 0 號，舊裝回包
+      else { addItem(eq.medals[0].name,1); eq.medals[0] = item; }
     }
   };
 
-  // 放入新裝前，若該槽已有裝備且不是 ring/medal 的「自動找空位」情況，先回包
   const oldItem = getOld();
   if(oldItem && (slot==='weapon' || slot==='cloak' || slot==='shoes')){
     addItem(oldItem.name, 1);
   }
 
-  // 從背包扣掉新裝並裝上
   removeItem(name,1);
   put({name, ...def});
 
   toast('已裝備：'+name);
-  normalizeHPMP();                   // ★ 新增：壓回 HP/MP 不超過上限
+  normalizeHPMP();
+  markDirty();
   renderEquip(); renderTop(); renderAttrs(); renderBattleBars(); renderBag(currentFilter);
 }
 
   function openEquipInfoModal(slotKey, slotIdx){
-    const e=state.player.equip;
-    let val=null;
-    if(slotKey==='weapon') val=e.weapon;
-    else if(slotKey==='cloak') val=e.cloak;
-    else if(slotKey==='shoes') val=e.shoes;
-    else if(slotKey==='ring') val=e.rings[slotIdx];
-    else if(slotKey==='medal') val=e.medals[slotIdx];
-    else if(slotKey==='reserved') val=e.reserved[slotIdx];
+  const e=state.player.equip;
+  let val=null;
+  if(slotKey==='weapon') val=e.weapon;
+  else if(slotKey==='cloak') val=e.cloak;
+  else if(slotKey==='shoes') val=e.shoes;
+  else if(slotKey==='ring') val=e.rings[slotIdx];
+  else if(slotKey==='medal') val=e.medals[slotIdx];
+  else if(slotKey==='reserved') val=e.reserved[slotIdx];
 
-    const body=$('#equipInfoBody');
-    const title=$('#equipInfoTitle');
-    const btnUn=$('#equipInfoUnequip');
+  const body=$('#equipInfoBody');
+  const title=$('#equipInfoTitle');
+  const btnUn=$('#equipInfoUnequip');
 
-    if(val){
-      title.textContent = val.name+'｜'+(rarityLabel(val.rarity||'common'));
-      btnUn.style.display='inline-block';
-      btnUn.onclick=()=>{
+  if(val){
+    title.textContent = val.name+'｜'+(rarityLabel(val.rarity||'common'));
+    btnUn.style.display='inline-block';
+    btnUn.onclick=()=>{
       addItem(val.name,1);
       if(slotKey==='weapon') e.weapon=null;
       else if(slotKey==='cloak') e.cloak=null;
@@ -987,30 +1057,32 @@ function reset() {
       else if(slotKey==='ring') e.rings[slotIdx]=null;
       else if(slotKey==='medal') e.medals[slotIdx]=null;
       else if(slotKey==='reserved') e.reserved[slotIdx]=null;
-      normalizeHPMP(); // 卸下後把 HP/MP 壓回新上限
+      normalizeHPMP();
+      markDirty();
       closeEquipInfoModal();
       renderEquip(); renderTop(); renderAttrs(); renderBattleBars();
-      renderBag(currentFilter); // ★ 同步刷新背包清單，避免誤以為消失
+      renderBag(currentFilter);
     };
-      body.innerHTML = `
-        <div class="card ${rarityClass(val.rarity)}" style="align-items:flex-start">
-          ${cardIconHTML(val.icon || slotIconByKey[val.slot])}
-          <div class="grow">
-            <div><strong class="equip-name">${val.name}</strong></div>
-            <div class="small muted" style="margin-top:4px">${val.desc||''}</div>
-            <hr style="border-color:rgba(255,255,255,.06);margin:8px 0"/>
-            <div class="small">
-              <div>${equipStatsText(val)}</div>
-            </div>
+    body.innerHTML = `
+      <div class="card ${rarityClass(val.rarity)}" style="align-items:flex-start">
+        ${cardIconHTML(val.icon || slotIconByKey[val.slot])}
+        <div class="grow">
+          <div><strong class="equip-name">${val.name}</strong></div>
+          <div class="small muted" style="margin-top:4px">${val.desc||''}</div>
+          <hr style="border-color:rgba(255,255,255,.06);margin:8px 0"/>
+          <div class="small">
+            <div>${equipStatsText(val)}</div>
           </div>
-        </div>`;
-    }else{
-      title.textContent='裝備詳情';
-      btnUn.style.display='none';
-      body.innerHTML = `<div class="center muted small" style="padding:12px">此槽位目前未裝備</div>`;
-    }
-    $('#equipInfoModal').style.display='grid';
+        </div>
+      </div>`;
+  }else{
+    title.textContent='裝備詳情';
+    btnUn.style.display='none';
+    body.innerHTML = `<div class="center muted small" style="padding:12px">此槽位目前未裝備</div>`;
   }
+  $('#equipInfoModal').style.display='grid';
+}
+
   function closeEquipInfoModal(){ $('#equipInfoModal').style.display='none'; }
 
   function renderEquip(){
@@ -1052,10 +1124,12 @@ function reset() {
       else if(s.key==='ring') e.rings[s.idx]=null;
       else if(s.key==='medal') e.medals[s.idx]=null;
       else if(s.key==='reserved') e.reserved[s.idx]=null;
-      normalizeHPMP(); // 卸下後把 HP/MP 壓回新上限
+      normalizeHPMP();
+      markDirty();
       renderEquip(); renderTop(); renderAttrs(); renderBattleBars();
-      renderBag(currentFilter); // ★ 同步刷新背包清單
+      renderBag(currentFilter);
     };
+
       box.appendChild(card);
     });
 
@@ -1102,20 +1176,21 @@ function reset() {
 }
 
   function buy(name){
-    const stock = state.shop.find(s=>s.name===name && s.qty>0); if(!stock) return toast('缺貨');
-    const def=findItemDef(name); if(!def) return;
-    const P=state.player;
-    if(def.price?.diamond){
-      if(P.currencies.diamond<def.price.diamond) return toast('鑽石不足');
-      P.currencies.diamond -= def.price.diamond;
-    } else {
-      const c = def.price?.stone||0; if(P.currencies.stone<c) return toast('靈石不足');
-      P.currencies.stone -= c;
-    }
-    stock.qty--; addItem(name,1);
-    renderTop(); renderBag(currentFilter); renderShop();
-    toast('已購買：'+name);
+  const stock = state.shop.find(s=>s.name===name && s.qty>0); if(!stock) return toast('缺貨');
+  const def=findItemDef(name); if(!def) return;
+  const P=state.player;
+  if(def.price?.diamond){
+    if(P.currencies.diamond<def.price.diamond) return toast('鑽石不足');
+    P.currencies.diamond -= def.price.diamond;
+  } else {
+    const c = def.price?.stone||0; if(P.currencies.stone<c) return toast('靈石不足');
+    P.currencies.stone -= c;
   }
+  stock.qty--; addItem(name,1);
+  markDirty();
+  renderTop(); renderBag(currentFilter); renderShop();
+  toast('已購買：'+name);
+}
 
   // ---------------- Battle ----------------
   let battle = {
@@ -1325,9 +1400,7 @@ function makeEnemy(){
   }
 
 function endBattle(result){
-  // === 戰果處理（依結果分支） ===
   if(result === 'win'){
-    // 經驗與掉落
     const exp = 8 + (battle.enemy.level || 1) * 6;
     addExp(exp);
     const got = [];
@@ -1355,7 +1428,6 @@ function endBattle(result){
     log('你被擊敗了……');
     toast('你被擊敗了');
     $('#enemyHeaderTitle').textContent = '戰鬥失敗';
-    // 保底 1 滴血避免卡死（移除未使用的 D 變數）
     state.player.hp = Math.max(1, state.player.hp);
     renderTop();
 
@@ -1365,32 +1437,30 @@ function endBattle(result){
     $('#enemyHeaderTitle').textContent = '已脫離戰鬥';
   }
 
-  // === 統一收尾 ===
+  // 統一收尾
   battle.in = false;
   battle.turn = 'none';
   battle.enemy = null;
 
-  // 清除計時器
   if(battle.timer){
     clearInterval(battle.timer);
     battle.timer = null;
   }
 
-  // 行動按鈕鎖定 & 提示
   showActions(false);
   $('#turnHint').textContent = '戰鬥已結束';
 
-  // 歸零行動條（避免殘影）
   battle.bars.player = 0;
   battle.bars.enemy  = 0;
   renderActBars();
 
-  // 清空敵方頭像與條
   setAvatar($('#enemyAvatar'), '');
   renderBattleBars();
 
-  // 清掉一次性的防禦效果
   state.player.effects.guard = false;
+
+  // ★ 任何結算都標記存檔
+  markDirty();
 }
 
 
@@ -1598,32 +1668,34 @@ function endBattle(result){
     toast('已選擇地圖：' + (m?.name || '未知'));
   }
   function useItemFromBag(name){
-    const def=findItemDef(name); if(!def) return;
-    const inBattle = battle.in && battle.turn==='player';
-    if(inBattle){
-      if(!def.useInCombat) return toast('此道具非戰鬥可用');
-      if(def.cd){
-        const now = nowMs();
-        const next = battle.cooldowns[name] || 0;
-        if(now < next){
-          const left = Math.ceil((next - now)/1000);
-          return toast(`冷卻中（${left}s）`);
-        }
+  const def=findItemDef(name); if(!def) return;
+  const inBattle = battle.in && battle.turn==='player';
+  if(inBattle){
+    if(!def.useInCombat) return toast('此道具非戰鬥可用');
+    if(def.cd){
+      const now = nowMs();
+      const next = battle.cooldowns[name] || 0;
+      if(now < next){
+        const left = Math.ceil((next - now)/1000);
+        return toast(`冷卻中（${left}s）`);
       }
-      def.effect(state.player);
-      removeItem(name,1);
-      renderBag(currentFilter);
-      log('使用：'+name);
-      if(def.cd){ battle.cooldowns[name] = nowMs() + def.cd*1000; }
-      endPlayerTurn();
-    } else {
-      if(!def.useOutCombat) return toast('此道具僅可於戰鬥中使用');
-      def.effect(state.player);
-      removeItem(name,1);
-      renderBag(currentFilter);
-      toast('已使用：'+name);
     }
+    def.effect(state.player);
+    removeItem(name,1);
+    markDirty();
+    renderBag(currentFilter);
+    log('使用：'+name);
+    if(def.cd){ battle.cooldowns[name] = nowMs() + def.cd*1000; }
+    endPlayerTurn();
+  } else {
+    if(!def.useOutCombat) return toast('此道具僅可於戰鬥中使用');
+    def.effect(state.player);
+    removeItem(name,1);
+    markDirty();
+    renderBag(currentFilter);
+    toast('已使用：'+name);
   }
+}
 
   function openItemModal(){
     const list=$('#battleItemList'); list.innerHTML='';

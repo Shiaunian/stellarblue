@@ -458,7 +458,7 @@
   const firebaseConfig = {
     apiKey: "你的 apiKey",
     authDomain: "你的專案ID.firebaseapp.com",
-    databaseURL: "https://你的專案ID-default-rtdb.asia-southeast1.firebasedatabase.app",
+    databaseURL: "https://fir-config-1215d-default-rtdb.firebaseio.com",
     projectId: "你的專案ID",
     storageBucket: "你的專案ID.appspot.com",
     messagingSenderId: "XXXXXXXXXXXX",
@@ -486,9 +486,10 @@
     db.ref(`users/${userId}/gameState`).once('value').then(snap => {
       if (snap.exists()) {
         try {
-          state = snap.val();
-          renderAll();
-          toast('已從雲端讀取');
+        state = snap.val();
+        renderAll();
+        persistLocal();
+        toast('已從雲端讀取');
         } catch {}
       }
     });
@@ -658,6 +659,10 @@
   // ---------------- State ----------------
   let state = null;
   const KEY='xiuxianRPG_v1';
+  function persistLocal(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch{}
+  }
+
 
   function init(){
     const saved = localStorage.getItem(KEY);
@@ -679,7 +684,7 @@ function save() {
   }
   
   db.ref(`users/${userId}/gameState`).set(state)
-    .then(() => toast('已儲存到雲端'))
+    .then(() => { persistLocal(); toast('已儲存到雲端'); })
     .catch(error => toast('儲存失敗: ' + error.message));
 }
 
@@ -695,6 +700,7 @@ function load() {
       if (snapshot.exists()) {
         state = snapshot.val();
         renderAll();
+        persistLocal();
         toast('已從雲端讀取');
       } else {
         toast('找不到存檔');
@@ -721,6 +727,7 @@ function reset() {
     db.ref(`users/${userId}/gameState`).remove()
       .then(() => {
         renderAll();
+        persistLocal();
         toast('已重置並清除雲端存檔');
       })
       .catch(error => toast('重置失敗: ' + error.message));
@@ -731,7 +738,9 @@ function reset() {
   let dirty = false;
   let lastSavedHash = '';
 
-  function markDirty(){ dirty = true; }markDirty();
+  function markDirty(){ dirty = true; persistLocal(); }
+  markDirty();
+
 
   function stateHash(){
     try { return JSON.stringify(state); } catch { return String(Math.random()); }

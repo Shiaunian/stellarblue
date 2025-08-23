@@ -182,6 +182,11 @@
 .attr-desc{ opacity:.75; font-size:11px; white-space:nowrap; }
 
   </style>
+  <!-- 在 </style> 標籤後，</head> 標籤前加入 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
 </head>
 <body>
 <div class="app" id="app">
@@ -449,6 +454,17 @@
   const fmt = (n)=> new Intl.NumberFormat('zh-Hant').format(n);
   const nowMs = ()=>Date.now();
 
+  // === Firebase 初始化 ===
+  const firebaseConfig = {
+    databaseURL: "https://fir-config-1215d-default-rtdb.firebaseio.com/"
+  };
+
+  // 初始化 Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  let userId = null; // 用戶 ID，會在登入後設置
+
+
   // === Icon URLs（可自行替換） ===
   const ICON = {
     sword:'https://api.iconify.design/mdi:sword.svg',
@@ -626,18 +642,62 @@
     renderAll(); bindUI();
   }
 
-  function save(){ localStorage.setItem(KEY, JSON.stringify(state)); toast('已儲存'); }
-  function load(){ const s=localStorage.getItem(KEY); if(!s) return toast('沒有存檔'); state=JSON.parse(s); renderAll(); toast('已讀取'); }
-  function reset(){
-    if(confirm('確定要重置？將清空存檔。')){
-      localStorage.removeItem(KEY);
-      state=structuredClone(DEFAULT);
-      state.shop = SHOP_STOCK.map(s=>({...s}));
-      state.inventory=[];
-      addItem('小血丹',3); addItem('血瓶',2); addItem('修煉經書',1);
-      renderAll(); toast('已重置');
-    }
+  // 儲存遊戲狀態到 Firebase
+function save() {
+  if (!userId) {
+    loginFirst(() => save());
+    return;
   }
+  
+  db.ref(`users/${userId}/gameState`).set(state)
+    .then(() => toast('已儲存到雲端'))
+    .catch(error => toast('儲存失敗: ' + error.message));
+}
+
+// 從 Firebase 讀取遊戲狀態
+function load() {
+  if (!userId) {
+    loginFirst(() => load());
+    return;
+  }
+  
+  db.ref(`users/${userId}/gameState`).once('value')
+    .then(snapshot => {
+      if (snapshot.exists()) {
+        state = snapshot.val();
+        renderAll();
+        toast('已從雲端讀取');
+      } else {
+        toast('找不到存檔');
+      }
+    })
+    .catch(error => toast('讀取失敗: ' + error.message));
+}
+
+// 重置遊戲狀態並清除 Firebase 存檔
+function reset() {
+  if (confirm('確定要重置？將清空存檔。')) {
+    if (!userId) {
+      loginFirst(() => reset());
+      return;
+    }
+    
+    state = structuredClone(DEFAULT);
+    state.shop = SHOP_STOCK.map(s => ({ ...s }));
+    state.inventory = [];
+    addItem('小血丹', 3);
+    addItem('血瓶', 2);
+    addItem('修煉經書', 1);
+    
+    db.ref(`users/${userId}/gameState`).remove()
+      .then(() => {
+        renderAll();
+        toast('已重置並清除雲端存檔');
+      })
+      .catch(error => toast('重置失敗: ' + error.message));
+  }
+}
+
 
   // ---------------- Attr & Derived ----------------
   function sumEquip(){

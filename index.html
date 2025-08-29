@@ -2,408 +2,222 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>修仙RPG（手機直向・單檔）</title>
+  <!-- 手機通用 viewport，比例用 CSS 控制，不把 744x1024 寫死 -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>修仙RPG｜登入</title>
   <style>
     :root{
-      --bg:#0b1024;--bg2:#0e1536;--panel:#131a3f;--panel-2:#0f1534;--muted:#9aa3b2;--text:#eaf2ff;
-      --accent:#8b5cf6;--accent2:#22d3ee;--hp:#ef4444;--mp:#3b82f6;--bar:#334155;--ok:#22c55e;--warn:#f59e0b;
-      --radius:16px;--gap:12px;--shadow:0 8px 24px rgba(0,0,0,.35);
+      /* 顏色主題：延續你的配色習慣 */
+      --bg:#0b1024; --bg2:#0e1536; --panel:#131a3f; --muted:#9aa3b2; --text:#eaf2ff;
+      --accent:#8b5cf6; --accent2:#22d3ee; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444;
+      --radius:16px; --gap:14px; --shadow:0 10px 28px rgba(0,0,0,.35);
     }
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-    html,body{margin:0;height:100%;background:linear-gradient(135deg,var(--bg) 0%, var(--bg2) 100%);color:var(--text);font-family: system-ui,-apple-system,"Microsoft JhengHei",Segoe UI,Roboto,Inter,sans-serif}
-    button{border:none;background:none;color:inherit}
+    html,body{height:100%; margin:0; font-family:"Microsoft JhengHei",system-ui,Segoe UI,Roboto,sans-serif; color:var(--text); background:var(--bg);}
+    /* 舞台置中：讓 app 永遠在正中央 */
+    .stage{position:fixed; inset:0; display:grid; place-items:center; overflow:hidden;}
+    /* 核心畫面：維持 93:128 比例，自適應縮放，不寫死像素 */
+    .app{
+      aspect-ratio: 93 / 150;                /* === 93:128 比例（744:1024 化簡）=== */
+      width: min(100svw, calc(100svh * 93/150));
+      max-height: 100svh;
+      background: linear-gradient(180deg, var(--bg2), var(--panel));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display:flex; flex-direction:column;
+      overflow:auto;
+    }
+    header{
+      padding: 16px 18px; font-weight:700; letter-spacing:.5px;
+      background: rgba(255,255,255,.04);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .screen{padding: 20px 18px 28px; display:flex; flex-direction:column; gap:var(--gap);}
+    h1{font-size:clamp(18px,3.6vw,24px); margin:6px 0 2px;}
+    p.sub{margin:0; color:var(--muted); font-size:14px}
 
-    .app{display:flex;flex-direction:column;min-height:100svh}
-    .topbar{position:sticky;top:0;z-index:20;backdrop-filter: blur(8px);background:rgba(15,16,42,.5);padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
-    .topbar .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
-    .chip{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);display:flex;gap:6px;align-items:center;font-size:12px}
-    .chip .val{font-weight:700}
-    .bar{height:8px;background:var(--bar);border-radius:999px;overflow:hidden}
-    .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));width:0%}
-
-    .content{flex:1;display:flex;flex-direction:column;gap:var(--gap);padding:12px}
-    .panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid rgba(255,255,255,.06);border-radius:var(--radius);box-shadow:var(--shadow)}
-    .panel .hd{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
-    .panel .bd{padding:12px}
-    .grid{display:grid;gap:var(--gap)}
-    .grid.cols-2{grid-template-columns:1fr 1fr}
-    .grid.cols-3{grid-template-columns:repeat(3,1fr)}
-
-    .stat{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:rgba(255,255,255,.04);border-radius:12px}
-    .stat small{opacity:.7; font-variant-numeric: tabular-nums;}
-    .stat .add{margin-left:8px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.12);font-weight:800}
-    .stat small.val{display:inline-block;min-width:3ch;text-align:right;}
-    .attr-right{ display:flex; align-items:center; gap:8px }
-    .attr-desc{ opacity:.75; font-size:11px; white-space:nowrap }
-
-    .tabs{display:flex;gap:8px;overflow:auto;padding:0 12px 12px}
-    .tabs button{flex:0 0 auto;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.08)}
-    .tabs button.active{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#0b1024;font-weight:800}
-
-    .nav{position:sticky;bottom:0;z-index:20;background:rgba(15,16,42,.65);backdrop-filter:blur(8px);border-top:1px solid rgba(255,255,255,.06)}
-    .nav .row{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:6px}
-    .nav button{padding:8px;border-radius:10px;background:rgba(255,255,255,.06);font-size:12px}
-
-    .btn{padding:10px 12px;border-radius:12px;background:linear-gradient(90deg,var(--accent2),var(--accent));color:#0b1024;font-weight:800}
-    .btn.ghost{background:rgba(255,255,255,.08);color:var(--text);font-weight:600}
-    .btn.warn{background:linear-gradient(90deg,#fb7185,#f59e0b);color:#0b1024}
-    .btn.ok{background:linear-gradient(90deg,#34d399,#22d3ee);color:#0b1024}
-    .btn.small{font-size:12px;padding:8px 10px}
-
-    .list{display:grid;gap:8px}
-    .card{display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06)}
-    .card .grow{flex:1}
-    .tag{font-size:10px;padding:3px 6px;border-radius:999px;background:rgba(255,255,255,.1)}
-
-    .face{display:flex;align-items:center;gap:10px}
-    .ava{width:64px;height:64px;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.06);flex:0 0 64px;border:1px solid rgba(255,255,255,.08)}
-    .ava img{width:100%;height:100%;object-fit:cover;display:block}
-    .icon{width:40px;height:40px;flex:0 0 40px;border-radius:10px;background:rgba(255,255,255,.06);display:grid;place-items:center;border:1px solid rgba(255,255,255,.08);overflow:hidden}
-    .icon img{width:100%;height:100%;object-fit:contain;display:block}
-
-    .hpbar,.mpbar{position:relative;height:10px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.08)}
-    .hpbar>span{display:block;height:100%;background:linear-gradient(90deg,#ef4444,#f97316)}
-    .mpbar>span{display:block;height:100%;background:linear-gradient(90deg,#60a5fa,#22d3ee)}
-    .bar-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none}
-
-    .actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-    .actions .btn{padding:12px}
-    [data-page="battle"] .actions .btn,
-    [data-page="battle"] .grid .btn{padding:8px 10px;font-size:13px;}
-
-    .toast{position:fixed;inset:auto 12px 88px 12px;z-index:50;display:none}
-    .toast .inner{padding:10px 12px;border-radius:12px;background:#111827;color:#f9fafb;border:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow)}
-
-    .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.5);z-index:60}
-    .modal .box{width:min(640px,92vw);max-height:80vh;overflow:auto}
-
-    .muted{color:var(--muted)}
-    .center{display:flex;align-items:center;justify-content:center}
-    .small{font-size:12px}
-    .equip-name{font-weight:800}
-    .title-center{ width:100%; text-align:center; }
-    .title-xl{ font-size:18px; font-weight:800; letter-spacing:.5px }
-
-    .attrs-compact{display:grid;grid-template-columns:1fr;gap:8px}
-    .attrs-compact .stat{padding:4px 8px; font-size:12px; line-height:1.15}
-    .attrs-compact .stat small{ opacity:.8 }
-
-    .rarity-common{ color:#fff; border-color:rgba(255,255,255,.18) }
-    .rarity-rare{ color:#34d399; border-color:#34d39988; box-shadow:0 0 0 1px #34d39944 inset }
-    .rarity-epic{ color:#60a5fa; border-color:#60a5fa88; box-shadow:0 0 0 1px #60a5fa44 inset }
-    .rarity-legend{ color:#a78bfa; border-color:#a78bfaaa; box-shadow:0 0 0 1px #a78bfa55 inset }
-    .rarity-mythic{ color:#fb923c; border-color:#fb923caa; box-shadow:0 0 0 1px #fb923c55 inset }
-    .rarity-relic{ color:#ef4444; border-color:#ef4444aa; animation:glow 2s ease-in-out infinite }
-    @keyframes glow {
-      0%,100%{ box-shadow:0 0 0 1px #ef444455 inset, 0 0 12px 2px #ef444422 }
-      50%    { box-shadow:0 0 0 1px #ef4444aa inset, 0 0 18px 4px #ef444433 }
+    .card{
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.1);
+    }
+    .field{display:flex; flex-direction:column; gap:8px;}
+    .field label{font-size:13px; color:var(--muted)}
+    input[type="text"], input[type="password"], .select, button{
+      width:100%; border:none; border-radius:12px; padding:12px 14px; font-size:16px;
+    }
+    input[type="text"], input[type="password"], .select{background:#fff; color:#111;}
+    button{
+      background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-weight:700;
+      box-shadow:var(--shadow); cursor:pointer;
+    }
+    button.ghost{
+      background:transparent; color:#fff; border:1px solid rgba(255,255,255,.2);
+      box-shadow:none;
     }
 
-    .slot{display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer;min-height:64px}
-    .slot .meta{display:flex;flex-direction:column;gap:4px}
-    .slot .label{font-size:12px;opacity:.8}
-    .slot .name{font-weight:800}
-    .slot .meta .name { max-width: 100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .row{display:flex; gap:12px;}
+    .row > *{flex:1}
 
-    .floating-dmg{
-      position: absolute; pointer-events:none;
-      font-weight:800; text-shadow:0 1px 2px rgba(0,0,0,.6);
-      animation: dmgUp .8s ease-out forwards;
+    .msg{font-size:14px; color:var(--danger); min-height:1.2em}
+    .hidden{display:none;}
+
+    /* 元素選擇：行動版友善的卡片式單選 */
+    .elements{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+    .elem{
+      position:relative; padding:12px; border-radius:12px; background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12); text-align:center; cursor:pointer; user-select:none;
     }
-    .floating-dmg.red{ color:#f87171; }
-    .floating-dmg.blue{ color:#60a5fa; }
-    @keyframes dmgUp{ 0%{ transform:translateY(0); opacity:1 } 100%{ transform:translateY(-18px); opacity:0 } }
-
-    .actions .btn:disabled{opacity:.5; filter:grayscale(0.3);}
-
-    /* 以手機為主：當寬度較窄或視窗比例小於 128:93 時，壓縮欄數 */
-    @media (max-width: 420px), (max-aspect-ratio: 128/93) {
-      .grid.cols-2 { grid-template-columns: 1fr; }
-      .grid.cols-3 { grid-template-columns: 1fr; }
-      #equipSlots { grid-template-columns: 1fr 1fr !important; }
-      .topbar .row { flex-wrap: wrap; }
-      .ava { width:56px; height:56px; }
-      .icon { width:36px; height:36px; }
-      .btn.small { padding:7px 9px; font-size:11px; }
-      .panel .bd { padding:10px; }
-      .tabs { padding:0 10px 10px; }
-      .attrs-compact .stat { min-height: 26px; }
-    }
-
-    /* 讓主要內容不超出寬度（保險） */
-    .content { overflow-x: hidden; }
-
-    /* 固定屬性卡片高度（再縮） */
-    .attrs-compact { grid-auto-rows: 1fr; gap:6px; }
-    .attrs-compact .stat{padding:2px 8px;font-size:11px;line-height:1.1;min-height:30px;display:grid;align-content:center;}
-    .attr-right{ display:flex; align-items:center; gap:8px; }
-    .attr-desc{ opacity:.75; font-size:11px; white-space:nowrap; }
+    .elem input{position:absolute; inset:0; opacity:0; pointer-events:none;}
+    .elem .name{display:block; font-weight:700}
+    .elem .desc{display:block; font-size:12px; color:var(--muted)}
+    .elem.active{outline:2px solid var(--accent2); background:rgba(34,211,238,.12)}
+    footer.note{padding:12px 18px; color:var(--muted); font-size:12px;}
   </style>
-
-  <!-- Firebase（v8）放在這裡，供外部 js 使用 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 </head>
 <body>
-<div class="app" id="app">
-  <!-- Topbar -->
-  <div class="topbar">
-    <div class="row">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span class="chip">Lv.<span class="val" id="uiLevel">1</span></span>
-        <span class="chip">EXP <span class="val" id="uiExp">0/100</span></span>
-        <span class="chip">點數 <span class="val" id="uiPts">0</span></span>
-        <span class="chip">❤ 靈石 <span class="val" id="uiStone">0</span></span>
-        <span class="chip">💎 鑽石 <span class="val" id="uiDiamond">0</span></span>
-        <span class="chip">🪙 金幣 <span class="val" id="uiGold">0</span></span>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn ghost small" id="btnSave">儲存</button>
-        <button class="btn ghost small" id="btnLoad">讀取</button>
-        <button class="btn warn small" id="btnReset">重置</button>
-      </div>
-    </div>
-    <div class="bar" style="margin-top:8px"><span id="uiExpBar"></span></div>
-  </div>
+  <div class="stage">
+    <div class="app" id="app">
+      <header>
+        修仙RPG｜帳號登入
+      </header>
 
-  <!-- Tabs -->
-  <div class="tabs" id="tabbar">
-    <button data-tab="home" class="active">主頁</button>
-    <button data-tab="cultivate">修煉</button>
-    <button data-tab="bag">背包</button>
-    <button data-tab="equip">裝備</button>
-    <button data-tab="shop">商店</button>
-    <button data-tab="battle">戰鬥</button>
-    <button data-tab="more">更多（6個待開發）</button>
-  </div>
+      <!-- === 登入畫面 === -->
+      <section id="screen-login" class="screen">
+        <div class="card">
+          <h1>登入</h1>
+          <p class="sub">輸入帳號與密碼，首次登入若無角色會進入創角畫面。</p>
+          <div class="field">
+            <label for="loginUser">帳號</label>
+            <input id="loginUser" type="text" placeholder="例如：player1 / test" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="loginPass">密碼</label>
+            <input id="loginPass" type="password" placeholder="密碼" autocomplete="current-password" />
+          </div>
+          <div class="msg" id="loginMsg"></div>
+          <div class="row">
+            <button id="btnLogin">登入</button>
+            <button id="btnQuick" class="ghost" title="快速填入測試帳">一鍵測試</button>
+          </div>
+        </div>
+      </section>
 
-  <main class="content">
-    <!-- Home -->
-    <section class="panel" data-page="home">
-      <div class="hd" style="justify-content:center"><strong>少俠資訊</strong></div>
-      <div class="bd">
-        <div class="grid cols-2">
-          <div class="panel">
-            <div class="hd"><strong>基本屬性</strong></div>
-            <div class="bd">
-              <div class="face" style="margin-bottom:8px">
-                <div class="ava" style="width:72px;height:72px"><img id="homeAvatar" alt="玩家頭像"/></div>
-                <div style="flex:1">
-                  <div class="small muted" style="line-height:1.4">
-                    <div><strong id="homePlayerName">無名散修</strong></div>
-                    <div>等級 <span id="homePlayerLv">1</span></div>
-                  </div>
-                  <div class="hpbar" style="margin-top:6px">
-                    <span id="homeHpBar" style="width:100%"></span>
-                    <div class="bar-label" id="homeHpText">HP 0/0</div>
-                  </div>
-                  <div class="mpbar" style="margin-top:6px">
-                    <span id="homeMpBar" style="width:100%"></span>
-                    <div class="bar-label" id="homeMpText">MP 0/0</div>
-                  </div>
-                </div>
-              </div>
-              <div class="attrs-compact" id="attrList"></div>
+      <!-- === 創建角色畫面（首次無角色時顯示） === -->
+      <section id="screen-create" class="screen hidden">
+        <div class="card">
+          <h1>創建角色</h1>
+          <p class="sub">輸入角色名稱並選擇初始元素（可選：無 / 水 / 火）。</p>
+
+          <div class="field">
+            <label for="charName">角色名稱</label>
+            <input id="charName" type="text" placeholder="請輸入角色名稱" />
+          </div>
+
+          <div class="field">
+            <label>初始元素</label>
+            <div class="elements" id="elementGrid">
+              <!-- 單選卡 -->
+              <label class="elem" data-value="none">
+                <input type="radio" name="elem" value="none" checked />
+                <span class="name">無元素</span>
+                <span class="desc">平衡起步</span>
+              </label>
+              <label class="elem" data-value="water">
+                <input type="radio" name="elem" value="water" />
+                <span class="name">水元素</span>
+                <span class="desc">回復／控制</span>
+              </label>
+              <label class="elem" data-value="fire">
+                <input type="radio" name="elem" value="fire" />
+                <span class="name">火元素</span>
+                <span class="desc">爆發／灼燒</span>
+              </label>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- Cultivate -->
-    <section class="panel" data-page="cultivate" hidden>
-      <div class="hd"><strong>修煉（打坐）</strong><small class="muted">靜坐可獲得少量經驗</small></div>
-      <div class="bd">
-        <div class="grid cols-3">
-          <button class="btn ok" id="btnMeditate">打坐 +5 EXP</button>
-          <button class="btn ghost" id="btnReadBook">研讀經書（消耗：修煉經書）</button>
-          <button class="btn ghost" id="btnUseTown">使用回城符（非戰鬥）</button>
-        </div>
-        <p class="muted small" style="margin-top:10px">提示：經驗值達到上限後自動升級。升級會回滿氣血與真元（HP/MP），並提升屬性，另獲得可分配能力點。</p>
-      </div>
-    </section>
-
-    <!-- Bag -->
-    <section class="panel" data-page="bag" hidden>
-      <div class="hd"><strong>背包</strong><small class="muted">分類與使用限制</small></div>
-      <div class="bd">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <button class="btn ghost small" data-filter="all">全部</button>
-          <button class="btn ghost small" data-filter="consumable">消耗品</button>
-          <button class="btn ghost small" data-filter="potion">恢復丹藥</button>
-          <button class="btn ghost small" data-filter="equip">裝備/武器</button>
-          <button class="btn ghost small" data-filter="material">材料</button>
-          <button class="btn ghost small" data-filter="quest">任務</button>
-          <button class="btn ghost small" data-filter="other">其他</button>
-        </div>
-        <div id="bagList" class="list"></div>
-      </div>
-    </section>
-
-    <!-- Equip -->
-    <section class="panel" data-page="equip" hidden>
-      <div class="hd"><strong>裝備欄位</strong><small class="muted">武器1、披風1、鞋子1、勳章3、戒指2、待開發3</small></div>
-      <div class="bd">
-        <div class="grid cols-3" id="equipSlots"></div>
-        <hr style="border-color:rgba(255,255,255,.06);margin:12px 0"/>
-        <div class="list" id="equipInventory"></div>
-      </div>
-    </section>
-
-    <!-- Shop -->
-    <section class="panel" data-page="shop" hidden>
-      <div class="hd"><strong>雜貨鋪</strong><small class="muted">使用靈石或鑽石購買</small></div>
-      <div class="bd">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <button class="btn ghost small" data-shop="consumable">消耗品</button>
-          <button class="btn ghost small" data-shop="potion">恢復丹藥</button>
-          <button class="btn ghost small" data-shop="equip">裝備/武器</button>
-          <button class="btn ghost small" data-shop="material">材料</button>
-          <button class="btn ghost small" data-shop="other">其他</button>
-        </div>
-        <div class="list" id="shopList"></div>
-      </div>
-    </section>
-
-    <!-- Battle -->
-    <section class="panel" data-page="battle" hidden>
-      <div class="hd"><strong>歷練（回合制戰鬥）</strong><small class="muted">兩方行動條、HP 與 MP</small></div>
-      <div class="bd">
-        <div class="panel">
-          <div class="hd" style="flex-direction:column;gap:4px">
-            <strong id="enemyHeaderTitle" class="title-center title-xl">目前沒有敵人</strong>
-            <div class="small muted title-center" id="currentMapLabel" style="opacity:.9">地圖：未選擇</div>
-          </div>
-          <div class="bd">
-            <div class="face">
-              <div class="ava"><img id="enemyAvatar" alt="敵人"/></div>
-              <div style="flex:1">
-                <div class="hpbar" title="HP"><span id="enemyHpBar" style="width:100%"></span></div>
-                <div class="mpbar" title="MP" style="margin-top:6px"><span id="enemyMpBar" style="width:100%"></span></div>
-                <div class="bar" style="margin-top:8px"><span id="enemyActBar"></span></div>
-              </div>
-              <div class="chip">Lv.<span id="enemyLv">1</span></div>
-            </div>
+          <div class="row">
+            <!-- 依你的要求：按鈕「先不要定義」跳轉；這裡只觸發建立資料 -->
+            <button id="btnCreate">確認創建</button>
+            <button id="btnBackLogin" class="ghost">返回登入</button>
           </div>
         </div>
+      </section>
 
-        <div class="panel">
-          <div class="hd"><strong id="playerHeaderTitle" class="title-center">少俠</strong></div>
-          <div class="bd">
-            <div class="face">
-              <div class="ava"><img id="playerAvatar" alt="玩家"/></div>
-              <div style="flex:1">
-                <div class="hpbar"><span id="playerHpBar" style="width:100%"></span></div>
-                <div class="mpbar" style="margin-top:6px"><span id="playerMpBar" style="width:100%"></span></div>
-                <div class="bar" style="margin-top:8px"><span id="playerActBar"></span></div>
-              </div>
-              <div class="chip">Lv.<span id="playerLv2">1</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel" id="battleLogPanel">
-          <div class="hd"><strong>戰報</strong><small class="muted">行動與結果</small></div>
-          <div class="bd" id="battleLog" style="min-height:80px;max-height:180px;overflow:auto"></div>
-        </div>
-
-        <div class="actions" id="battleActions">
-          <button class="btn" id="actAttack">攻擊</button>
-          <button class="btn" id="actSkill">技能</button>
-          <button class="btn" id="actItem">道具</button>
-          <button class="btn ghost" id="actDefend">防禦/調息</button>
-        </div>
-        <div class="center small muted" id="turnHint">等待行動條填滿...</div>
-
-        <div class="grid cols-3">
-          <button class="btn ok" id="btnStartBattle">開始/下一場</button>
-          <button class="btn ghost" id="btnFlee">逃跑</button>
-          <button class="btn ghost" id="btnChooseMap">選地圖</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- More -->
-    <section class="panel" data-page="more" hidden>
-      <div class="hd"><strong>更多系統</strong><small class="muted">以下 6 個按鈕為待開發</small></div>
-      <div class="bd grid cols-3">
-        <button class="btn ghost" data-soon>宗門</button>
-        <button class="btn ghost" data-soon>秘境</button>
-        <button class="btn ghost" data-soon>鍛造</button>
-        <button class="btn ghost" data-soon>寵物</button>
-        <button class="btn ghost" data-soon>社交</button>
-        <button class="btn ghost" data-soon>排行榜</button>
-      </div>
-    </section>
-  </main>
-
-  <!-- Bottom Nav -->
-  <nav class="nav">
-    <div class="row">
-      <button data-tab="home">主頁</button>
-      <button data-tab="cultivate">修煉</button>
-      <button data-tab="bag">背包</button>
-      <button data-tab="equip">裝備</button>
-      <button data-tab="shop">商店</button>
-      <button data-tab="battle">戰鬥</button>
+      <footer class="note">
+        畫面以 <strong>93∶128</strong> 比例自動縮放，未寫死解析度；適配手機直向。
+      </footer>
     </div>
-  </nav>
-</div>
-
-<!-- Skill Modal -->
-<div class="modal" id="skillModal">
-  <div class="box panel">
-    <div class="hd"><strong>選擇技能</strong><button class="btn ghost small" id="closeSkillModal">關閉</button></div>
-    <div class="bd list" id="skillList"></div>
   </div>
-</div>
 
-<!-- Map Modal -->
-<div class="modal" id="mapModal">
-  <div class="box panel">
-    <div class="hd"><strong>選擇地圖</strong><button class="btn ghost small" id="closeMapModal">關閉</button></div>
-    <div class="bd list" id="mapList"></div>
-  </div>
-</div>
+  <!-- 模擬帳號資料庫／登入邏輯 -->
+<!-- 置於 index.html 末尾的 <script> 內，覆蓋原邏輯 -->
+<script src="auth.js"></script>
+<script>
+  const scrLogin   = document.getElementById('screen-login');
+  const scrCreate  = document.getElementById('screen-create');
+  const loginMsg   = document.getElementById('loginMsg');
+  const elGrid     = document.getElementById('elementGrid');
+  const loginUser  = document.getElementById('loginUser');
+  const loginPass  = document.getElementById('loginPass');
 
-<!-- Item Modal -->
-<div class="modal" id="itemModal">
-  <div class="box panel">
-    <div class="hd"><strong>選擇道具</strong><button class="btn ghost small" id="closeItemModal">關閉</button></div>
-    <div class="bd list" id="battleItemList"></div>
-  </div>
-</div>
+  // ★ 新增：如果從 game.html 被導回 index.html#create，就直接打開創角畫面
+  if (location.hash === '#create') {
+    scrLogin.classList.add('hidden');
+    scrCreate.classList.remove('hidden');
+  }
 
-<!-- Win Modal -->
-<div class="modal" id="winModal">
-  <div class="box panel">
-    <div class="hd"><strong>戰鬥勝利</strong><button class="btn ghost small" id="closeWinModal">關閉</button></div>
-    <div class="bd list" id="winBody"></div>
-  </div>
-</div>
+  elGrid.addEventListener('click', (e)=>{
+    const card = e.target.closest('.elem'); if(!card) return;
+    [...elGrid.querySelectorAll('.elem')].forEach(el=>el.classList.remove('active'));
+    card.classList.add('active');
+    card.querySelector('input[type="radio"]').checked = true;
+  });
 
-<!-- Equip Detail Modal -->
-<div class="modal" id="equipInfoModal">
-  <div class="box panel">
-    <div class="hd">
-      <strong id="equipInfoTitle">裝備詳情</strong>
-      <div style="display:flex;gap:6px;align-items:center">
-        <button class="btn ghost small" id="equipInfoUnequip" style="display:none">卸下</button>
-        <button class="btn ghost small" id="closeEquipInfoModal">關閉</button>
-      </div>
-    </div>
-    <div class="bd" id="equipInfoBody"></div>
-  </div>
-</div>
+  document.getElementById('btnQuick').addEventListener('click', ()=>{
+    loginUser.value = 'test';
+    loginPass.value = '1234';
+  });
 
-<!-- Toast -->
-<div class="toast" id="toast"><div class="inner" id="toastMsg">訊息</div></div>
+  document.getElementById('btnLogin').addEventListener('click', ()=>{
+    const u = loginUser.value.trim();
+    const p = loginPass.value.trim();
+    const { success, message, hasCharacter } = Auth.login(u, p);
 
-<!-- 依序載入：資料 → 戰鬥 → UI（全部以手機規格為主） -->
-<script src="./data.js" defer></script>
-<script src="./ui.js" defer></script>
-<script src="./battle.js" defer></script>
+    if(!success){ loginMsg.textContent = message || '登入失敗'; loginMsg.style.color='var(--danger)'; return; }
+    loginMsg.style.color = 'var(--ok)';
+    loginMsg.textContent = '登入成功';
+
+    if(!hasCharacter){
+      scrLogin.classList.add('hidden');
+      scrCreate.classList.remove('hidden');
+    }else{
+      // 已有角色 → 直接進遊戲
+      window.location.href = 'game.html';
+    }
+  });
+
+  document.getElementById('btnCreate').addEventListener('click', ()=>{
+    const name = (document.getElementById('charName').value || '').trim();
+    const elem = (elGrid.querySelector('input[name="elem"]:checked') || {}).value || 'none';
+    if(!name){ alert('請輸入角色名稱'); return; }
+
+    const ok = Auth.createCharacter(name, elem);
+    if(ok){
+      // 創角完成 → 進遊戲
+      window.location.href = 'game.html';
+    }else{
+      alert('創角失敗，請重試');
+    }
+  });
+
+  document.getElementById('btnBackLogin').addEventListener('click', ()=>{
+    scrCreate.classList.add('hidden');
+    scrLogin.classList.remove('hidden');
+  });
+</script>
 </body>
 </html>

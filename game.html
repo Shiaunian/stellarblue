@@ -1,409 +1,1004 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>修仙RPG（手機直向・單檔）</title>
-  <style>
-    :root{
-      --bg:#0b1024;--bg2:#0e1536;--panel:#131a3f;--panel-2:#0f1534;--muted:#9aa3b2;--text:#eaf2ff;
-      --accent:#8b5cf6;--accent2:#22d3ee;--hp:#ef4444;--mp:#3b82f6;--bar:#334155;--ok:#22c55e;--warn:#f59e0b;
-      --radius:16px;--gap:12px;--shadow:0 8px 24px rgba(0,0,0,.35);
-    }
-    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-    html,body{margin:0;height:100%;background:linear-gradient(135deg,var(--bg) 0%, var(--bg2) 100%);color:var(--text);font-family: system-ui,-apple-system,"Microsoft JhengHei",Segoe UI,Roboto,Inter,sans-serif}
-    button{border:none;background:none;color:inherit}
+<meta charset="UTF-8" />
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>修仙RPG｜主城</title>
+<style>
+  :root{
+    --bg:#0b1024; --bg2:#0e1536; --panel:#131a3f; --panel-2:#0f1534; --muted:#9aa3b2; --text:#eaf2ff;
+    --accent:#8b5cf6; --accent2:#22d3ee; --hp:#ef4444; --mp:#3b82f6; --bar:#334155; --ok:#22c55e; --warn:#f59e0b;
+    --gold:#b98c4b; --gold-2:#7a5b31;
+    --radius:16px; --gap:12px; --shadow:0 10px 28px rgba(0,0,0,.35);
+    --elem-none:#64748b; --elem-water:#38bdf8; --elem-fire:#f97316;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%; margin:0; font-family:"Microsoft JhengHei",system-ui,Segoe UI,Roboto,sans-serif; color:var(--text); background:var(--bg);}
+  /* 讓遊戲畫面靠上，而不是整個置中 */
+  .stage{
+    position:fixed;
+    inset:0;
+    display:grid;
+    justify-items:center;   /* 水平置中 */
+    align-items:start;      /* 垂直靠上 */
+    overflow:auto;          /* 內容超高可捲動 */
+    padding-top: max(6px, env(safe-area-inset-top)); /* iPhone 瀏海安全距 */
+  }
+  /* 保持 93:128 比例，自適應縮放；高度永不超過視口 */
+  .app{
+    aspect-ratio: 93 / 150;
+    width: min(100svw, calc(100svh * 93 / 150));
+    max-height: 100svh;
+    background: linear-gradient(180deg, var(--bg2), var(--panel));
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  /* ========== Header ========== */
+  header{
+    padding:10px 12px; background:rgba(255,255,255,.06);
+    display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .h-left{display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:center; min-width:0;}
+  .avatar{
+    width:44px; height:44px; border-radius:50%; object-fit:cover; flex:0 0 auto;
+    background:#222; border:2px solid rgba(255,255,255,.15);
+  }
+  .pinfo{display:flex; flex-direction:column; min-width:0;}
+  .prow{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .pname{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .plv{font-size:12px; opacity:.9;}
+  .pill{display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px;
+        background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);}
+  .elem{font-weight:700;}
+  .elem.none{background:var(--elem-none); color:#0b1024;}
+  .elem.water{background:var(--elem-water); color:#07223a;}
+  .elem.fire{background:var(--elem-fire); color:#2b0a00;}
 
-    .app{display:flex;flex-direction:column;min-height:100svh}
-    .topbar{position:sticky;top:0;z-index:20;backdrop-filter: blur(8px);background:rgba(15,16,42,.5);padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
-    .topbar .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
-    .chip{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);display:flex;gap:6px;align-items:center;font-size:12px}
-    .chip .val{font-weight:700}
-    .bar{height:8px;background:var(--bar);border-radius:999px;overflow:hidden}
-    .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));width:0%}
+  /* 右欄改用 flex，把勳章與貨幣放在一起 */
+  .h-right{display:flex; align-items:center; gap:10px; min-width:0;}
 
-    .content{flex:1;display:flex;flex-direction:column;gap:var(--gap);padding:12px}
-    .panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid rgba(255,255,255,.06);border-radius:var(--radius);box-shadow:var(--shadow)}
-    .panel .hd{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
-    .panel .bd{padding:12px}
-    .grid{display:grid;gap:var(--gap)}
-    .grid.cols-2{grid-template-columns:1fr 1fr}
-    .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+  /* 勳章槽（預設 5 個） */
+  .medals{display:flex; gap:6px;}
+  .medal-slot{
+    width:30px; height:30px; border-radius:50%; border:2px solid rgba(255,255,255,.25);
+    display:grid; place-items:center; font-size:12px; color:#cbd5e1; background:rgba(255,255,255,.06);
+    overflow:hidden;
+  }
+  .medal-slot img{width:100%; height:100%; object-fit:cover; display:block;}
 
-    .stat{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:rgba(255,255,255,.04);border-radius:12px}
-    .stat small{opacity:.7; font-variant-numeric: tabular-nums;}
-    .stat .add{margin-left:8px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.12);font-weight:800}
-    .stat small.val{display:inline-block;min-width:3ch;text-align:right;}
-    .attr-right{ display:flex; align-items:center; gap:8px }
-    .attr-desc{ opacity:.75; font-size:11px; white-space:nowrap }
+  /* 貨幣 */
+  .coins{display:flex; gap:8px; white-space:nowrap; min-width:0;}
+  .coin{
+    display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); font-size:12px;
+  }
+  .icon-box{
+    width:18px; height:18px; border-radius:4px; overflow:hidden;
+    display:grid; place-items:center;
+  }
+  .icon-box img{ width:100%; height:100%; object-fit:cover; display:block; }
 
-    .tabs{display:flex;gap:8px;overflow:auto;padding:0 12px 12px}
-    .tabs button{flex:0 0 auto;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.08)}
-    .tabs button.active{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#0b1024;font-weight:800}
+  .val{max-width:110px; overflow:hidden; text-overflow:ellipsis;}
 
-    .nav{position:sticky;bottom:0;z-index:20;background:rgba(15,16,42,.65);backdrop-filter:blur(8px);border-top:1px solid rgba(255,255,255,.06)}
-    .nav .row{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:6px}
-    .nav button{padding:8px;border-radius:10px;background:rgba(255,255,255,.06);font-size:12px}
+  /* 登出按鈕（與右欄風格一致的小圓形） */
+  .icon-btn{
+    width:32px; height:32px; border-radius:999px;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.06);
+    color:#fff; font-weight:900; cursor:pointer;
+    display:grid; place-items:center; flex:0 0 auto;
+  }
+  .icon-btn:active{ transform: translateY(1px); }
 
-    .btn{padding:10px 12px;border-radius:12px;background:linear-gradient(90deg,var(--accent2),var(--accent));color:#0b1024;font-weight:800}
-    .btn.ghost{background:rgba(255,255,255,.08);color:var(--text);font-weight:600}
-    .btn.warn{background:linear-gradient(90deg,#fb7185,#f59e0b);color:#0b1024}
-    .btn.ok{background:linear-gradient(90deg,#34d399,#22d3ee);color:#0b1024}
-    .btn.small{font-size:12px;padding:8px 10px}
+  /* 分隔線 */
+  .divider{height:1px; background:rgba(255,255,255,.08); margin:6px 0;}
 
-    .list{display:grid;gap:8px}
-    .card{display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06)}
-    .card .grow{flex:1}
-    .tag{font-size:10px;padding:3px 6px;border-radius:999px;background:rgba(255,255,255,.1)}
+  /* ========== 主體 ========== */
+  .main{flex:1; display:flex; flex-direction:column; gap:10px; padding:8px 12px 0; overflow:auto;}
 
-    .face{display:flex;align-items:center;gap:10px}
-    .ava{width:64px;height:64px;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.06);flex:0 0 64px;border:1px solid rgba(255,255,255,.08)}
-    .ava img{width:100%;height:100%;object-fit:cover;display:block}
-    .icon{width:40px;height:40px;flex:0 0 40px;border-radius:10px;background:rgba(255,255,255,.06);display:grid;place-items:center;border:1px solid rgba(255,255,255,.08);overflow:hidden}
-    .icon img{width:100%;height:100%;object-fit:contain;display:block}
+  /* 三條狀態列（左label、右數字、中間進度條） */
+  .bars{display:grid; gap:8px;}
+  .stat-row{display:grid; grid-template-columns:48px 1fr 56px; align-items:center; gap:8px;}
+  .label{font-size:14px; color:#e2e8f0; text-align:right;}
+  .num{font-size:12px; color:#e2e8f0; text-align:right;}
+  .prog{height:14px; background:#1f273a; border-radius:999px; position:relative; overflow:hidden;
+        box-shadow: inset 0 2px 0 rgba(255,255,255,.06), inset 0 -2px 0 rgba(0,0,0,.25);}
+  .fill{height:100%; width:0%;}
+  .fill.sta{background:linear-gradient(90deg,#eab308,#f59e0b);}  /* 體力：黃橘 */
+  .fill.exp{background:linear-gradient(90deg,#16a34a,#4ade80);}  /* 經驗：綠 */
+  .fill.hp {background:linear-gradient(90deg,#ef4444,#b91c1c);}  /* 氣血：紅 */
 
-    .hpbar,.mpbar{position:relative;height:10px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.08)}
-    .hpbar>span{display:block;height:100%;background:linear-gradient(90deg,#ef4444,#f97316)}
-    .mpbar>span{display:block;height:100%;background:linear-gradient(90deg,#60a5fa,#22d3ee)}
-    .bar-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none}
+  /* 金色主導航 */
+  .actions{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding-top:6px;}
+  .gbtn{
+    padding:10px 0; text-align:center; border-radius:10px; font-weight:800; letter-spacing:2px;
+    color:#fff; background:linear-gradient(#a6783e,#7f5626); border:1px solid #5e3d1a;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 2px 0 rgba(0,0,0,.2);
+  }
 
-    .actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-    .actions .btn{padding:12px}
-    [data-page="battle"] .actions .btn,
-    [data-page="battle"] .grid .btn{padding:8px 10px;font-size:13px;}
+  /* 「主 城」標題 */
+  .title{ text-align:center; color:#c7d2fe; font-weight:900; letter-spacing:6px; padding-top:4px; }
 
-    .toast{position:fixed;inset:auto 12px 88px 12px;z-index:50;display:none}
-    .toast .inner{padding:10px 12px;border-radius:12px;background:#111827;color:#f9fafb;border:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow)}
+  /* 模組卡片網格 */
+  .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; padding-bottom:6px;}
+  .card{background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px;
+        padding:10px; display:grid; grid-template-columns:52px 1fr; gap:10px; align-items:center;}
+  /* 讓卡片縮圖也可以放網路圖片 */
+  .thumb{
+    width:52px; height:52px; border-radius:10px; overflow:hidden;
+    display:grid; place-items:center; background:#1e293b;
+  }
+  .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
 
-    .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.5);z-index:60}
-    .modal .box{width:min(640px,92vw);max-height:80vh;overflow:auto}
+  .ctitle{font-weight:800; letter-spacing:1px;}
+  .csub{font-size:12px; color:var(--muted);}
 
-    .muted{color:var(--muted)}
-    .center{display:flex;align-items:center;justify-content:center}
-    .small{font-size:12px}
-    .equip-name{font-weight:800}
-    .title-center{ width:100%; text-align:center; }
-    .title-xl{ font-size:18px; font-weight:800; letter-spacing:.5px }
+  /* 戰報＋聊天輸入區 */
+  .dock{padding:0 12px 10px;}
+  .chatbox{
+    background:#060a1a; border:1px solid rgba(255,255,255,.2); border-radius:10px; position:relative;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.4);
+  }
+  .corner-btn{position:absolute; width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent;
+              border-top:12px solid #fff; right:10px;}
+  .corner-btn.top{top:-6px;} .corner-btn.bottom{bottom:-6px; transform:rotate(180deg);}
+  .log{height:92px; overflow:auto; padding:8px 10px; font-size:12px;}
+  .log .item{line-height:1.5}
+  .log .ok{color:var(--ok)} .log .warn{color:var(--warn)} .log .muted{color:var(--muted)}
+  .speak{display:flex; gap:8px; border-top:1px solid rgba(255,255,255,.1); padding:8px; background:#0a1024; border-radius:0 0 10px 10px;}
+  .speak input{flex:1; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:#fff; color:#111;}
+  .speak button{padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-weight:700;}
 
-    .attrs-compact{display:grid;grid-template-columns:1fr;gap:8px}
-    .attrs-compact .stat{padding:4px 8px; font-size:12px; line-height:1.15}
-    .attrs-compact .stat small{ opacity:.8 }
+  /*避免戰報/外層滾動「互搶」與下巴遮擋*/
+  .stage, .log { overscroll-behavior: contain; }
+  .dock { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
 
-    .rarity-common{ color:#fff; border-color:rgba(255,255,255,.18) }
-    .rarity-rare{ color:#34d399; border-color:#34d39988; box-shadow:0 0 0 1px #34d39944 inset }
-    .rarity-epic{ color:#60a5fa; border-color:#60a5fa88; box-shadow:0 0 0 1px #60a5fa44 inset }
-    .rarity-legend{ color:#a78bfa; border-color:#a78bfaaa; box-shadow:0 0 0 1px #a78bfa55 inset }
-    .rarity-mythic{ color:#fb923c; border-color:#fb923caa; box-shadow:0 0 0 1px #fb923c55 inset }
-    .rarity-relic{ color:#ef4444; border-color:#ef4444aa; animation:glow 2s ease-in-out infinite }
-    @keyframes glow {
-      0%,100%{ box-shadow:0 0 0 1px #ef444455 inset, 0 0 12px 2px #ef444422 }
-      50%    { box-shadow:0 0 0 1px #ef4444aa inset, 0 0 18px 4px #ef444433 }
-    }
+  /* ===== 屬性面板（Modal）===== */
+ .modal{ position:fixed; inset:0; display:none; place-items:center; z-index:999; }
+ .modal.show{ display:grid; }
+ .modal .mask{ position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter: blur(2px); }
+ .sheet{
+  position:relative; width:min(92vw, 520px); border-radius:16px; overflow:hidden;
+  background:var(--panel-2); border:1px solid rgba(255,255,255,.12); box-shadow: var(--shadow);
+  color:var(--text);
+ }
+ .sheet .sec-title{
+  background:rgba(255,255,255,.06); border-bottom:1px solid rgba(255,255,255,.08);
+  text-align:center; font-weight:900; letter-spacing:4px; padding:8px 12px; position:relative;
+ }
+ .sheet .close{
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  width:24px; height:24px; border-radius:999px; display:grid; place-items:center;
+  background:#ef4444; color:#fff; font-weight:900; cursor:pointer; user-select:none;
+ }
+ .sheet .body{ padding:12px; display:grid; gap:12px; }
 
-    .slot{display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer;min-height:64px}
-    .slot .meta{display:flex;flex-direction:column;gap:4px}
-    .slot .label{font-size:12px;opacity:.8}
-    .slot .name{font-weight:800}
-    .slot .meta .name { max-width: 100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+ .attr-list{ display:grid; gap:8px; }
+ .attr-row{
+  display:grid; grid-template-columns:70px 42px 1fr 40px; align-items:center; gap:8px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:6px 8px;
+ }
+ .attr-name{ font-weight:700; }
+ .attr-val{ font-variant-numeric: tabular-nums; text-align:right; }
+ .attr-bar{
+  height:12px; background:#1f273a; border-radius:999px; overflow:hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -1px 0 rgba(0,0,0,.3);
+ }
+ .attr-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--accent2),var(--accent)); }
+ .attr-plus{
+  width:32px; height:26px; border-radius:8px; border:1px solid rgba(255,255,255,.18);
+  background:linear-gradient(180deg,#22c55e,#16a34a); color:#fff; font-weight:900; cursor:pointer;
+  display:grid; place-items:center; user-select:none;
+ }
+ .attr-plus.hide{ display:none; }
 
-    .floating-dmg{
-      position: absolute; pointer-events:none;
-      font-weight:800; text-shadow:0 1px 2px rgba(0,0,0,.6);
-      animation: dmgUp .8s ease-out forwards;
-    }
-    .floating-dmg.red{ color:#f87171; }
-    .floating-dmg.blue{ color:#60a5fa; }
-    @keyframes dmgUp{ 0%{ transform:translateY(0); opacity:1 } 100%{ transform:translateY(-18px); opacity:0 } }
+ .remain{ text-align:right; font-size:12px; color:#e2e8f0; }
+ .kv{ display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; }
+ .kv .item{ display:flex; justify-content:space-between; gap:8px; padding:6px 8px;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:8px; }
+ .kv .k{ opacity:.85; } .kv .v{ font-variant-numeric: tabular-nums; }
 
-    .actions .btn:disabled{opacity:.5; filter:grayscale(0.3);}
+ /* ===== Bag（儲物袋） ===== */
+.bag-tabs{display:flex; gap:8px; padding:8px; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.08);}
+.bag-tab{padding:6px 10px; border-radius:8px; font-weight:700; cursor:pointer; user-select:none;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);}
+.bag-tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff;}
 
-    /* 以手機為主：當寬度較窄或視窗比例小於 128:93 時，壓縮欄數 */
-    @media (max-width: 420px), (max-aspect-ratio: 128/93) {
-      .grid.cols-2 { grid-template-columns: 1fr; }
-      .grid.cols-3 { grid-template-columns: 1fr; }
-      #equipSlots { grid-template-columns: 1fr 1fr !important; }
-      .topbar .row { flex-wrap: wrap; }
-      .ava { width:56px; height:56px; }
-      .icon { width:36px; height:36px; }
-      .btn.small { padding:7px 9px; font-size:11px; }
-      .panel .bd { padding:10px; }
-      .tabs { padding:0 10px 10px; }
-      .attrs-compact .stat { min-height: 26px; }
-    }
+.bag-body{padding:10px; display:grid; gap:8px; max-height:60vh; overflow:auto;}
+/* === Bag rows === */
+.item-row{
+  display:grid; grid-template-columns:44px 1fr; gap:8px; align-items:center;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:6px 8px;
+  min-height:60px; cursor:pointer;
+}
+.item-thumb{width:44px; height:44px; border-radius:8px; background:#1e293b; display:grid; place-items:center; font-weight:900;}
+.item-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
 
-    /* 讓主要內容不超出寬度（保險） */
-    .content { overflow-x: hidden; }
+.item-main{display:grid; gap:3px;}
+.item-title.cons{display:grid; grid-template-columns: 1fr 90px 80px; align-items:center; column-gap:6px;}
+.item-title.wep{display:grid; grid-template-columns: 64px 1fr auto; align-items:center; column-gap:6px;}
 
-    /* 固定屬性卡片高度（再縮） */
-    .attrs-compact { grid-auto-rows: 1fr; gap:6px; }
-    .attrs-compact .stat{padding:2px 8px;font-size:11px;line-height:1.1;min-height:30px;display:grid;align-content:center;}
-    .attr-right{ display:flex; align-items:center; gap:8px; }
-    .attr-desc{ opacity:.75; font-size:11px; white-space:nowrap; }
-  </style>
+.item-name{
+  font-weight:800; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+  background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18); border-radius:9999px;
+  padding:4px 10px; text-align:center;
+}
+.count-slot{
+  justify-self:end; min-width:72px; text-align:right; font-variant-numeric: tabular-nums;
+  background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18); border-radius:9999px; padding:3px 8px;
+}
+.meta-effect{justify-self:end;}
 
-  <!-- Firebase（v8）放在這裡，供外部 js 使用 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+.badge{display:inline-block; padding:1px 6px; font-size:12px; border-radius:9999px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.10);}
+.badge.hp{background:#7f1d1d; border-color:#ef4444; color:#fff;}
+.badge-lv{background:rgba(255,255,255,.85); color:#0b1024; font-weight:900; border-radius:8px; padding:2px 6px;}
+
+.right-meta{display:flex; align-items:center; gap:10px;}
+.dur-chip{background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18); border-radius:9999px; padding:2px 8px; font-size:12px; color:#e2e8f0;}
+
+.item-sub{display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--muted); line-height:1.2;}
+.sub-left{white-space:nowrap;}
+.sub-right{white-space:nowrap; color:#93c5fd;}
+.price{font-size:12px; color:#e2e8f0;}
+.rarity-普通{color:#e5e7eb;}
+.rarity-精良{color:#22c55e;}
+.rarity-稀有{color:#38bdf8;}
+.rarity-史詩{color:#a78bfa;}
+.rarity-傳說{color:#f59e0b;}
+.dur{font-size:12px; color:#e2e8f0;}
+
+/* === 物品操作面板（點列後才顯示） === */
+#bagAction{position:fixed; inset:0; display:none; place-items:center; z-index:1000;}
+#bagAction.show{display:grid;}
+#bagAction .mask{position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter: blur(2px);}
+#bagAction .sheet{position:relative; width:min(92vw, 420px);}
+#bagAction .ops{display:flex; justify-content:flex-end; gap:8px;}
+.opx{padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.08); color:#fff; font-weight:700; cursor:pointer;}
+.opx.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));}
+</style>
 </head>
 <body>
-<div class="app" id="app">
-  <!-- Topbar -->
-  <div class="topbar">
-    <div class="row">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span class="chip">Lv.<span class="val" id="uiLevel">1</span></span>
-        <span class="chip">EXP <span class="val" id="uiExp">0/100</span></span>
-        <span class="chip">點數 <span class="val" id="uiPts">0</span></span>
-        <span class="chip">❤ 靈石 <span class="val" id="uiStone">0</span></span>
-        <span class="chip">💎 鑽石 <span class="val" id="uiDiamond">0</span></span>
-        <span class="chip">🪙 金幣 <span class="val" id="uiGold">0</span></span>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn ghost small" id="btnSave">儲存</button>
-        <button class="btn ghost small" id="btnLoad">讀取</button>
-        <button class="btn warn small" id="btnReset">重置</button>
-      </div>
+
+<!-- 屬性面板 -->
+<div id="attrModal" class="modal" aria-hidden="true">
+  <div class="mask" data-close="attr"></div>
+  <div class="sheet" role="dialog" aria-labelledby="attrTitle">
+    <div class="sec-title" id="attrTitle">
+      基本屬性
+      <div class="close" data-close="attr">✕</div>
     </div>
-    <div class="bar" style="margin-top:8px"><span id="uiExpBar"></span></div>
-  </div>
-
-  <!-- Tabs -->
-  <div class="tabs" id="tabbar">
-    <button data-tab="home" class="active">主頁</button>
-    <button data-tab="cultivate">修煉</button>
-    <button data-tab="bag">背包</button>
-    <button data-tab="equip">裝備</button>
-    <button data-tab="shop">商店</button>
-    <button data-tab="battle">戰鬥</button>
-    <button data-tab="more">更多（6個待開發）</button>
-  </div>
-
-  <main class="content">
-    <!-- Home -->
-    <section class="panel" data-page="home">
-      <div class="hd" style="justify-content:center"><strong>少俠資訊</strong></div>
-      <div class="bd">
-        <div class="grid cols-2">
-          <div class="panel">
-            <div class="hd"><strong>基本屬性</strong></div>
-            <div class="bd">
-              <div class="face" style="margin-bottom:8px">
-                <div class="ava" style="width:72px;height:72px"><img id="homeAvatar" alt="玩家頭像"/></div>
-                <div style="flex:1">
-                  <div class="small muted" style="line-height:1.4">
-                    <div><strong id="homePlayerName">無名散修</strong></div>
-                    <div>等級 <span id="homePlayerLv">1</span></div>
-                  </div>
-                  <div class="hpbar" style="margin-top:6px">
-                    <span id="homeHpBar" style="width:100%"></span>
-                    <div class="bar-label" id="homeHpText">HP 0/0</div>
-                  </div>
-                  <div class="mpbar" style="margin-top:6px">
-                    <span id="homeMpBar" style="width:100%"></span>
-                    <div class="bar-label" id="homeMpText">MP 0/0</div>
-                  </div>
-                </div>
-              </div>
-              <div class="attrs-compact" id="attrList"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Cultivate -->
-    <section class="panel" data-page="cultivate" hidden>
-      <div class="hd"><strong>修煉（打坐）</strong><small class="muted">靜坐可獲得少量經驗</small></div>
-      <div class="bd">
-        <div class="grid cols-3">
-          <button class="btn ok" id="btnMeditate">打坐 +5 EXP</button>
-          <button class="btn ghost" id="btnReadBook">研讀經書（消耗：修煉經書）</button>
-          <button class="btn ghost" id="btnUseTown">使用回城符（非戰鬥）</button>
-        </div>
-        <p class="muted small" style="margin-top:10px">提示：經驗值達到上限後自動升級。升級會回滿氣血與真元（HP/MP），並提升屬性，另獲得可分配能力點。</p>
-      </div>
-    </section>
-
-    <!-- Bag -->
-    <section class="panel" data-page="bag" hidden>
-      <div class="hd"><strong>背包</strong><small class="muted">分類與使用限制</small></div>
-      <div class="bd">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <button class="btn ghost small" data-filter="all">全部</button>
-          <button class="btn ghost small" data-filter="consumable">消耗品</button>
-          <button class="btn ghost small" data-filter="potion">恢復丹藥</button>
-          <button class="btn ghost small" data-filter="equip">裝備/武器</button>
-          <button class="btn ghost small" data-filter="material">材料</button>
-          <button class="btn ghost small" data-filter="quest">任務</button>
-          <button class="btn ghost small" data-filter="other">其他</button>
-        </div>
-        <div id="bagList" class="list"></div>
-      </div>
-    </section>
-
-    <!-- Equip -->
-    <section class="panel" data-page="equip" hidden>
-      <div class="hd"><strong>裝備欄位</strong><small class="muted">武器1、披風1、鞋子1、勳章3、戒指2、待開發3</small></div>
-      <div class="bd">
-        <div class="grid cols-3" id="equipSlots"></div>
-        <hr style="border-color:rgba(255,255,255,.06);margin:12px 0"/>
-        <div class="list" id="equipInventory"></div>
-      </div>
-    </section>
-
-    <!-- Shop -->
-    <section class="panel" data-page="shop" hidden>
-      <div class="hd"><strong>雜貨鋪</strong><small class="muted">使用靈石或鑽石購買</small></div>
-      <div class="bd">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <button class="btn ghost small" data-shop="consumable">消耗品</button>
-          <button class="btn ghost small" data-shop="potion">恢復丹藥</button>
-          <button class="btn ghost small" data-shop="equip">裝備/武器</button>
-          <button class="btn ghost small" data-shop="material">材料</button>
-          <button class="btn ghost small" data-shop="other">其他</button>
-        </div>
-        <div class="list" id="shopList"></div>
-      </div>
-    </section>
-
-    <!-- Battle -->
-    <section class="panel" data-page="battle" hidden>
-      <div class="hd"><strong>歷練（回合制戰鬥）</strong><small class="muted">兩方行動條、HP 與 MP</small></div>
-      <div class="bd">
-        <div class="panel">
-          <div class="hd" style="flex-direction:column;gap:4px">
-            <strong id="enemyHeaderTitle" class="title-center title-xl">目前沒有敵人</strong>
-            <div class="small muted title-center" id="currentMapLabel" style="opacity:.9">地圖：未選擇</div>
-          </div>
-          <div class="bd">
-            <div class="face">
-              <div class="ava"><img id="enemyAvatar" alt="敵人"/></div>
-              <div style="flex:1">
-                <div class="hpbar" title="HP"><span id="enemyHpBar" style="width:100%"></span></div>
-                <div class="mpbar" title="MP" style="margin-top:6px"><span id="enemyMpBar" style="width:100%"></span></div>
-                <div class="bar" style="margin-top:8px"><span id="enemyActBar"></span></div>
-              </div>
-              <div class="chip">Lv.<span id="enemyLv">1</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="hd"><strong id="playerHeaderTitle" class="title-center">少俠</strong></div>
-          <div class="bd">
-            <div class="face">
-              <div class="ava"><img id="playerAvatar" alt="玩家"/></div>
-              <div style="flex:1">
-                <div class="hpbar"><span id="playerHpBar" style="width:100%"></span></div>
-                <div class="mpbar" style="margin-top:6px"><span id="playerMpBar" style="width:100%"></span></div>
-                <div class="bar" style="margin-top:8px"><span id="playerActBar"></span></div>
-              </div>
-              <div class="chip">Lv.<span id="playerLv2">1</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel" id="battleLogPanel">
-          <div class="hd"><strong>戰報</strong><small class="muted">行動與結果</small></div>
-          <div class="bd" id="battleLog" style="min-height:80px;max-height:180px;overflow:auto"></div>
-        </div>
-
-        <div class="actions" id="battleActions">
-          <button class="btn" id="actAttack">攻擊</button>
-          <button class="btn" id="actSkill">技能</button>
-          <button class="btn" id="actItem">道具</button>
-          <button class="btn ghost" id="actDefend">防禦/調息</button>
-        </div>
-        <div class="center small muted" id="turnHint">等待行動條填滿...</div>
-
-        <div class="grid cols-3">
-          <button class="btn ok" id="btnStartBattle">開始/下一場</button>
-          <button class="btn ghost" id="btnFlee">逃跑</button>
-          <button class="btn ghost" id="btnChooseMap">選地圖</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- More -->
-    <section class="panel" data-page="more" hidden>
-      <div class="hd"><strong>更多系統</strong><small class="muted">以下 6 個按鈕為待開發</small></div>
-      <div class="bd grid cols-3">
-        <button class="btn ghost" data-soon>宗門</button>
-        <button class="btn ghost" data-soon>秘境</button>
-        <button class="btn ghost" data-soon>鍛造</button>
-        <button class="btn ghost" data-soon>寵物</button>
-        <button class="btn ghost" data-soon>社交</button>
-        <button class="btn ghost" data-soon>排行榜</button>
-      </div>
-    </section>
-  </main>
-
-  <!-- Bottom Nav -->
-  <nav class="nav">
-    <div class="row">
-      <button data-tab="home">主頁</button>
-      <button data-tab="cultivate">修煉</button>
-      <button data-tab="bag">背包</button>
-      <button data-tab="equip">裝備</button>
-      <button data-tab="shop">商店</button>
-      <button data-tab="battle">戰鬥</button>
+    <div class="body">
+      <div class="remain">未分配屬性點：<b id="ptRemain">0</b></div>
+      <div class="attr-list" id="attrList"></div>
+      <div class="sec-title">能力值</div>
+      <div class="kv" id="statList"></div>
     </div>
-  </nav>
-</div>
-
-<!-- Skill Modal -->
-<div class="modal" id="skillModal">
-  <div class="box panel">
-    <div class="hd"><strong>選擇技能</strong><button class="btn ghost small" id="closeSkillModal">關閉</button></div>
-    <div class="bd list" id="skillList"></div>
   </div>
 </div>
 
-<!-- Map Modal -->
-<div class="modal" id="mapModal">
-  <div class="box panel">
-    <div class="hd"><strong>選擇地圖</strong><button class="btn ghost small" id="closeMapModal">關閉</button></div>
-    <div class="bd list" id="mapList"></div>
-  </div>
-</div>
-
-<!-- Item Modal -->
-<div class="modal" id="itemModal">
-  <div class="box panel">
-    <div class="hd"><strong>選擇道具</strong><button class="btn ghost small" id="closeItemModal">關閉</button></div>
-    <div class="bd list" id="battleItemList"></div>
-  </div>
-</div>
-
-<!-- Win Modal -->
-<div class="modal" id="winModal">
-  <div class="box panel">
-    <div class="hd"><strong>戰鬥勝利</strong><button class="btn ghost small" id="closeWinModal">關閉</button></div>
-    <div class="bd list" id="winBody"></div>
-  </div>
-</div>
-
-<!-- Equip Detail Modal -->
-<div class="modal" id="equipInfoModal">
-  <div class="box panel">
-    <div class="hd">
-      <strong id="equipInfoTitle">裝備詳情</strong>
-      <div style="display:flex;gap:6px;align-items:center">
-        <button class="btn ghost small" id="equipInfoUnequip" style="display:none">卸下</button>
-        <button class="btn ghost small" id="closeEquipInfoModal">關閉</button>
-      </div>
+<!-- 儲物袋 -->
+<div id="bagModal" class="modal" aria-hidden="true">
+  <div class="mask" data-close="bag"></div>
+  <div class="sheet" role="dialog" aria-labelledby="bagTitle">
+    <div class="sec-title" id="bagTitle">
+      儲物袋
+      <div class="close" data-close="bag">✕</div>
     </div>
-    <div class="bd" id="equipInfoBody"></div>
+
+    <!-- 分頁 -->
+    <div class="bag-tabs">
+      <div class="bag-tab active" data-bag-tab="consumable">消耗品</div>
+      <div class="bag-tab" data-bag-tab="weapon">武器</div>
+      <div class="bag-tab" data-bag-tab="ornament" title="尚未開放">飾品</div>
+      <div class="bag-tab" data-bag-tab="hidden"   title="尚未開放">暗器</div>
+      <div class="bag-tab" data-bag-tab="material" title="尚未開放">材料</div>
+    </div>
+
+    <div class="bag-body" id="bagList"></div>
   </div>
 </div>
 
-<!-- Toast -->
-<div class="toast" id="toast"><div class="inner" id="toastMsg">訊息</div></div>
+<!-- 點物品後才會出現的操作面板 -->
+<div id="bagAction" aria-hidden="true">
+  <div class="mask" data-close="bagAction"></div>
+  <div class="sheet action" role="dialog" aria-labelledby="bagActionTitle">
+    <div class="sec-title" id="bagActionTitle">
+      物品操作
+      <div class="close" data-close="bagAction">✕</div>
+    </div>
+    <div class="body">
+      <div class="item-row" style="cursor:default">
+        <div class="item-thumb" id="actIcon"></div>
+        <div class="item-main">
+          <div class="item-title cons" id="actTop"></div>
+          <div class="item-sub"><span class="sub-left" id="actLeft"></span><span class="sub-right" id="actRight"></span></div>
+        </div>
+      </div>
+      <div class="ops" id="actBtns"></div>
+    </div>
+  </div>
+</div>
 
-<!-- 依序載入：資料 → 戰鬥 → UI（全部以手機規格為主） -->
-<script src="./data.js" defer></script>
-<script src="./ui.js" defer></script>
-<script src="./battle.js" defer></script>
+<div class="stage">
+  <div class="app">
+    <!-- ========== Header ========== -->
+    <header>
+      <div class="h-left">
+        <img id="uiAvatar" class="avatar" alt="avatar" />
+        <div class="pinfo">
+          <div class="prow">
+            <div class="pname" id="uiName"></div>
+            <div class="plv">LV.<span id="uiLv"></span></div>
+            <span id="uiElem" class="pill elem none"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右欄（勳章 + 貨幣） -->
+      <div class="h-right">
+        <div class="medals">
+          <div class="medal-slot" id="medal1"></div>
+          <div class="medal-slot" id="medal2"></div>
+          <div class="medal-slot" id="medal3"></div>
+          <div class="medal-slot" id="medal4"></div>
+          <div class="medal-slot" id="medal5"></div>
+        </div>
+        <div class="coins">
+          <span class="coin">
+            <span class="icon-box"><img alt="靈石" src="https://upload.wikimedia.org/wikipedia/commons/9/9d/Crystal_128_up.png"></span>
+            <span class="val" id="uiStone">0</span>
+          </span>
+          <span class="coin">
+            <span class="icon-box"><img alt="鑽石" src="https://upload.wikimedia.org/wikipedia/commons/0/0a/Diamond_Icon.svg"></span>
+            <span class="val" id="uiDiamond">0</span>
+          </span>
+        </div>
+      <!-- 新增：登出鈕（小圓形圖示） -->
+      <button id="btnLogout" class="icon-btn" title="登出" aria-label="登出">⎋</button>
+    </div>
+  </header>
+
+    <div class="divider"></div>
+
+    <!-- ========== 主體 ========== -->
+    <div class="main">
+      <!-- 三條狀態列 -->
+      <div class="bars">
+        <div class="stat-row">
+          <div class="label">體力：</div>
+          <div class="prog"><div class="fill sta" id="barSta"></div></div>
+          <div class="num" id="txtSta">100/100</div>
+        </div>
+        <div class="stat-row">
+          <div class="label">經驗：</div>
+          <div class="prog"><div class="fill exp" id="barExp"></div></div>
+          <div class="num" id="txtExp">0/100</div>
+        </div>
+        <div class="stat-row">
+          <div class="label">氣血：</div>
+          <div class="prog"><div class="fill hp" id="barHp"></div></div>
+          <div class="num" id="txtHp">--/--</div>
+        </div>
+      </div>
+
+      <!-- 主導航四鍵 -->
+      <div class="actions">
+        <div class="gbtn" data-open="bag">儲物袋</div>
+        <div class="gbtn" data-open="skill">技能</div>
+        <div class="gbtn" data-open="equip">裝備欄</div>
+        <div class="gbtn" data-open="rank">排行榜</div>
+      </div>
+
+      <!-- 標題：主 城 -->
+      <div class="title">主 城</div>
+
+      <!-- 2×4 模組網格 -->
+      <div class="grid">
+        <div class="card" data-mod="cave"><div class="thumb"><img src="https://upload.wikimedia.org/wikipedia/commons/4/49/Under_construction_icon-orange.svg" alt="施工中"></div><div><div class="ctitle">洞府</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="map"><div class="thumb"><img src="https://upload.wikimedia.org/wikipedia/commons/4/49/Under_construction_icon-orange.svg" alt="施工中"></div><div><div class="ctitle">野外地圖</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="library"><div class="thumb"><img src="https://upload.wikimedia.org/wikipedia/commons/4/49/Under_construction_icon-orange.svg" alt="施工中"></div><div><div class="ctitle">藏經閣</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="tower"><div class="thumb"><img src="https://upload.wikimedia.org/wikipedia/commons/4/49/Under_construction_icon-orange.svg" alt="施工中"></div><div><div class="ctitle">試煉塔</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="war"><div class="thumb"><img src="https://upload.wikimedia.org/wikipedia/commons/4/49/Under_construction_icon-orange.svg" alt="施工中"></div><div><div class="ctitle">規模戰</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="collection"><div class="thumb"><img src="https://upload.wikimedia.org/wikipedia/commons/4/49/Under_construction_icon-orange.svg" alt="施工中"></div><div><div class="ctitle">卡片收藏</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="dex"><div class="thumb"><img src="https://upload.wikimedia.org/wikipedia/commons/4/49/Under_construction_icon-orange.svg" alt="施工中"></div><div><div class="ctitle">圖鑑</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="shop"><div class="thumb"><img src="https://upload.wikimedia.org/wikipedia/commons/4/49/Under_construction_icon-orange.svg" alt="施工中"></div><div><div class="ctitle">商城</div><div class="csub">目前待開發中</div></div></div>
+      </div>
+
+      <!-- 底部：戰報 + 玩家輸入 -->
+      <div class="dock">
+        <div class="chatbox">
+          <div class="corner-btn top"></div>
+          <div class="log" id="log">
+            <div class="item ok">獲得 <span class="warn">25靈石</span> / 木靈碎片 ×1 / 小氣血單 ×2。</div>
+            <div class="item muted">使用 <span class="warn">靈氣恢復藥</span> 小氣血單 ×1 / 真泉修繕載入寶卷 ×1。</div>
+            <div class="item">戰鬥開始！</div>
+            <div class="item">對XX蟲造成5點傷害。</div>
+          </div>
+          <div class="speak">
+            <input id="chatInput" type="text" placeholder="輸入文字..." />
+            <button id="btnSend">送出</button>
+          </div>
+          <div class="corner-btn bottom"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="items.js"></script>
+<script src="auth.js"></script>
+<script src="equip.js"></script>
+<script>
+/* ===== 公用 ===== */
+const qs = s=>document.querySelector(s);
+const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+const pct=(cur,max)=>clamp(Math.round(cur/max*100),0,100);
+const fmt = (n)=> new Intl.NumberFormat('zh-Hant').format(n);
+const fmtCompact = (n)=> new Intl.NumberFormat('en', { notation:'compact', maximumFractionDigits:1 }).format(n);
+
+const ELEMENT_LABEL = { none:'無元素', water:'水元素', fire:'火元素' };
+
+/* ===== 屬性/能力定義 ===== */
+const BASE_ATTRS = [
+  {key:'str', name:'力道'},
+  {key:'vit', name:'體魄'},
+  {key:'dex', name:'身法'},
+  {key:'int', name:'悟性'},
+  {key:'wis', name:'心神'},
+  {key:'luk', name:'氣運'},
+];
+
+function derivedFrom(P){
+  const A = P.attributes, level = P.level ?? 1;
+  return {
+    '物理攻擊': A.str*2 + level,
+    '法術攻擊': A.int*2 + Math.floor(A.wis*0.5),
+    '氣血上限': 80 + A.vit*12 + level*6,
+    '真元上限': 40 + A.wis*10 + Math.floor(A.int*6/5),
+    '物理防禦': Math.floor(A.vit*1.2) + Math.floor(A.dex*0.6),
+    '法術防禦': Math.floor(A.wis*1.3) + Math.floor(A.int*0.5),
+    '命中率': 60 + A.dex*2,
+    '閃避': 5 + Math.floor(A.dex*1.2),
+    '暴擊率': Math.min(50, 3 + Math.floor(A.luk*0.8)),
+    '暴擊傷害': 50 + Math.floor(A.luk*1.5),
+    '行動條速度': 100 + Math.floor(A.dex*2.2),
+    '回氣/回合': 2 + Math.floor(A.wis*0.4),
+    '回血/回合': 1 + Math.floor(A.vit*0.5),
+    '破甲': Math.floor(A.str*0.6),
+    '法穿': Math.floor(A.int*0.6),
+    '專精-劍': Math.floor(A.str*0.5 + A.dex*0.4),
+    '專精-法': Math.floor(A.int*0.8 + A.wis*0.4),
+    '待開發1': 0,
+    '待開發2': 0,
+  };
+}
+
+/* ===== 主程式 API ===== */
+window.Game = (()=>{
+  const state = { player:null };
+
+  function render(p){
+    state.player = p;
+
+    // 頭像/名稱/等級/元素
+    const fallbackAvatar = (typeof Auth!=='undefined' && Auth.defaultAvatar)
+        ? (Auth.defaultAvatar() || 'https://picsum.photos/seed/xian/96')
+        : 'https://picsum.photos/seed/xian/96';
+    qs('#uiAvatar').src = p.avatar || fallbackAvatar;
+    qs('#uiName').textContent = p.name || '無名散修';
+    qs('#uiLv').textContent   = p.level ?? 1;
+    const elem = (p.element || 'none').toLowerCase();
+    const elemEl = qs('#uiElem');
+    if (elemEl){ elemEl.className = `pill elem ${elem}`; elemEl.textContent = ELEMENT_LABEL[elem] || '無元素'; }
+
+    // 勳章
+    const slots = [qs('#medal1'), qs('#medal2'), qs('#medal3'), qs('#medal4'), qs('#medal5')];
+    slots.forEach(s => s && (s.innerHTML = ''));
+    (p.medals || []).slice(0, 5).forEach((m, i) => {
+      if (m?.icon && slots[i]) {
+        const img = new Image(); img.src = m.icon; slots[i].appendChild(img);
+      }
+    });
+
+    // 貨幣
+    const stone = p.currencies?.stone ?? 0;
+    const diamond = p.currencies?.diamond ?? 0;
+    qs('#uiStone').textContent   = stone   >= 1_000_000 ? fmtCompact(stone)   : fmt(stone);
+    qs('#uiDiamond').textContent = diamond >= 1_000_000 ? fmtCompact(diamond) : fmt(diamond);
+
+    // 狀態條
+    const S = p.sta || { cur: 100, max: 100 };
+    const E = p.exp || { cur: 0,   max: 100 };
+
+    // 依屬性動態計算 HP 上限
+    const hpMaxNow = derivedFrom(p)['氣血上限'];
+    const H = {
+      cur: Math.min(p.hp?.cur ?? hpMaxNow, hpMaxNow),
+      max: hpMaxNow
+    };
+    if(qs('#barSta')){ qs('#barSta').style.width = pct(S.cur,S.max) + '%'; qs('#txtSta').textContent = `${S.cur}/${S.max}`; }
+    if(qs('#barExp')){ qs('#barExp').style.width = pct(E.cur,E.max) + '%'; qs('#txtExp').textContent = `${E.cur}/${E.max}`; }
+    if(qs('#barHp')) { qs('#barHp').style.width  = pct(H.cur,H.max) + '%';  qs('#txtHp').textContent  = `${H.cur}/${H.max}`; }
+  }
+
+  /* ===== 屬性面板 ===== */
+  function openAttr(){ const m = qs('#attrModal'); if(!m) return; renderAttrPanel(); m.classList.add('show'); m.setAttribute('aria-hidden','false'); }
+  function closeAttr(){ const m = qs('#attrModal'); if(!m) return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); }
+
+  function renderAttrPanel(){
+    const P = state.player; if(!P) return;
+
+    const list = qs('#attrList');
+    if(list){
+      list.innerHTML = '';
+      BASE_ATTRS.forEach(({key,name})=>{
+        const val = P.attributes[key] ?? 10;
+        const row = document.createElement('div'); row.className='attr-row';
+        row.innerHTML = `
+          <div class="attr-name">${name}</div>
+          <div class="attr-val" id="val_${key}">${val}</div>
+          <div class="attr-bar"><div class="attr-fill" id="bar_${key}" style="width:${Math.min(100,val)}%"></div></div>
+          <div class="attr-plus" id="btn_${key}" data-key="${key}">＋</div>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    if(qs('#ptRemain')) qs('#ptRemain').textContent = P.unspentPoints ?? 0;
+    updatePlusButtons();
+    renderDerived();
+  }
+
+  function renderDerived(){
+    const P = state.player; if(!P) return;
+    const base  = derivedFrom(P);
+    const bonus = (window.Equip && Equip.getBonuses) ? Equip.getBonuses() : {};
+    const final = {};
+    for(const k of Object.keys(base)) final[k] = (base[k]||0) + (bonus[k]||0);
+
+    const box = qs('#statList'); if(!box) return;
+    box.innerHTML = '';
+    for(const [k,v] of Object.entries(final)){
+      const item = document.createElement('div'); item.className='item';
+      item.innerHTML = `<div class="k">${k}</div><div class="v">${v}</div>`;
+      box.appendChild(item);
+    }
+  }
+
+  function updatePlusButtons(){
+    const remain = state.player?.unspentPoints ?? 0;
+    BASE_ATTRS.forEach(({key})=>{
+      const btn = qs('#btn_'+key); if(!btn) return;
+      btn.classList.toggle('hide', remain<=0);
+    });
+    if(qs('#ptRemain')) qs('#ptRemain').textContent = remain;
+  }
+
+  function wire(){
+    // 主導航：開啟模組
+    document.querySelectorAll('.gbtn').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const txt = b.textContent?.trim();
+        if (txt === '儲物袋') return openBag();
+        if (txt === '裝備欄') return (window.Equip && Equip.open && Equip.open());
+        log(`開啟：${txt}`,'warn');
+      });
+    });
+
+    // 卡片點擊
+    document.querySelectorAll('.card').forEach(c=> c.addEventListener('click', ()=> log(`進入模組：${c.querySelector('.ctitle').textContent}`,'warn')));
+
+    // 玩家輸入框
+    qs('#btnSend')?.addEventListener('click', sendChat);
+    qs('#chatInput')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendChat(); });
+
+    // 屬性面板
+    qs('#uiAvatar')?.addEventListener('click', openAttr);
+    document.querySelectorAll('[data-close="attr"]').forEach(el=> el.addEventListener('click', closeAttr));
+    addEventListener('keydown', e=>{ if(e.key==='Escape') { closeAttr(); closeBag(); closeBagAction(); } });
+
+    // 儲物袋關閉
+    document.querySelectorAll('[data-close="bag"]').forEach(el=> el.addEventListener('click', closeBag));
+
+    // 操作面板關閉
+    document.addEventListener('click', (e)=>{
+      const el = e.target.closest?.('[data-close="bagAction"]');
+      if(el) closeBagAction();
+    });
+
+    // 點「＋」分配屬性點
+    document.addEventListener('click', (e)=>{
+      const plus = e.target.closest?.('.attr-plus');
+      if (!plus) return;
+      const key = plus.dataset.key;
+      const P = state.player;
+      if(!key || !P || (P.unspentPoints ?? 0) <= 0) return;
+
+      P.attributes[key] = (P.attributes[key] ?? 10) + 1;
+      P.unspentPoints -= 1;
+
+      qs('#val_' + key).textContent = P.attributes[key];
+      const bar = qs('#bar_' + key);
+      if (bar) bar.style.width = Math.min(100, P.attributes[key]) + '%';
+
+      updatePlusButtons();
+      renderDerived();
+
+      const d2 = derivedFrom(P);
+      const newHpMax = d2['氣血上限'];
+      P.hp = P.hp || { cur: newHpMax, max: newHpMax };
+      P.hp.max = newHpMax;
+      P.hp.cur = Math.min(P.hp.cur, newHpMax);
+      if (qs('#barHp')) {
+        qs('#barHp').style.width = ((P.hp.cur / P.hp.max) * 100).toFixed(1) + '%';
+        qs('#txtHp').textContent = `${P.hp.cur}/${P.hp.max}`;
+      }
+
+      if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    });
+
+    // 儲物袋：切換分頁
+    document.addEventListener('click', (e)=>{
+      const tab = e.target.closest?.('.bag-tab');
+      if (!tab) return;
+      const k = tab.dataset.bagTab;
+      if (!k) return;
+      switchBagTab(k);
+    });
+
+    // 儲物袋：點整列 → 開啟操作面板
+    document.addEventListener('click', (e)=>{
+      const row = e.target.closest?.('.item-row'); if(!row || !row.dataset.type) return;
+      openBagAction(row.dataset.type, +row.dataset.idx);
+    });
+
+    // 操作面板：按鈕（使用/裝備/販賣/丟棄）
+    document.addEventListener('click', (e)=>{
+      const btn = e.target.closest?.('.opx'); if(!btn) return;
+      const type = btn.dataset.type, op = btn.dataset.op, idx = +btn.dataset.idx;
+
+      if(type==='consumable'){
+        if(op==='use')  bagUseConsumable(idx);
+        if(op==='sell') bagSellConsumable(idx);
+        if(op==='throw')bagThrowConsumable(idx);
+        renderBag('consumable');
+      }else if(type==='weapon'){
+        if(op==='equip') bagEquipWeapon(idx);
+        if(op==='sell')  bagSellWeapon(idx);
+        if(op==='throw') bagThrowWeapon(idx);
+        renderBag('weapon');
+      }
+      closeBagAction();
+    });
+  }
+
+  /* ===== 儲物袋：開/關/渲染 ===== */
+  function openBag(){ seedBagIfMissing(); renderBag('consumable'); const m = qs('#bagModal'); if(!m) return; m.classList.add('show'); m.setAttribute('aria-hidden','false'); }
+  function closeBag(){ const m = qs('#bagModal'); if(!m) return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); }
+  function switchBagTab(k){ document.querySelectorAll('.bag-tab').forEach(t=> t.classList.toggle('active', t.dataset.bagTab===k)); renderBag(k); }
+  function renderBag(k){
+    const P = state.player; if(!P) return;
+    const box = qs('#bagList'); if(!box) return;
+    box.innerHTML = '';
+    if (k==='consumable') renderConsumables(box, P);
+    else if (k==='weapon') renderWeapons(box, P);
+    else {
+      const tip = document.createElement('div'); tip.className='item-sub';
+      tip.textContent = '此分頁尚未開放';
+      box.appendChild(tip);
+    }
+  }
+
+  /* 操作面板 */
+  function openBagAction(type, idx){
+    const P = state.player; if(!P) return;
+    const m = qs('#bagAction'); if(!m) return;
+
+    const isUrl = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
+    const clampInt = (n, lo, hi)=> Math.max(lo, Math.min(hi, (n|0)));
+
+    let name='', subLeft='', subRight='', iconUrl=null, btnsHtml='';
+
+    if (type === 'consumable') {
+      const it = (P.bag.consumables || [])[idx]; if (!it) return;
+      const def = ItemDB.getDef('consumables', it.id);
+      iconUrl = isUrl(it.icon) ? it.icon : (isUrl(def?.icon) ? def.icon : null);
+
+      name = it.name || '';
+      const eff = it.effect?.hp ? `氣血+${it.effect.hp}` : '';
+      subRight = `販售價格 ${it.price ?? 0}`;
+      const cnt = clampInt(it.count ?? 0, 0, 9999);
+
+      qs('#actTop').className = 'item-title cons';
+      qs('#actTop').innerHTML = `
+        <span class="item-name">${name}</span>
+        <span class="meta-effect">${eff ? `<span class="badge hp">${eff}</span>` : ''}</span>
+        <span class="count-slot">×${cnt}</span>
+      `;
+      qs('#actLeft').textContent  = '';
+      qs('#actRight').textContent = subRight;
+
+      btnsHtml = `
+        <button class="opx primary" data-op="use"  data-type="consumable" data-idx="${idx}">使用</button>
+        <button class="opx"         data-op="sell" data-type="consumable" data-idx="${idx}">販賣</button>
+        <button class="opx"         data-op="throw"data-type="consumable" data-idx="${idx}">丟棄</button>
+      `;
+    } else if (type === 'weapon') {
+      const w = (P.bag.weapons || [])[idx]; if (!w) return;
+      const def = ItemDB.getDef('weapons', w.id);
+      iconUrl = isUrl(w.icon) ? w.icon : (isUrl(def?.icon) ? def.icon : null);
+
+      name = w.name || '';
+      subLeft  = `物理攻擊 ${w.dmg?.[0] ?? 0}-${w.dmg?.[1] ?? 0}`;
+      subRight = `販售價格 ${w.price ?? 0}`;
+
+      qs('#actTop').className = 'item-title wep';
+      qs('#actTop').innerHTML = `
+        <span class="badge-lv">LV.${w.level ?? 1}</span>
+        <span class="item-name">${name}</span>
+        <span class="right-meta">
+          <span>+${w.plus || 0}</span>
+          <span class="dur-chip">耐久 ${w.dur?.cur ?? 0}/${w.dur?.max ?? 0}</span>
+        </span>
+      `;
+      qs('#actLeft').textContent  = subLeft;
+      qs('#actRight').textContent = subRight;
+
+      btnsHtml = `
+        <button class="opx primary" data-op="equip" data-type="weapon" data-idx="${idx}">裝備</button>
+        <button class="opx"         data-op="sell"  data-type="weapon" data-idx="${idx}">販賣</button>
+        <button class="opx"         data-op="throw" data-type="weapon" data-idx="${idx}">丟棄</button>
+      `;
+    } else {
+      return;
+    }
+
+    qs('#actIcon').innerHTML = iconUrl ? `<img src="${iconUrl}" alt="">` : '';
+    qs('#actBtns').innerHTML = btnsHtml;
+
+    m.classList.add('show');
+    m.setAttribute('aria-hidden', 'false');
+  }
+  function closeBagAction(){ const m = qs('#bagAction'); if(!m) return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); qs('#actBtns').innerHTML = ''; }
+
+  /* ===== 資料模型：由 items.js 掛載 ===== */
+  function seedBagIfMissing(){
+    const P = state.player; if(!P) return;
+    if (!P.bag) { P.bag = ItemDB.getDefaultBag(); return; }
+    P.bag.consumables = Array.isArray(P.bag.consumables) ? P.bag.consumables : [];
+    P.bag.weapons     = Array.isArray(P.bag.weapons)     ? P.bag.weapons     : [];
+    P.bag.ornaments   = Array.isArray(P.bag.ornaments)   ? P.bag.ornaments   : [];
+    P.bag.materials   = Array.isArray(P.bag.materials)   ? P.bag.materials   : [];
+    P.bag.hidden      = Array.isArray(P.bag.hidden)      ? P.bag.hidden      : [];
+  }
+
+  // ===== 工具：加入消耗品（自動分堆到 9999）=====
+  function addConsumableById(id, qty){
+    const P = state.player; if(!P || qty<=0) return;
+    const def = ItemDB.getDef('consumables', id); if(!def) return;
+    const MAX = ItemDB.STACK_MAX;
+
+    // 先嘗試塞到相同 id 的現有堆
+    let remain = qty;
+    for (const s of P.bag.consumables){
+      if (s.id !== id) continue;
+      const can = Math.max(0, MAX - (s.count||0));
+      const add = Math.min(can, remain);
+      if (add>0){ s.count = (s.count||0)+add; remain-=add; }
+      if (remain<=0) break;
+    }
+    // 還有剩的話，開新堆
+    while (remain > 0) {
+      const take = Math.min(MAX, remain);
+      P.bag.consumables.push({ ...def, count: take }); // ← 用 ...def
+      remain -= take;
+    }
+  } /* ←←← 這個大括號是你原本遺漏的，已補上 */
+
+  // ===== 工具：加入武器（不可堆疊）=====
+  function addWeaponById(id, plus=0){
+    const P = state.player; if(!P) return;
+    const d = ItemDB.getDef('weapons', id); if (!d) return;
+    P.bag.weapons.push({ ...d, plus, dur: { cur: d.durMax, max: d.durMax } }); // ← 用 ...d
+  }
+
+  /* ===== 渲染：消耗品 ===== */
+  function renderConsumables(box, P){
+    const items = P.bag.consumables || [];
+    const url = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
+
+    items.forEach((it, i)=>{
+      const def = ItemDB.getDef('consumables', it.id);
+      const iconUrl = url(it.icon) ? it.icon : (url(def?.icon) ? def.icon : null);
+
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.dataset.type = 'consumable';
+      row.dataset.idx = String(i);
+
+      const effHtml = it.effect?.hp ? `<span class="badge hp">氣血+${it.effect.hp}</span>` : '';
+      const cnt = Math.max(0, it.count || 0);
+
+      row.innerHTML = `
+        <div class="item-thumb">${iconUrl?`<img src="${iconUrl}" alt="${it.name}">`:''}</div>
+        <div class="item-main">
+          <div class="item-title cons">
+            <span class="item-name">${it.name}</span>
+            <span class="meta-effect">${effHtml}</span>
+            <span class="count-slot">×${cnt}</span>
+          </div>
+          <div class="item-sub">
+            <span class="sub-left"></span>
+            <span class="sub-right">販售價格 ${it.price}</span>
+          </div>
+        </div>
+      `;
+      box.appendChild(row);
+    });
+  }
+
+  /* ===== 渲染：武器 ===== */
+  function renderWeapons(box, P){
+    const items = P.bag.weapons || [];
+    const url = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
+
+    items.forEach((w, i)=>{
+      const def = ItemDB.getDef('weapons', w.id);
+      const iconUrl = url(w.icon) ? w.icon : (url(def?.icon) ? def.icon : null);
+
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.dataset.type = 'weapon';
+      row.dataset.idx = String(i);
+
+      row.innerHTML = `
+        <div class="item-thumb">${iconUrl?`<img src="${iconUrl}" alt="${w.name}">`:''}</div>
+        <div class="item-main">
+          <div class="item-title wep">
+            <span class="badge-lv">LV.${w.level}</span>
+            <span class="item-name">${w.name}</span>
+            <span class="right-meta"><span>+${w.plus || 0}</span><span class="dur-chip">耐久 ${w.dur.cur}/${w.dur.max}</span></span>
+          </div>
+          <div class="item-sub">
+            <span class="sub-left">物理攻擊 ${w.dmg[0]}-${w.dmg[1]}</span>
+            <span class="sub-right">販售價格 ${w.price}</span>
+          </div>
+        </div>
+      `;
+      box.appendChild(row);
+    });
+  }
+
+  /* ===== 互動：消耗品 ===== */
+  function bagUseConsumable(i){
+    const P = state.player; const it = P.bag.consumables[i]; if(!it) return;
+    if (it.effect?.hp){
+      const hpMax = derivedFrom(P)['氣血上限'];
+      P.hp = P.hp || {cur:hpMax,max:hpMax};
+      P.hp.cur = Math.min(P.hp.cur + it.effect.hp, hpMax);
+    }
+    it.count = (it.count||0) - 1;
+    if (it.count <= 0) P.bag.consumables.splice(i,1);
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('consumable');
+  }
+  function bagSellConsumable(i){
+    const P = state.player; const it = P.bag.consumables[i]; if(!it) return;
+    const max = it.count||0;
+    const qty = +prompt(`輸入販賣數量（1-${max}）`, String(max));
+    if (!qty || qty<1 || qty>max) return;
+    P.currencies = P.currencies || {stone:0, diamond:0};
+    P.currencies.stone += qty * (it.price||0);
+    it.count -= qty;
+    if (it.count <= 0) P.bag.consumables.splice(i,1);
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('consumable');
+  }
+  function bagThrowConsumable(i){
+    const P = state.player; const it = P.bag.consumables[i]; if(!it) return;
+    const max = it.count||0;
+    const qty = +prompt(`輸入丟棄數量（1-${max}）`, String(max));
+    if (!qty || qty<1 || qty>max) return;
+    it.count -= qty;
+    if (it.count <= 0) P.bag.consumables.splice(i,1);
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('consumable');
+  }
+
+  /* ===== 互動：武器 ===== */
+  function bagEquipWeapon(i){
+    const P = state.player; const w = P.bag.weapons[i]; if(!w) return;
+    if (window.Equip && Equip.equipWeapon) {
+      Equip.equipWeapon(w);
+    } else {
+      P.equip = P.equip || {}; P.equip.weapon = { ...w };
+      if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+      renderDerived();
+    }
+    log(`已裝備：${w.name}`,'ok');
+  }
+  function bagSellWeapon(i){
+    const P = state.player; const w = P.bag.weapons[i]; if(!w) return;
+    if (!confirm(`確定要販賣：「${w.name}」？（可得 ${w.price} 靈石）`)) return;
+    P.currencies = P.currencies || {stone:0, diamond:0};
+    P.currencies.stone += (w.price||0);
+    P.bag.weapons.splice(i,1);
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('weapon');
+  }
+  function bagThrowWeapon(i){
+    const P = state.player; const w = P.bag.weapons[i]; if(!w) return;
+    if (!confirm(`確定要丟棄：「${w.name}」？（不可回收）`)) return;
+    P.bag.weapons.splice(i,1);
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('weapon');
+  }
+
+  function log(txt, cls=''){ const el=document.createElement('div'); el.className = `item ${cls}`; el.textContent = txt; const box=qs('#log'); if(!box) return; box.appendChild(el); box.scrollTop = box.scrollHeight; }
+  function sendChat(){ const inp = qs('#chatInput'); const msg = (inp?.value||'').trim(); if(!msg) return; log(`你：${msg}`,'ok'); inp.value=''; }
+
+  return {
+    start(player){
+      const p = Object.assign({
+        level: 1,
+        attributes: { str:10, vit:10, dex:10, int:10, wis:10, luk:10 },
+        unspentPoints: 5,
+        medals: [],
+        equip: { weapon: null, earrings: [null,null], rings: [null,null], cloak: null, armor: null, shoes: null, medals: [null,null,null,null,null] },
+        sta: { cur: 100, max: 100 },
+        exp: { cur: 0,   max: 100 },
+        hp:  { cur: 0,   max: 0 },
+        currencies: { stone: 0, diamond: 0 },
+      }, player || {});
+
+      const hpMax = derivedFrom(p)['氣血上限'];
+      p.hp = { cur: hpMax, max: hpMax };
+      p.sta = { cur: 100, max: 100 };
+      p.exp = { cur: p.exp?.cur ?? 0, max: 100 };
+      if (p.exp.cur < 0 || p.exp.cur > p.exp.max) p.exp.cur = 0;
+
+      wire();
+      render(p);
+    },
+    getPlayer(){ return state.player; },
+    save(){ if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(state.player); },
+    recalc(){ render(state.player); renderDerived(); },
+    log(txt, cls=''){ log(txt, cls); }
+  };
+})();
+
+// 讀取該帳號角色資料 → 沒有就導回登入
+window.addEventListener('DOMContentLoaded', () => {
+  const char = (window.Auth && Auth.getCharacter && Auth.getCharacter()) || null;
+  if (!char) { window.location.href = 'index.html'; return; }
+
+  Game.start(char);
+
+  // 掛載裝備欄模組
+  if (window.Equip && Equip.mount) {
+    Equip.mount({
+      getPlayer: () => Game.getPlayer(),
+      save:      () => Game.save && Game.save(),
+      recalc:    () => Game.recalc && Game.recalc(),
+      log:       (t)=> Game.log ? Game.log(t) : console.log(t),
+    });
+  }
+
+  // ★ 新增：登出行為（呼叫 Auth.logout 後導回登入）
+  document.getElementById('btnLogout')?.addEventListener('click', ()=>{
+    if (confirm('要登出嗎？')) {
+      if (window.Auth && Auth.logout) Auth.logout(); // 清理登入狀態
+      location.href = 'index.html';                  // 回登入畫面
+    }
+  });
+});
+</script>
 </body>
 </html>

@@ -137,35 +137,55 @@
   .kv .k{ opacity:.85; font-size:12px; }
   .kv .v{ font-variant-numeric: tabular-nums; font-size:12px; }
 
-  .bag-tabs{display:flex; gap:8px; padding:8px; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.08);}
-  .bag-tab{padding:6px 10px; border-radius:8px; font-weight:700; cursor:pointer; user-select:none; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);}
+  .bag-tabs{display:flex; gap:6px; padding:6px; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.08);}
+  .bag-tab{padding:4px 8px; border-radius:8px; font-weight:700; font-size:11px; cursor:pointer; user-select:none; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);}
   .bag-tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff;}
-  .bag-body{padding:10px; display:grid; gap:8px; max-height:60vh; overflow:auto;}
-  .item-row{ display:grid; grid-template-columns:44px 1fr; gap:8px; align-items:center; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:6px 8px; min-height:60px; cursor:pointer; }
-  .item-thumb{width:44px; height:44px; border-radius:8px; background:#1e293b; display:grid; place-items:center; font-weight:900;}
+  /* ⚠ 原本寫 .bag-body 但你的 HTML 用的是 .bag-list，這裡改成 .bag-list 才會生效 */
+  .bag-list{padding:8px; display:grid; gap:6px; max-height:65vh; overflow:auto;}
+
+
+  .item-row{ display:grid; grid-template-columns:36px 1fr; gap:6px; align-items:center; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:5px 8px; min-height:48px; cursor:pointer; }
+  .item-thumb{width:36px; height:36px; border-radius:8px; background:#1e293b; display:grid; place-items:center; font-weight:900;}
   .item-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
-  .item-main{display:grid; gap:3px;}
-  .item-title.cons{display:grid; grid-template-columns: 1fr 90px 80px; align-items:center; column-gap:6px;}
-  .item-title.wep{display:grid; grid-template-columns: 64px 1fr auto; align-items:center; column-gap:6px;}
-  .item-name{ font-weight:800; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18); border-radius:9999px; padding:4px 10px; text-align:center;}
-  .count-slot{ justify-self:end; min-width:72px; text-align:right; font-variant-numeric: tabular-nums; background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18); border-radius:9999px; padding:3px 8px; }
+  .item-main{display:grid; gap:2px;}
+  /* 改成自適應寬度，右側欄位縮窄；名稱可多行 */
+  .item-title.cons{display:grid; grid-template-columns: 1fr auto auto; align-items:center; column-gap:4px;}
+  .item-title.wep {display:grid; grid-template-columns: 46px 1fr auto; align-items:center; column-gap:6px;}
+  /* 名稱可換行，避免被 … 截斷；整體字再小一點 */
+  .item-name{
+    font-weight:800; font-size:12px; line-height:1.25;
+    overflow:visible; white-space:normal; text-overflow:clip; word-break:break-word;
+    background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18);
+    border-radius:10px; padding:2px 8px; text-align:center;
+  }
+  .count-slot{
+    justify-self:end; min-width:56px; text-align:right; font-variant-numeric: tabular-nums;
+    background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18);
+    border-radius:9999px; padding:2px 6px; font-size:11px;
+  }
   .meta-effect{justify-self:end;}
-  .badge{display:inline-block; padding:1px 6px; font-size:12px; border-radius:9999px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.10);}
+  .badge{display:inline-block; padding:1px 6px; font-size:11px; border-radius:9999px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.10);}
   .badge.hp{background:#7f1d1d; border-color:#ef4444; color:#fff;}
-  .badge-lv{background:rgba(255,255,255,.85); color:#0b1024; font-weight:900; border-radius:8px; padding:2px 6px;}
-  .right-meta{display:flex; align-items:center; gap:10px;}
-  .dur-chip{background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18); border-radius:9999px; padding:2px 8px; font-size:12px; color:#e2e8f0;}
-  .item-sub{display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--muted); line-height:1.2;}
-  .sub-left{white-space:nowrap;} .sub-right{white-space:nowrap; color:#93c5fd;}
-  .price{font-size:12px; color:#e2e8f0;}
+  .badge-lv{background:rgba(255,255,255,.85); color:#0b1024; font-weight:900; border-radius:8px; padding:1px 6px; font-size:11px;}
+  .right-meta{display:flex; align-items:center; gap:8px;}
+  .dur-chip{background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18); border-radius:9999px; padding:1px 6px; font-size:11px; color:#e2e8f0;}
+  .item-sub{display:flex; justify-content:space-between; gap:8px; font-size:11px; color:var(--muted); line-height:1.15;}
+  /* 允許左右說明也自動換行，避免擠到冒號或出現 … */
+  .sub-left{white-space:normal;}
+  .sub-right{white-space:normal; color:#93c5fd;}
+  .price{font-size:11px; color:#e2e8f0;}
+
   .rarity-普通{color:#e5e7eb;} .rarity-精良{color:#22c55e;} .rarity-稀有{color:#38bdf8;} .rarity-史詩{color:#a78bfa;} .rarity-傳說{color:#f59e0b;}
-  .dur{font-size:12px; color:#e2e8f0;}
+  .dur{font-size:11px; color:#e2e8f0;}
+  
   #bagAction{position:fixed; inset:0; display:none; place-items:center; z-index:1000;}
   #bagAction.show{display:grid;}
   #bagAction .mask{position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter: blur(2px);}
-  #bagAction .sheet{position:relative; width:min(92vw, 420px);} #bagAction .ops{display:flex; justify-content:flex-end; gap:8px;}
-  .opx{padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.08); color:#fff; font-weight:700; cursor:pointer;}
+  #bagAction .sheet{position:relative; width:min(92vw, 380px);} #bagAction .ops{display:flex; justify-content:flex-end; gap:6px;}
+  .opx{padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.08); color:#fff; font-weight:700; font-size:12px; cursor:pointer;}
   .opx.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));}
+
+
   /* 讓屬性面板的外層彈窗限制高度，避免超出視口 */
 #attrModal .sheet{
   /* 原本就有 width/min… 可保留 */

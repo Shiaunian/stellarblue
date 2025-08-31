@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>修仙RPG｜野外地圖＆戰鬥</title>
+  <style>
+    :root{
+      --bg:#0b1024; --bg2:#0e1536; --panel:#131a3f; --panel-2:#0f1534; --muted:#9aa3b2; --text:#eaf2ff;
+      --accent:#8b5cf6; --accent2:#22d3ee; --hp:#ef4444; --mp:#3b82f6; --bar:#334155; --ok:#22c55e; --warn:#f59e0b;
+      --gold:#b98c4b; --gold-2:#7a5b31; --radius:16px; --gap:12px; --shadow:0 10px 28px rgba(0,0,0,.35);
+      --elem-none:#64748b; --elem-gold:#f59e0b; --elem-wood:#22c55e; --elem-water:#38bdf8;
+      --elem-fire:#f97316; --elem-earth:#a16207; --elem-spirit:#a78bfa; --elem-dark:#0f172a;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%; margin:0; font-family:"Microsoft JhengHei",system-ui,Segoe UI,Roboto,sans-serif; color:var(--text); background:var(--bg);}
+
+    .stage{
+      position:fixed; inset:0;
+      display:grid;
+      align-items:start;            /* 讓畫面貼齊頂部*/
+      justify-items:center;
+      overflow:auto;
+      padding-top:env(safe-area-inset-top); /* 保留瀏海安全區 */
+    }
+
+    .app{
+      aspect-ratio: 93/150;
+      width: min(100svw, calc(100svh * 93/150));
+      max-height: 100svh;
+      background: linear-gradient(180deg, var(--bg2), var(--panel));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display:flex; flex-direction:column; overflow:hidden;
+    }
+    /* 手機直立優化：讓 App 直接填滿視窗，去掉上下黑邊 */
+    @media (max-width: 480px){
+      .app{
+        width: 100svw;
+        height: 100svh;       /* 直接吃滿可視高度 */
+        max-height: none;
+        aspect-ratio: auto;   /* 取消固定比例 */
+        border-radius: 0;     /* 視覺貼齊螢幕邊緣（可移除） */
+      }
+    }
+
+    /* Header */
+    header{
+      padding:10px 12px; background:rgba(255,255,255,.06);
+      border-bottom:1px solid rgba(255,255,255,.08);
+      display:grid; grid-template-columns:1fr auto; grid-template-areas: "left right" "medals right";
+      gap:8px 10px; align-items:center;
+    }
+    .h-left{grid-area:left; display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:center; min-width:0;}
+    .avatar{width:44px; height:44px; border-radius:50%; object-fit:cover; background:#222; border:2px solid rgba(255,255,255,.15);}
+    .pinfo{display:flex; flex-direction:column; min-width:0;}
+    .prow{display:flex; align-items:center; gap:6px; flex-wrap:nowrap; min-width:0;}
+    .pname{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+    .plv{font-size:12px; opacity:.9;}
+    .pill{
+      display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px;
+      background:rgba(255,255,255,0.08);
+    }
+    .pill.elem{ color:#fff; font-weight:600; }
+    .pill.elem.none{  background:var(--elem-none);  }
+    .pill.elem.gold{  background:var(--elem-gold);  }
+    .pill.elem.wood{  background:var(--elem-wood);  }
+    .pill.elem.water{ background:var(--elem-water); }
+    .pill.elem.fire{  background:var(--elem-fire);  }
+    .pill.elem.earth{ background:var(--elem-earth); }
+    .pill.elem.spirit{background:var(--elem-spirit);}
+    .pill.elem.dark{  background:var(--elem-dark);  }
+
+    .elem{font-weight:700;}
+      .elem.none{background:var(--elem-none); color:#0b1024;}
+      .elem.water{background:var(--elem-water); color:#07223a;}
+      .elem.fire{background:var(--elem-fire); color:#2b0a00;}
+    .medals{grid-area:medals; display:flex; gap:6px; min-width:0;}
+    .medal-slot{width:30px; aspect-ratio:1/1; border-radius:50%; border:2px solid rgba(255,255,255,.25);
+      display:flex; align-items:center; justify-content:center; font-size:12px; color:#cbd5e1; background:rgba(255,255,255,.06);
+      overflow:hidden; flex:0 0 auto;}
+    .h-right{grid-area:right; display:flex; flex-direction:column; align-items:flex-end; gap:8px; min-width:0;}
+    .coins{display:flex; gap:8px; white-space:nowrap; min-width:0; flex-wrap:nowrap;}
+    .coin{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); font-size:12px;}
+    .icon-box{ width:18px; height:18px; border-radius:4px; overflow:hidden; display:grid; place-items:center; }
+    .icon-box img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .val{max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+    .back-btn{padding:5px 10px; min-width:76px; font-size:12px; border-radius:999px; border:1px solid rgba(255,255,255,.2); background:#111827; color:#fff; font-weight:800; cursor:pointer; letter-spacing:.5px;}
+    .logout-btn{padding:5px 10px; min-width:76px; font-size:12px; border-radius:999px; border:1px solid rgba(255,255,255,.2); background:#ef4444; color:#fff; font-weight:800; cursor:pointer; letter-spacing:.5px;}
+
+    .divider{height:1px; background:rgba(255,255,255,.08); margin:6px 0;}
+    .main{flex:1; display:flex; flex-direction:column; gap:10px; padding:8px 12px 10px; overflow:auto;}
+
+    /* Bars（縮小字級＋更細能量條） */
+    .bars{display:grid; gap:6px;}
+    .stat-row{display:grid; grid-template-columns:48px 1fr 56px; align-items:center; gap:6px;}
+    .label{font-size:12px; color:#e2e8f0; text-align:right;}
+    .num{font-size:11px; color:#e2e8f0; text-align:right;}
+    .prog{height:8px; background:#1f273a; border-radius:999px; position:relative; overflow:hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 -1px 0 rgba(0,0,0,.25);}
+    .fill{height:100%; width:0%;}
+      .fill.sta{background:linear-gradient(90deg,#eab308,#f59e0b);}
+      .fill.exp{background:linear-gradient(90deg,#16a34a,#4ade80);}
+      .fill.hp{background:linear-gradient(90deg,#ef4444,#b91c1c);}
+      .fill.mp{background:linear-gradient(90deg,#3b82f6,#1d4ed8);}
+
+    /* Map selection */
+    .map-wrap{display:grid; gap:10px;}
+    .title{text-align:center; color:#c7d2fe; font-weight:900; letter-spacing:4px; padding-top:2px; font-size:14px;}
+
+    /* 兩列選單：左＝大地圖（清單）／右＝副地圖（清單） */
+    .map-select{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
+    .col{
+      background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08);
+      border-radius:14px; padding:8px; display:grid; grid-template-rows:auto 1fr;
+      gap:8px; min-height:160px;
+    }
+    .col .clabel{font-size:12px; color:#a5b4fc; letter-spacing:2px;}
+    .col .opts{
+      display:flex; flex-direction:column; gap:6px; overflow:auto; padding-right:2px;
+      -webkit-overflow-scrolling:touch;
+    }
+    /* 清單條目（字小、整行可點） */
+    .tag{
+      display:flex; align-items:center; justify-content:space-between; width:100%;
+      padding:6px 10px; font-size:12px; border-radius:10px;
+      border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06);
+      cursor:pointer; user-select:none;
+    }
+    .tag .name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+    .tag .lv{margin-left:8px; font-size:11px; color:#93c5fd; opacity:.95; white-space:nowrap;}
+    .tag{padding:4px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.10); cursor:pointer; user-select:none; font-size:11px; line-height:1.1;}
+    .tag.active{background:linear-gradient(135deg,var(--accent),var(--accent2));}
+
+    /* 進入/動作區 */
+    .panel{background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:8px; display:grid; gap:8px;}
+    .btn{padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-weight:800; text-align:center; cursor:pointer; user-select:none;}
+    .btn.ghost{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.2);}
+    .btn[disabled]{opacity:.5; filter:grayscale(1); cursor:not-allowed;}
+
+    .row{display:flex; gap:8px; flex-wrap:wrap;}
+    .hint{font-size:12px; color:#93c5fd; text-align:center;}
+
+   /* === 地區情報（固定欄位・雙欄） === */
+    .panel.info{ padding:6px 8px; }
+    .info-title{
+      font-size:11px; color:#a5b4fc; letter-spacing:1.5px;
+      margin-bottom:4px; opacity:.95;
+    }
+    /* 固定雙欄：左欄較寬（怪物），右欄稍窄（事件） */
+    .info-grid{
+      display:grid; grid-template-columns: minmax(0,1.35fr) minmax(0,.85fr);
+      gap:6px 10px; align-items:start;
+    }
+    .info-col{ display:grid; gap:4px; min-width:0; }
+    .info-label{ font-size:11px; color:#e2e8f0; opacity:.8; }
+
+    /* 怪物膠囊（更緊湊） */
+    .chip-list{ display:flex; flex-wrap:wrap; gap:6px; }
+    .chip{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:3px 6px; border-radius:8px;
+      border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.08);
+      font-size:11px; line-height:1.1; white-space:nowrap;
+      max-width:100%;
+    }
+    .chip .mname{
+      max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .chip .mlv{ font-size:10px; opacity:.75; }
+
+    /* 地區情報中的元素膠囊縮小一號 */
+    .info .pill.elem{
+      padding:0 6px; border-radius:8px;
+      font-size:10px; line-height:1.1;
+    }
+
+    /* 事件列表（真正齊頭：把分隔點放在前一個項目的尾端） */
+    .event-list{
+      display:flex; flex-wrap:wrap; gap:6px 10px;
+      margin:0; padding:0; list-style:none; font-size:11px; color:#cbd5e1;
+    }
+    .event-list li{
+      display:flex; align-items:center;
+    }
+    .event-list li::before{ content:''; } /* 清空上一版的前置點（避免快取造成殘留） */
+    .event-list li:not(:last-child)::after{
+      content:'・'; margin-left:6px; opacity:.55;
+    }
+
+
+    /* Battle UI */
+    .battle{display:none; grid-template-rows:auto 1fr auto; gap:10px; min-height:340px;}
+    .battle.show{display:grid;}
+    .arena{display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:end; padding:8px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);}
+    .box{background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:8px; display:grid; gap:8px;}
+    .art{width:100%; height:120px; border-radius:10px; background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.15));
+      display:grid; place-items:center; overflow:hidden; border:1px solid rgba(255,255,255,.08);}
+    .portrait{width:auto; height:100%; object-fit:contain; display:block; filter: drop-shadow(0 6px 8px rgba(0,0,0,.35));}
+    .portrait.mirror{transform: scaleX(-1);}
+    .who{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+    .name{font-weight:900;}
+    .hpbar{height:10px; background:#1f273a; border-radius:999px; overflow:hidden;}
+    .hpfill{height:100%; width:0%; background:linear-gradient(90deg,#ef4444,#b91c1c);}
+    .atb{height:10px; background:#0b122b; border-radius:999px; overflow:hidden;}
+    .atbfill{height:100%; width:0%; background:linear-gradient(90deg,#22d3ee,#8b5cf6);}
+    .srow{display:flex; gap:10px; font-size:12px; color:#cbd5e1;}
+    .cmd{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+    .cbtn{padding:10px 6px; text-align:center; border-radius:10px; border:1px solid rgba(255,255,255,.2);
+      background:linear-gradient(#a6783e,#7f5626); box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 2px 0 rgba(0,0,0,.2);
+      font-weight:800; letter-spacing:2px; color:#fff; cursor:pointer; user-select:none;}
+    .cbtn[disabled]{opacity:.5; filter:grayscale(1); cursor:not-allowed;}
+    .log{height:110px; overflow:auto; padding:8px 10px; font-size:12px; background:#060a1a; border:1px solid rgba(255,255,255,.2); border-radius:10px;}
+
+    .footrow{display:flex; gap:8px; justify-content:space-between; align-items:center;}
+    .locBadge{font-size:12px; color:#e2e8f0;}
+
+    /* ===== 受擊/浮字特效 ===== */
+    .art{ position:relative; }            /* 讓 fx 可以絕對定位在立繪上 */
+    .fx{ position:absolute; inset:0; pointer-events:none; overflow:visible; }
+    .dmg-float{
+      position:absolute; left:50%; top:45%;
+      transform: translate(-50%,-50%);
+      font-weight:900; font-size:22px; letter-spacing:1px;
+      text-shadow:0 2px 0 rgba(0,0,0,.35), 0 0 12px rgba(255,255,255,.2);
+      animation: rise 900ms ease-out forwards;
+      user-select:none; white-space:nowrap;
+    }
+    .dmg-float.crit{ font-size:26px; filter: drop-shadow(0 0 8px rgba(255,215,0,.55)); }
+    .dmg{ color:#ff6b6b; }
+    .heal{ color:#34d399; }
+    .crit{ color:#ffd166; }
+
+    .flash{
+      position:absolute; inset:0;
+      background: radial-gradient( circle at 50% 45%, rgba(255,80,80,.55), rgba(255,0,0,.15) 60%, transparent 70% );
+      mix-blend-mode: screen;
+      border-radius:10px;
+      animation: flash 220ms ease-out forwards;
+    }
+
+    .portrait.shake{ animation: shake .28s cubic-bezier(.36,.07,.19,.97) 2; transform-origin:center; }
+
+    @keyframes flash{
+      0%{ opacity:0; }
+      10%{ opacity:.95; }
+      100%{ opacity:0; }
+    }
+    @keyframes rise{
+      0%{ transform:translate(-50%,-20%) scale(.9); opacity:0; }
+      15%{ transform:translate(-50%,-40%) scale(1.05); opacity:1; }
+      100%{ transform:translate(-50%,-110%) scale(1.0); opacity:0; }
+    }
+    @keyframes shake{
+      10%, 90% { transform: translateX(-1px); }
+      20%, 80% { transform: translateX(2px); }
+      30%, 50%, 70% { transform: translateX(-4px); }
+      40%, 60% { transform: translateX(4px); }
+    } 
+  </style>
+</head>
+<body>
+<div class="stage">
+  <div class="app">
+    <header>
+      <div class="h-left">
+        <img id="uiAvatar" class="avatar" alt="avatar" />
+        <div class="pinfo">
+          <div class="prow">
+            <div class="pname" id="uiName"></div>
+            <div class="plv">LV.<span id="uiLv"></span></div>
+            <span id="uiElem" class="pill elem none"></span>
+          </div>
+        </div>
+      </div>
+      <div class="medals">
+        <div class="medal-slot" id="medal1"></div>
+        <div class="medal-slot" id="medal2"></div>
+        <div class="medal-slot" id="medal3"></div>
+        <div class="medal-slot" id="medal4"></div>
+        <div class="medal-slot" id="medal5"></div>
+      </div>
+      <div class="h-right">
+        <div class="coins">
+          <span class="coin">
+            <span class="icon-box"><img alt="靈石" src="https://upload.wikimedia.org/wikipedia/commons/9/9d/Crystal_128_up.png"></span>
+            <span class="val" id="uiStone">0</span>
+          </span>
+          <span class="coin">
+            <span class="icon-box"><img alt="鑽石" src="https://upload.wikimedia.org/wikipedia/commons/0/0a/Diamond_Icon.svg"></span>
+            <span class="val" id="uiDiamond">0</span>
+          </span>
+        </div>
+        <div class="row">
+          <button id="btnBackHome" class="back-btn" title="返回主城">返回主城</button>
+          <button id="btnLogout" class="logout-btn" title="登出" aria-label="登出">登出</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="divider"></div>
+
+    <div class="main">
+      <!-- 顯示體力/經驗/氣血 -->
+    <div class="bars">
+      <div class="stat-row">
+        <div class="label">體力：</div>
+        <div class="prog"><div class="fill sta" id="barSta"></div></div>
+        <div class="num" id="txtSta">100/100</div>
+      </div>
+      <div class="stat-row">
+        <div class="label">經驗：</div>
+        <div class="prog"><div class="fill exp" id="barExp"></div></div>
+        <div class="num" id="txtExp">0/100</div>
+      </div>
+      <div class="stat-row">
+        <div class="label">氣血：</div>
+        <div class="prog"><div class="fill hp" id="barHp"></div></div>
+        <div class="num" id="txtHp">--/--</div>
+      </div>
+      <div class="stat-row">
+        <div class="label">真元：</div>
+        <div class="prog"><div class="fill mp" id="barMp"></div></div>
+        <div class="num" id="txtMp">--/--</div>
+      </div>
+    </div>
+
+<!-- 地圖選擇 -->
+      <div id="mapSection" class="map-wrap">
+        <div class="title">野 外 地 圖</div>
+
+        <!-- 兩列選單：左大地圖、右副地圖（依左側選擇動態變化） -->
+        <div class="map-select">
+          <div class="col">
+            <div class="clabel">大地圖</div>
+            <div class="opts" id="bigMapCol"></div>
+          </div>
+          <div class="col">
+            <div class="clabel">副地圖</div>
+            <div class="opts" id="smallMapCol"></div>
+          </div>
+        </div>
+
+        <!-- 先按「進入」才會顯示探險/戰鬥 -->
+        <div class="panel">
+          <div class="locBadge" id="locBadge">尚未選擇地點</div>
+          <div class="row">
+            <button id="btnEnter"  class="btn" disabled>進 入</button>
+            <button id="btnExplore" class="btn" style="display:none;">探險（體力-2）</button>
+            <button id="btnFight"   class="btn" style="display:none;">戰 鬥</button>
+          </div>
+          <div class="hint">請先選擇「大地圖 → 副地圖」並按下「進入」。進入後才會顯示「探險 / 戰鬥」。</div>
+        </div>
+
+        <!-- ★ 地區情報（固定欄位｜雙欄：左=怪物，右=事件） -->
+        <div class="panel info" id="areaInfo">
+          <div class="info-title">地 區 情 報</div>
+          <div class="info-grid">
+            <div class="info-col info-left">
+              <div class="info-label">可能出現的怪物</div>
+              <div id="infoMonsters" class="chip-list"><span class="chip">—</span></div>
+            </div>
+            <div class="info-col info-right">
+              <div class="info-label">探險可能事件</div>
+              <ul id="infoEvents" class="event-list">
+                <li>撿到靈石（約 50%）</li>
+                <li>發現素材（約 30%）</li>
+                <li>獲得丹藥（約 20%）</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- ★ 事件／戰鬥日誌（與戰鬥共用同一個 #log） -->
+        <div class="panel">
+          <div class="log" id="logMap"></div>
+        </div>
+      </div>
+
+      <!-- 戰鬥場景 -->
+      <div id="battleSection" class="battle">
+        <div class="arena">
+        <div class="box">
+          <div class="who">
+          <div class="name">你</div>
+          <div class="srow">
+            <span>LV.<span id="pLv"></span></span>
+            <span id="pElem" class="pill elem">—</span>
+          </div>
+        </div>
+          <div class="art">
+            <img id="pImg" class="portrait" alt="player portrait">
+            <div class="fx" id="pFx"></div>
+          </div>
+          <div class="hpbar"><div id="pHp" class="hpfill"></div></div>
+          <div class="atb"><div id="pATB" class="atbfill"></div></div>
+        </div>
+        <div class="box">
+          <div class="who">
+          <div class="name" id="eName">敵人</div>
+          <div class="srow">
+            <span>LV.<span id="eLv"></span></span>
+            <span id="eElem" class="pill elem">—</span>
+          </div>
+        </div>
+          <div class="art">
+            <img id="eImg" class="portrait mirror" alt="enemy portrait">
+            <div class="fx" id="eFx"></div>
+          </div>
+          <div class="hpbar"><div id="eHp" class="hpfill"></div></div>
+          <div class="atb"><div id="eATB" class="atbfill"></div></div>
+        </div>
+        </div>
+        <div class="cmd">
+          <button id="actAttack" class="cbtn" disabled>攻 擊</button>
+          <button id="actSkill"  class="cbtn" disabled title="預留">技 能</button>
+          <button id="actItem"   class="cbtn" disabled>道 具</button>
+          <button id="actRun"    class="cbtn" disabled>逃 跑</button>
+        </div>
+        <div class="log" id="logBattle"></div>
+        <div class="footrow">
+          <div id="btState" class="locBadge"></div>
+          <div class="row">
+            <button id="btnLeaveBattle" class="btn ghost" style="display:none;">返回小地圖</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 資料庫/帳號 -->
+<script src="items.js"></script>
+<script src="monsters.js"></script>
+<script src="auth.js"></script>
+
+<script>
+/* ===== 工具 ===== */
+const qs = (s, p=document)=>p.querySelector(s);
+const qsa = (s, p=document)=>[...p.querySelectorAll(s)];
+const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+const pct=(cur,max)=> (max>0? clamp(Math.round(cur/max*100),0,100) : 0);
+const fmt=(n)=> new Intl.NumberFormat('zh-Hant').format(n);
+
+/* ===== 元素＆相剋表 ===== */
+const ELEMENT_LABEL = {
+  none:'無', gold:'金', wood:'木', water:'水', fire:'火', earth:'土', spirit:'靈', dark:'暗'
+};
+
+// 1) 相剋倍率（v1：五行相剋＋暗/靈互克；強 1.25×、弱 0.75×、其餘 1.00）
+
+window.ELEM_MUL = {
+  none:  { none:1, gold:1,   wood:1,    water:1,    fire:1,    earth:1,   spirit:1,   dark:1 },
+  gold:  { none:1, gold:1,   wood:1.25, water:1,    fire:0.75, earth:1,   spirit:1,   dark:1 },
+  wood:  { none:1, gold:0.75,wood:1,    water:1,    fire:0.75, earth:1.25,spirit:1,   dark:1 },
+  water: { none:1, gold:1,   wood:1,    water:1,    fire:1.25, earth:0.75,spirit:1,   dark:1 },
+  fire:  { none:1, gold:1.25,wood:1.25, water:0.75, fire:1,    earth:1,   spirit:1,   dark:1 },
+  earth: { none:1, gold:1,   wood:0.75, water:1.25, fire:1,    earth:1,   spirit:1,   dark:1 },
+  spirit:{ none:1, gold:1,   wood:1,    water:1,    fire:1,    earth:1,   spirit:1,   dark:1.25 },
+  dark:  { none:1, gold:1,   wood:1,    water:1,    fire:1,    earth:1,   spirit:1.25,dark:1 },
+};
+
+
+// 2) 同屬性加成（Same-Type Attack Bonus）：攻擊者元素==攻擊元素 → +10%
+window.STAB = 1.00;
+
+// 3) 取倍率工具
+function elemMult(dmgElem='none', defElem='none'){
+  const row = (window.ELEM_MUL||{})[dmgElem]||{};
+  return row[defElem] ?? 1;
+}
+// 將元素對應關係轉成易讀的片語（固定顯示，×1.00 也會寫出來）
+function elemRelationText(atkElem, defElem, elemMul, stabMul){
+  const name = (k)=> (ELEMENT_LABEL?.[k] || k || '無');
+  const parts = [`相性：${name(atkElem)}→${name(defElem)} ×${(elemMul||1).toFixed(2)}`];
+  if ((stabMul||1) > 1) parts.push(`同屬 +${Math.round((stabMul-1)*100)}%`);
+  return '（' + parts.join('；') + '）';
+}
+
+// 玩家預設立繪（若沒有 avatar 才用這張）
+const PLAYER_IMG_URL = 'https://picsum.photos/seed/xian-hero/400/600';
+
+
+
+/* ===== 地圖資料（大地圖 -> 小地圖） ===== */
+const MAPS = [
+  { id:'forest', name:'青木山脈', lv:'1-4', small:[
+    { id:'woodland',  name:'靈木林', lv:'1-3', monsters:['slime','wood_wisp','thorn_fox'] },
+    { id:'moss_vale', name:'苔石谷', lv:'2-4', monsters:['slime','stone_golem'] },
+  ]},
+  { id:'tundra', name:'雪原台地', lv:'3-4', small:[
+    { id:'wolf_ridge',  name:'雪狼坡', lv:'3-4', monsters:['snow_wolf','ice_bear'] },
+    { id:'ice_bramble', name:'冰棘丘', lv:'3-4', monsters:['ice_thorn','snow_wolf'] },
+  ]}
+];
+
+
+/* ===== 玩家/導入角色 ===== */
+let P = null;           // 玩家角色
+let curBig = null;      // 現在選的大地圖 id
+let curSmall = null;    // 現在選的小地圖 id
+let entered = false;    // 是否已按「進入」，未進入前不顯示探險/戰鬥
+
+// 取得玩家（從 Auth / localStorage）
+function loadPlayer(){
+  if(!window.Auth || !Auth.getCharacter){ alert('找不到帳號系統'); return null; }
+  const c = Auth.getCharacter();
+  if(!c){ location.href = 'index.html#create'; return null; }
+
+  // 確保背包存在 & 結構齊全
+  if(!c.bag){
+    c.bag = (window.ItemDB && ItemDB.getDefaultBag) ? ItemDB.getDefaultBag() 
+      : { consumables:[], weapons:[], ornaments:[], materials:[], hidden:[] };
+  }else{
+    c.bag.consumables = Array.isArray(c.bag.consumables) ? c.bag.consumables : [];
+    c.bag.weapons     = Array.isArray(c.bag.weapons)     ? c.bag.weapons     : [];
+    c.bag.ornaments   = Array.isArray(c.bag.ornaments)   ? c.bag.ornaments   : [];
+    c.bag.materials   = Array.isArray(c.bag.materials)   ? c.bag.materials   : [];
+    c.bag.hidden      = Array.isArray(c.bag.hidden)      ? c.bag.hidden      : [];
+  }
+
+  // HP 欄位若不存在，建立（沿用你的衍生規則）
+  if(!c.hp){ 
+    const d=derivedFrom(c); 
+    c.hp = { cur:d['氣血上限'], max:d['氣血上限'] }; 
+  }
+  return c;
+}
+
+function savePlayer(){ if(window.Auth && Auth.saveCharacter) Auth.saveCharacter(P); }
+
+/* ===== 衍生能力（與主城公式一致） ===== */
+function derivedFrom(player){
+  const A = player.attributes || {str:10, vit:10, dex:10, int:10, wis:10, luk:10};
+  const level = player.level ?? 1;
+  return {
+    '物理攻擊': A.str*2 + level,
+    '法術攻擊': A.int*2 + Math.floor(A.wis*0.5),
+    '氣血上限': 80 + A.vit*12 + level*6,
+    '真元上限': 40 + A.wis*10 + Math.floor(A.int*6/5),
+    '物理防禦': Math.floor(A.vit*1.2) + Math.floor(A.dex*0.6),
+    '法術防禦': Math.floor(A.wis*1.3) + Math.floor(A.int*0.5),
+    '命中率': 60 + A.dex*2,
+    '閃避': 5 + Math.floor(A.dex*1.2),
+    '暴擊率': Math.min(50, 3 + Math.floor(A.luk*0.8)),
+    '暴擊傷害': 50 + Math.floor(A.luk*1.5),
+    '行動條速度': 100 + Math.floor(A.dex*2.2), // 以此轉換為 ATB 速度
+    '回氣/回合': 2 + Math.floor(A.wis*0.4),
+    '回血/回合': 1 + Math.floor(A.vit*0.5),
+    '破甲': Math.floor(A.str*0.6),
+    '法穿': Math.floor(A.int*0.6),
+  };
+}
+
+/* ===== UI Render ===== */
+function renderHeader(){
+  const fallbackAvatar = (typeof Auth!=='undefined' && Auth.defaultAvatar)
+    ? (Auth.defaultAvatar() || 'https://picsum.photos/seed/xian/96')
+    : 'https://picsum.photos/seed/xian/96';
+  qs('#uiAvatar').src = P.avatar || fallbackAvatar;
+  qs('#uiName').textContent = P.name || '無名散修';
+  qs('#uiLv').textContent   = P.level ?? 1;
+  const elem = (P.element || 'none').toLowerCase();
+  const elemEl = qs('#uiElem'); elemEl.className = `pill elem ${elem}`; elemEl.textContent = ELEMENT_LABEL[elem] || '無元素';
+
+  qs('#uiStone').textContent   = fmt(P.currencies?.stone || 0);
+  qs('#uiDiamond').textContent = fmt(P.currencies?.diamond || 0);
+}
+
+ // 玩家進入後連動的能量條
+
+function renderBars(){
+  if (!P) return;                      // ← 用全域 P（在 start() 由 loadPlayer() 載入）
+  const d = derivedFrom(P);
+
+  // 體力 / 經驗：保留原值，若不存在才給預設，並做夾限
+  if (!P.sta) P.sta = { cur:100, max:100 };
+  P.sta.max = P.sta.max ?? 100;
+  P.sta.cur = Math.max(0, Math.min(P.sta.cur ?? P.sta.max, P.sta.max));
+
+  if (!P.exp) P.exp = { cur:0, max:100 };
+  P.exp.max = P.exp.max ?? 100;
+  P.exp.cur = Math.max(0, Math.min(P.exp.cur ?? 0, P.exp.max));
+
+  // 氣血（由屬性推上限，再夾限目前值）
+  const hpMax = d['氣血上限'];
+  if (!P.hp) P.hp = { cur:hpMax, max:hpMax };
+  P.hp.max = hpMax;
+  P.hp.cur = Math.max(0, Math.min(P.hp.cur ?? hpMax, hpMax));
+
+  // 真元（同理）
+  const mpMax = d['真元上限'];
+  if (!P.mp) P.mp = { cur:mpMax, max:mpMax };
+  P.mp.max = mpMax;
+  P.mp.cur = Math.max(0, Math.min(P.mp.cur ?? mpMax, mpMax));
+
+  // 畫面更新
+  qs('#barSta').style.width = (P.sta.cur / P.sta.max * 100) + '%';
+  qs('#txtSta').textContent = `${P.sta.cur}/${P.sta.max}`;
+
+  qs('#barExp').style.width = (P.exp.cur / P.exp.max * 100) + '%';
+  qs('#txtExp').textContent = `${P.exp.cur}/${P.exp.max}`;
+
+  qs('#barHp').style.width  = (P.hp.cur / P.hp.max * 100) + '%';
+  qs('#txtHp').textContent  = `${P.hp.cur}/${P.hp.max}`;
+
+  if (qs('#barMp')) {
+    qs('#barMp').style.width = (P.mp.cur / P.mp.max * 100) + '%';
+    qs('#txtMp').textContent = `${P.mp.cur}/${P.mp.max}`;
+  }
+}
+
+function buildMapUI(){
+  const bigCol   = qs('#bigMapCol');
+  const smallCol = qs('#smallMapCol');
+  bigCol.innerHTML=''; smallCol.innerHTML='';
+
+  // 左列：大地圖（清單＋建議等級）
+  MAPS.forEach(m=>{
+    const btn = document.createElement('div');
+    btn.className = 'tag' + (m.id===curBig?' active':'');
+    btn.innerHTML = `<span class="name">${m.name}</span><span class="lv">建議 ${m.lv||'—'}</span>`;
+    btn.onclick = ()=>{
+      curBig = m.id;
+      curSmall = null;      // 切換大地圖時清空副地圖選擇
+      entered = false;      // 必須重新進入
+      buildMapUI();
+      setLocBadge();
+      updateActionPanel();
+    };
+    bigCol.appendChild(btn);
+  });
+
+  // 若尚未選擇，預設選第一個大地圖
+  const big = MAPS.find(x=>x.id===curBig) || MAPS[0];
+  if(!curBig && big){ curBig = big.id; }
+
+  // 右列：依目前大地圖顯示副地圖（清單＋建議等級）
+  (big?.small||[]).forEach(s=>{
+    const btn = document.createElement('div');
+    btn.className = 'tag' + (s.id===curSmall?' active':'');
+    btn.innerHTML = `<span class="name">${s.name}</span><span class="lv">建議 ${s.lv||'—'}</span>`;
+    btn.onclick = ()=>{
+      curSmall = s.id;
+      entered = false;    // 選了副地圖後，仍需按「進入」
+      setLocBadge();
+      updateActionPanel();
+
+      // 標記 active
+      [...smallCol.children].forEach(x=>x.classList.remove('active'));
+      btn.classList.add('active');
+
+      // 更新地區情報
+      renderAreaInfo();
+    };
+    smallCol.appendChild(btn);
+  });
+
+  setLocBadge();
+  updateActionPanel();
+  renderAreaInfo(); // 初始也渲染一次
+}
+
+/* 固定欄位：地區情報 */
+function renderAreaInfo(){
+  const infoMon = qs('#infoMonsters');
+  const infoEvt = qs('#infoEvents');
+  if(!infoMon) return;
+
+  const big = MAPS.find(x=>x.id===curBig);
+  const small = big?.small?.find(x=>x.id===curSmall);
+
+  // 1) 怪物清單（依副地圖設定）
+  if(!small || !(small.monsters||[]).length){
+    infoMon.innerHTML = '<span class="chip">—</span>';
+  }else{
+    const chips = (small.monsters||[]).map(id=>{
+      const m = (window.MonsterDB && MonsterDB.DB && MonsterDB.DB[id]) ? MonsterDB.DB[id] : {name:id, level:'?', element:'none'};
+      const elem = (m.element||'none').toLowerCase();
+      const elemName = (ELEMENT_LABEL?.[elem] || '無');
+      return `<span class="chip"><span class="mname">${m.name}</span><span class="pill elem ${elem}">${elemName}</span><span class="mlv">LV.${m.level||'?'}</span></span>`;
+    });
+    infoMon.innerHTML = chips.join('');
+  }
+
+  // 2) 事件清單（固定規則，已在 HTML 寫死；這裡可視需要做動態呈現）
+  if(infoEvt && !infoEvt.dataset.bound){
+    infoEvt.dataset.bound = '1'; // 目前規則固定即可
+  }
+}
+
+function setLocBadge(){
+  const big = MAPS.find(x=>x.id===curBig);
+  const small = big?.small?.find(x=>x.id===curSmall);
+  const locTxt = small ? `目前位置：${big.name} ＞ ${small.name}` : '尚未選擇地點';
+  qs('#locBadge').textContent = entered ? `${locTxt}（已進入）` : locTxt;
+}
+
+function updateActionPanel(){
+  const btnEnter   = qs('#btnEnter');
+  const btnExplore = qs('#btnExplore');
+  const btnFight   = qs('#btnFight');
+
+  const canEnter = !!curBig && !!curSmall;
+  btnEnter.disabled = !canEnter;
+
+  if(!entered){
+    // 尚未進入：只顯示「進入」，隱藏探險/戰鬥
+    btnEnter.style.display   = 'inline-block';
+    btnExplore.style.display = 'none';
+    btnFight.style.display   = 'none';
+  }else{
+    // 已進入：顯示探險/戰鬥，隱藏「進入」
+    btnEnter.style.display   = 'none';
+    btnExplore.style.display = 'inline-block';
+    btnFight.style.display   = 'inline-block';
+  }
+}
+
+/* ===== 探險 ===== */
+function doExplore(){
+  if(!curSmall){ log('請先選擇副地圖。'); return; }
+  if(!entered){ log('請先按「進入」該地區。'); return; }
+  if((P.sta?.cur||0) < 2){ log('體力不足（需要 2）', 'warn'); return; }
+  P.sta.cur -= 2;
+
+  // 50% 靈石 / 30% 素材 / 20% 消耗品
+  const r = Math.random();
+  if(r < 0.5){
+    const got = 5 + Math.floor(Math.random()*16); // 5~20
+    P.currencies.stone = (P.currencies.stone||0) + got;
+    log(`探險獲得 靈石 ×${got}`,'ok');
+  }else if(r < 0.8){
+    // 素材（依地圖選一個：若項目不存在於 ItemDB，回退成 wood_shard）
+    const picks = ['wood_shard','stone_core','ghost_essence'];
+    let id = picks[Math.floor(Math.random()*picks.length)];
+    if(!ItemDB.getDef('materials', id)) id = 'wood_shard';
+    const qty = 1 + Math.floor(Math.random()*2);
+    ItemDB.addMaterialToBag(P.bag, id, qty);
+    log(`探險獲得素材：${(ItemDB.getDef('materials',id)?.name || id)} ×${qty}`,'ok');
+  }else{
+    // 消耗品（hp_small 或 mp_small 如果有）
+    const ids = ['hp_small','mp_small'].filter(id=>!!ItemDB.getDef('consumables', id));
+    const id = ids.length? ids[Math.floor(Math.random()*ids.length)] : 'hp_small';
+    ItemDB.addConsumableToBag(P.bag, id, 1);
+    log(`探險獲得丹藥：${(ItemDB.getDef('consumables',id)?.name || id)} ×1`,'ok');
+  }
+  renderHeader(); renderBars(); savePlayer();
+}
+
+/* ===== 戰鬥（ATB） ===== */
+const ATB_MAX = 1000;      // 滿格門檻
+let battle = null;         // 戰鬥狀態
+let loop = null;           // 計時器
+
+function startBattle(){
+  if(!curSmall){ log('請先選擇副地圖。'); return; }
+  if(!entered){ log('請先按「進入」該地區。'); return; }
+
+  const area = MAPS.find(x=>x.id===curBig)?.small?.find(x=>x.id===curSmall);
+  if(!area){ log('找不到該地區'); return; }
+  // 隨機一隻怪
+  const pool = (area.monsters||[]).map(id => window.MonsterDB && MonsterDB.DB[id]).filter(Boolean);
+  if(!pool.length){ log('此地尚無怪物資料'); return; }
+  const enemy = JSON.parse(JSON.stringify(pool[Math.floor(Math.random()*pool.length)]));
+
+  // 初始化戰鬥
+  qs('#mapSection').style.display='none';
+  qs('#battleSection').classList.add('show');
+  if(loop){ clearInterval(loop); loop=null; }
+
+  const d = derivedFrom(P);
+  const eCalc = (window.MonsterDB && MonsterDB.deriveAgainst) ? MonsterDB.deriveAgainst(d, enemy.id) : null;
+
+  battle = {
+    enemy,
+    enemyStats: eCalc,
+    p:{ hp:P.hp.cur, hpMax:P.hp.max, atb:0, speed: d['行動條速度'] },
+    e:{ hp:eCalc ? eCalc.hp : enemy.stats.hp,
+        hpMax:eCalc ? eCalc.hp : enemy.stats.hp,
+        atb:0,
+        speed: eCalc ? eCalc.speed : Math.round(100*(enemy.stats.aspd||1.0)) },
+    turn:'none', over:false
+  };
+
+  qs('#eName').textContent = enemy.name;
+  qs('#eLv').textContent = enemy.level;
+  qs('#pLv').textContent = P.level;
+
+  // === 新增：顯示雙方元素膠囊 ===
+  const getElemLabel = (k)=> (ELEMENT_LABEL?.[k] || k);
+  const pElem = (P.element || P.elem || 'none');
+  const eElem = (enemy.element || enemy.elem || 'none');
+
+  const pEl = qs('#pElem'), eEl = qs('#eElem');
+  if (pEl) { pEl.textContent = getElemLabel(pElem); pEl.className = 'pill elem ' + pElem; }
+  if (eEl) { eEl.textContent = getElemLabel(eElem); eEl.className = 'pill elem ' + eElem; }
+
+  // 額外：進場提示一次雙方元素
+  log(`元素資訊｜你：${getElemLabel(pElem)}　敵人：${getElemLabel(eElem)}`);
+
+
+  const pSrc = (P.avatar && typeof P.avatar==='string' && P.avatar.trim()) ? P.avatar : PLAYER_IMG_URL;
+  const pic = (window.MonsterDB && MonsterDB.getImage) ? MonsterDB.getImage(enemy.id) : {url:'',mirror:false};
+  const pImg = qs('#pImg'); const eImg = qs('#eImg');
+  if(pImg) pImg.src = pSrc;
+  if(eImg){ eImg.src = pic.url || ''; eImg.classList.toggle('mirror', !!pic.mirror); }
+
+  updateBattleBars();
+  updateCmdEnabled();
+  log(`在 ${area.name} 遭遇 ${enemy.name}！`);
+  loop = setInterval(tickATB, 60);
+}
+
+function tickATB(){
+  if(!battle || battle.over) return;
+
+  // 玩家滿條就「暫停時間」（等待玩家選指令，不再讓敵人繼續充）
+  if (battle.p.atb >= ATB_MAX) {
+    updateCmdEnabled();
+    updateBattleBars();
+    return;
+  }
+
+  // 充能（步進放慢：以速度/6，且最小僅 1，不再是 10）
+  const pStep = Math.max(1, Math.floor(battle.p.speed/6));
+  const eStep = Math.max(1, Math.floor(battle.e.speed/6));
+  battle.p.atb = clamp(battle.p.atb + pStep, 0, ATB_MAX);
+  battle.e.atb = clamp(battle.e.atb + eStep, 0, ATB_MAX);
+
+  updateBattleBars();
+  updateCmdEnabled();
+
+  // 敵人自動：滿就出手
+  if (battle.e.atb >= ATB_MAX){
+    enemyAttack();
+    battle.e.atb = 0;
+    updateBattleBars();
+  }
+}
+
+function updateBattleBars(){
+  // 更新戰鬥區顯示
+  qs('#pHp').style.width  = pct(battle.p.hp, battle.p.hpMax) + '%';
+  qs('#eHp').style.width  = pct(battle.e.hp, battle.e.hpMax) + '%';
+  qs('#pATB').style.width = pct(battle.p.atb, ATB_MAX) + '%';
+  qs('#eATB').style.width = pct(battle.e.atb, ATB_MAX) + '%';
+  qs('#btState').textContent = battle.over ? '戰鬥結束' : (battle.p.atb>=ATB_MAX?'輪到你行動':'等待行動條…');
+
+  // 同步玩家角色物件
+  if(P && P.hp){
+    P.hp.cur = battle.p.hp;
+    P.hp.max = battle.p.hpMax;
+  }
+  if(P && P.mp){
+    P.mp.cur = battle.p.mp || P.mp.cur || 0;
+    P.mp.max = battle.p.mpMax || P.mp.max || 0;
+  }
+
+  // 上方 UI 條同步
+  renderBars();
+}
+
+/* ====== 受擊特效：浮字 + 閃光 + 抖動 ====== */
+// side: 'player' | 'enemy' ; type: 'dmg' | 'crit' | 'heal'
+function spawnFloat(side, value, type='dmg'){
+  const host = side==='player' ? qs('#pFx') : qs('#eFx');
+  if(!host) return;
+  const el = document.createElement('div');
+  el.className = 'dmg-float ' + (type==='heal'?'heal':(type==='crit'?'crit dmg':'dmg'));
+  el.textContent = (type==='heal' ? '+' : '-') + value;
+  host.appendChild(el);
+  // 動畫結束移除
+  setTimeout(()=>{ el.remove(); }, 1000);
+}
+
+function flashShake(side){
+  const img = side==='player' ? qs('#pImg') : qs('#eImg');
+  const fx  = side==='player' ? qs('#pFx') : qs('#eFx');
+  if(!img || !fx) return;
+  // 閃
+  const f = document.createElement('div');
+  f.className = 'flash';
+  fx.appendChild(f);
+  setTimeout(()=>{ f.remove(); }, 260);
+  // 抖
+  img.classList.add('shake');
+  setTimeout(()=> img.classList.remove('shake'), 520);
+}
+
+// 綜合顯示：受擊時呼叫；heal=true 時顯示綠字
+function showHit(side, amount, isCrit=false, kind='hit'){
+  if(kind==='heal'){
+    spawnFloat(side, amount, 'heal');
+    return;
+  }
+  spawnFloat(side, amount, isCrit?'crit':'dmg');
+  flashShake(side);
+}
+
+function updateCmdEnabled(){
+  const canAct = battle && !battle.over && battle.p.atb>=ATB_MAX;
+  ['actAttack','actSkill','actItem','actRun'].forEach(id=>{ qs('#'+id).disabled = !canAct; });
+}
+
+function calcDamage(isPlayer){
+  if(isPlayer){
+    const D = derivedFrom(P);
+    const atk = D['物理攻擊'];
+    const pen = D['破甲']||0;
+    const critRate = D['暴擊率']||0;
+    const critDmg = (100 + (D['暴擊傷害']||50)) / 100;
+    const eDef = Math.max(0, (battle.enemyStats?.def || 0) - pen);
+    let base = Math.max(1, atk - eDef);
+    base = Math.round(base * (0.9 + Math.random()*0.2));
+    const isCrit = Math.random()*100 < critRate;
+    let out = Math.max(1, Math.round(base * (isCrit ? critDmg : 1)));
+
+    const atkElem = P?.element || 'none';
+    const defElem = battle.enemy?.element || 'none';
+    const elemMul = elemMult(atkElem, defElem);
+    const stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
+    const total   = elemMul * stabMul;
+
+    out = Math.max(1, Math.round(out * total));
+
+    // 舊 note 保留（相剋/被克制/同屬+%），並回傳元素資訊
+    let note = '';
+    if (elemMul > 1)      note += `（屬性剋制 ×${elemMul.toFixed(2)}）`;
+    else if (elemMul < 1) note += `（被克制 ×${elemMul.toFixed(2)}）`;
+    if (stabMul > 1)      note += `（同屬加成 +${Math.round((stabMul-1)*100)}%）`;
+
+    return { dmg: out, crit:isCrit, note, mult: total, elemMul, stabMul, atkElem, defElem };
+
+  }else{
+    const eS = battle.enemyStats || {};
+    const atk = eS.atk || 8;
+    const pen = eS.pen || 0;
+    const critRate = eS.crit || 0;
+    const critDmg = (100 + (eS.critdmg || 50)) / 100;
+    const pDef = Math.max(0, derivedFrom(P)['物理防禦'] - pen);
+    let base = Math.max(1, atk - pDef);
+    base = Math.round(base * (0.9 + Math.random()*0.2));
+    const isCrit = Math.random()*100 < critRate;
+    let out = Math.max(1, Math.round(base * (isCrit ? critDmg : 1)));
+
+    const atkElem = battle.enemy?.element || 'none';
+    const defElem = P?.element || 'none';
+    const elemMul = elemMult(atkElem, defElem);
+    const stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
+    const total   = elemMul * stabMul;
+
+    out = Math.max(1, Math.round(out * total));
+
+    let note = '';
+    if (elemMul > 1)      note += `（屬性剋制 ×${elemMul.toFixed(2)}）`;
+    else if (elemMul < 1) note += `（被克制 ×${elemMul.toFixed(2)}）`;
+    if (stabMul > 1)      note += `（同屬加成 +${Math.round((stabMul-1)*100)}%）`;
+
+    return { dmg: out, crit:isCrit, note, mult: total, elemMul, stabMul, atkElem, defElem };
+  }
+}
+
+function playerAttack(){
+  const r = calcDamage(true);
+  battle.e.hp = clamp(battle.e.hp - r.dmg, 0, battle.e.hpMax);
+  showHit('enemy', r.dmg, !!r.crit, 'hit');
+
+  // 固定加上相性說明（×1.00 也會顯示）
+  const rel = elemRelationText(r.atkElem, r.defElem, r.elemMul, r.stabMul);
+  log(`你對 ${battle.enemy.name} 造成 ${r.dmg} 傷害${r.crit?'（暴擊）':''} ${rel}`);
+
+  battle.p.atb = 0;
+  endCheck();
+  updateBattleBars(); updateCmdEnabled();
+  if(!battle.over && battle.e.atb>=ATB_MAX){ enemyAttack(); battle.e.atb=0; updateBattleBars(); }
+}
+
+
+
+function enemyAttack(){
+  const r = calcDamage(false);
+  battle.p.hp = clamp(battle.p.hp - r.dmg, 0, battle.p.hpMax);
+  showHit('player', r.dmg, false, 'hit');
+
+  const rel = elemRelationText(r.atkElem, r.defElem, r.elemMul, r.stabMul);
+  log(`${battle.enemy.name} 對你造成 ${r.dmg} 傷害 ${rel}`);
+
+  endCheck();
+  updateBattleBars();
+}
+
+
+
+function useItem(){
+  // 優先用氣血丹
+  const bag = P.bag || {};
+  const idx = (bag.consumables||[]).findIndex(x=>x?.id==='hp_small' && (x.count||0)>0);
+  if(idx===-1){ log('沒有氣血丹可用', 'warn'); return; }
+  const it = bag.consumables[idx];
+  it.count--; if(it.count<=0) bag.consumables.splice(idx,1);
+  const heal = 25; // 與 items.js 定義一致
+  battle.p.hp = clamp(battle.p.hp + heal, 0, battle.p.hpMax);
+  P.hp.cur = battle.p.hp; // 同步
+  showHit('player', heal, false, 'heal'); // ★ 補血特效
+  log(`使用 ${it.name||'氣血丹'} 回復 ${heal} 氣血。`);
+  battle.p.atb = 0;
+  renderBars(); savePlayer();
+  updateBattleBars(); updateCmdEnabled();
+}
+
+
+function tryRun(){
+  const ok = Math.random()<0.6;
+  if(ok){
+    log('成功脫離戰鬥。','ok');
+    finishBattle(false);
+  }else{
+    log('逃跑失敗！','warn');
+    battle.p.atb = 0;
+    updateCmdEnabled();
+  }
+}
+
+function endCheck(){
+  if(battle.e.hp<=0){ // 勝利
+    const drops = (window.MonsterDB && MonsterDB.rollDrops) ? MonsterDB.rollDrops(battle.enemy.id) : [];
+    if(window.MonsterDB && MonsterDB.applyDrops) MonsterDB.applyDrops(P, drops);
+    const expGain = 10 + Math.floor(battle.enemy.level*4);
+    P.exp = P.exp || {cur:0, max:100};
+    P.exp.cur += expGain;
+    while(P.exp.cur >= P.exp.max){
+      P.exp.cur -= P.exp.max;
+      P.level = (P.level||1) + 1;
+      P.unspentPoints = (P.unspentPoints||0) + 5;
+      // 等級提昇重新計算 HP 上限並回滿
+      const d=derivedFrom(P); P.hp.max=d['氣血上限']; P.hp.cur=P.hp.max;
+      log(`升級到 LV.${P.level}！獲得屬性點 +5。`,'ok');
+      P.exp.max = Math.round(P.exp.max * 1.2);
+    }
+    renderHeader(); renderBars(); savePlayer();
+    log(`你打倒了 ${battle.enemy.name}！獲得經驗 ${expGain}。`,'ok');
+    if(drops?.length){
+      log('掉落：' + drops.map(d=>`${d.name||d.id}×${d.amount}`).join('、'), 'ok');
+    }
+    // ★ 自動返回地圖
+    setTimeout(()=>{ leaveBattle(); }, 1200);
+
+  }else if(battle.p.hp<=0){
+  // 保留 1 HP 的戰敗處理
+  log('你被擊倒了…（保留 1 點氣血）', 'warn');
+
+  // 將玩家當前氣血拉回 1（避免回到地圖時顯示 0）
+  battle.p.hp = 1;
+  if (P && P.hp) {
+    P.hp.cur = 1;
+    P.hp.max = battle.p.hpMax || P.hp.max;
+  }
+
+  // 立即同步 UI 與存檔
+  renderBars();
+  savePlayer();
+
+  // 照舊自動返回
+  setTimeout(()=>{ leaveBattle(); }, 1200);
+}
+}
+
+
+function finishBattle(){
+  battle.over = true;
+  if(loop){ clearInterval(loop); loop=null; }
+  updateBattleBars(); updateCmdEnabled();
+  // 不再顯示返回按鈕，因為已自動回到地圖
+  qs('#btnLeaveBattle').style.display='none';
+}
+
+
+function leaveBattle(){
+  qs('#battleSection').classList.remove('show');
+  qs('#btnLeaveBattle').style.display='none';
+  qs('#mapSection').style.display='grid';
+  battle=null;
+}
+
+/* ===== Log（同步寫入地圖＆戰鬥兩邊） ===== */
+function log(t, cls){
+  const targets = [ qs('#logMap'), qs('#logBattle') ].filter(Boolean);
+  for(const box of targets){
+    const el = document.createElement('div');
+    el.textContent = t;
+    if (cls) el.classList.add(cls);
+    box.appendChild(el);
+    box.scrollTop = 1e9;
+  }
+}
+
+
+/* ===== 事件 ===== */
+function bindEvents(){
+  qs('#btnBackHome').onclick = ()=>{
+    if (P) { savePlayer(); }
+    location.href = 'game.html';
+  };
+  qs('#btnLogout').onclick = ()=>{ if(window.Auth && Auth.logout) Auth.logout(); location.href='index.html'; };
+
+  // 進入 → 顯示探險/戰鬥
+  qs('#btnEnter').onclick = ()=>{
+    if(!curSmall){ log('請先選擇副地圖。'); return; }
+    entered = true;
+    setLocBadge();
+    updateActionPanel();
+    log('已進入當前區域，可以進行「探險 / 戰鬥」。','ok');
+  };
+
+  qs('#btnExplore').onclick = doExplore;
+  qs('#btnFight').onclick   = startBattle;
+
+  qs('#actAttack').onclick = playerAttack;
+  qs('#actItem').onclick   = useItem;
+  qs('#actRun').onclick    = tryRun;
+
+  qs('#btnLeaveBattle').onclick = leaveBattle;
+}
+
+/* ===== 啟動 ===== */
+(function start(){
+  P = loadPlayer(); if(!P) return;
+  renderHeader(); renderBars();
+  buildMapUI();
+  bindEvents();
+})();
+</script>
+</body>
+</html>

@@ -95,7 +95,7 @@
   .label{font-size:14px; color:#e2e8f0; text-align:right;}
   .num{font-size:12px; color:#e2e8f0; text-align:right;}
   .prog{height:14px; background:#1f273a; border-radius:999px; position:relative; overflow:hidden; box-shadow: inset 0 2px 0 rgba(255,255,255,.06), inset 0 -2px 0 rgba(0,0,0,.25);}
-  .fill{height:100%; width:0%;} .fill.sta{background:linear-gradient(90deg,#eab308,#f59e0b);} .fill.exp{background:linear-gradient(90deg,#16a34a,#4ade80);} .fill.hp{background:linear-gradient(90deg,#ef4444,#b91c1c);}
+  .fill{height:100%; width:0%;} .fill.sta{background:linear-gradient(90deg,#eab308,#f59e0b);} .fill.exp{background:linear-gradient(90deg,#16a34a,#4ade80);} .fill.hp{background:linear-gradient(90deg,#ef4444,#b91c1c);} .fill.mp{background:linear-gradient(90deg,#3b82f6,#1d4ed8);}
   .actions{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding-top:6px;}
   .gbtn{padding:5px 0; text-align:center; border-radius:10px; font-size: 12px;  font-weight:800; letter-spacing:2px; color:#fff; background:linear-gradient(#a6783e,#7f5626); border:1px solid #5e3d1a; box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 2px 0 rgba(0,0,0,.2);}
   .title{text-align:center; color:#c7d2fe; font-weight:900; letter-spacing:6px; padding-top:4px;}
@@ -134,7 +134,8 @@
   .remain{ text-align:right; font-size:12px; color:#e2e8f0; }
   .kv{ display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; }
   .kv .item{ display:flex; justify-content:space-between; gap:8px; padding:6px 8px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:8px; }
-  .kv .k{ opacity:.85; } .kv .v{ font-variant-numeric: tabular-nums; }
+  .kv .k{ opacity:.85; font-size:12px; }
+  .kv .v{ font-variant-numeric: tabular-nums; font-size:12px; }
 
   .bag-tabs{display:flex; gap:8px; padding:8px; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.08);}
   .bag-tab{padding:6px 10px; border-radius:8px; font-weight:700; cursor:pointer; user-select:none; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);}
@@ -165,6 +166,54 @@
   #bagAction .sheet{position:relative; width:min(92vw, 420px);} #bagAction .ops{display:flex; justify-content:flex-end; gap:8px;}
   .opx{padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.08); color:#fff; font-weight:700; cursor:pointer;}
   .opx.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));}
+  /* 讓屬性面板的外層彈窗限制高度，避免超出視口 */
+#attrModal .sheet{
+  /* 原本就有 width/min… 可保留 */
+  max-height: min(86svh, 640px);      /* 手機優先：最高只到 86% 視口高 */
+  display: grid;
+  grid-template-rows: auto 1fr;       /* 上：標題列；下：內容可捲動 */
+  overflow: hidden;                    /* 捲動交給 body */
+}
+
+/* 標題列固定在最上方，永遠看得到 ✕ */
+#attrModal .sheet .sec-title{
+  position: sticky;
+  top: 0;                              /* 黏到頂端 */
+  z-index: 1;
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  background: rgba(255,255,255,.06);   /* 保留原底色 */
+  backdrop-filter: blur(2px);
+}
+
+/* 內容區域可獨立捲動；多到超過就出現滾動條 */
+#attrModal .sheet .body{
+  overflow: auto;
+  /* 預留底部安全區，避免 iPhone 底部指示條壓到 */
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+/* 讓屬性清單在窄手機也好捲動（可選） */
+#attrModal .attr-list{
+  min-height: 0;   /* 搭配 grid 才能正確壓縮讓父層捲動 */
+}
+#attrModal .kv{
+  min-height: 0;
+}
+
+/* 提升關閉鈕點擊面積（不改見到的大小，只增大可點區域） */
+#attrModal .close{
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px; height: 28px;          /* 稍微放大 */
+  touch-action: manipulation;
+}
+#attrModal .close::before{
+  content: "";
+  position: absolute;
+  inset: -8px;                         /* 外擴 8px 的隱形熱區 */
+}
 </style>
 </head>
 <body>
@@ -193,14 +242,17 @@
       儲物袋
       <div class="close" data-close="bag">✕</div>
     </div>
-    <div class="bag-tabs">
-      <div class="bag-tab active" data-bag-tab="consumable">消耗品</div>
-      <div class="bag-tab" data-bag-tab="weapon">武器</div>
-      <div class="bag-tab" data-bag-tab="ornament" title="尚未開放">飾品</div>
-      <div class="bag-tab" data-bag-tab="hidden"   title="尚未開放">暗器</div>
-      <div class="bag-tab" data-bag-tab="material" title="尚未開放">材料</div>
+
+    <div class="body">
+      <div class="bag-tabs">
+        <span class="bag-tab active" data-bag-tab="consumable">消耗品</span>
+        <span class="bag-tab" data-bag-tab="weapon">裝備</span>
+        <div class="bag-tab" data-bag-tab="ornament" title="尚未開放">飾品</div>
+        <div class="bag-tab" data-bag-tab="hidden"   title="尚未開放">暗器</div>
+        <span class="bag-tab" data-bag-tab="material">材料</span>
+      </div>
+      <div id="bagList" class="bag-list"></div>
     </div>
-    <div class="bag-body" id="bagList"></div>
   </div>
 </div>
 
@@ -280,6 +332,11 @@
           <div class="prog"><div class="fill hp" id="barHp"></div></div>
           <div class="num" id="txtHp">--/--</div>
         </div>
+        <div class="stat-row">
+          <div class="label">真元：</div>
+          <div class="prog"><div class="fill mp" id="barMp"></div></div>
+          <div class="num" id="txtMp">--/--</div>
+        </div>
       </div>
 
       <div class="actions">
@@ -334,7 +391,16 @@ const pct=(cur,max)=>clamp(Math.round(cur/max*100),0,100);
 const fmt = (n)=> new Intl.NumberFormat('zh-Hant').format(n);
 const fmtCompact = (n)=> new Intl.NumberFormat('en', { notation:'compact', maximumFractionDigits:1 }).format(n);
 
-const ELEMENT_LABEL = { none:'無元素', water:'水元素', fire:'火元素' };
+const ELEMENT_LABEL = {
+  none:'無元素',
+  gold:'金元素',
+  wood:'木元素',
+  water:'水元素',
+  fire:'火元素',
+  earth:'土元素',
+  spirit:'靈元素',
+  dark:'暗元素',
+};
 
 /* ===== 屬性/能力定義 ===== */
 const BASE_ATTRS = [
@@ -404,18 +470,22 @@ window.Game = (()=>{
     qs('#uiStone').textContent   = stone   >= 1_000_000 ? fmtCompact(stone)   : fmt(stone);
     qs('#uiDiamond').textContent = diamond >= 1_000_000 ? fmtCompact(diamond) : fmt(diamond);
 
-    // 狀態條
+    // 狀態條：HP/EXP/STA/MP
     const S = p.sta || { cur: 100, max: 100 };
     const E = p.exp || { cur: 0,   max: 100 };
 
     const hpMaxNow = derivedFrom(p)['氣血上限'];
-    const H = {
-      cur: Math.min(p.hp?.cur ?? hpMaxNow, hpMaxNow),
-      max: hpMaxNow
-    };
+    const H = { cur: Math.min(p.hp?.cur ?? hpMaxNow, hpMaxNow), max: hpMaxNow };
+
+    const mpMaxNow = derivedFrom(p)['真元上限'];
+    if (!p.mp) { p.mp = { cur: mpMaxNow, max: mpMaxNow }; }
+    else { p.mp.max = mpMaxNow; p.mp.cur = Math.max(0, Math.min(p.mp.cur ?? mpMaxNow, mpMaxNow)); }
+    const M = { cur: p.mp.cur, max: p.mp.max };
+
     if(qs('#barSta')){ qs('#barSta').style.width = pct(S.cur,S.max) + '%'; qs('#txtSta').textContent = `${S.cur}/${S.max}`; }
     if(qs('#barExp')){ qs('#barExp').style.width = pct(E.cur,E.max) + '%'; qs('#txtExp').textContent = `${E.cur}/${E.max}`; }
     if(qs('#barHp')) { qs('#barHp').style.width  = pct(H.cur,H.max) + '%';  qs('#txtHp').textContent  = `${H.cur}/${H.max}`; }
+    if(qs('#barMp')) { qs('#barMp').style.width  = pct(M.cur,M.max) + '%';  qs('#txtMp').textContent  = `${M.cur}/${M.max}`; }
   }
 
   /* ===== 屬性面板 ===== */
@@ -481,7 +551,17 @@ window.Game = (()=>{
       });
     });
 
-    document.querySelectorAll('.card').forEach(c=> c.addEventListener('click', ()=> log(`進入模組：${c.querySelector('.ctitle').textContent}`,'warn')));
+    document.querySelectorAll('.card').forEach(c => 
+  c.addEventListener('click', () => {
+    const mod = c.dataset.mod;
+    if (mod === 'map') {
+      location.href = 'map.html';
+      return;
+    }
+    // 其他模組先保留原本行為
+    log(`進入模組：${c.querySelector('.ctitle').textContent}`, 'warn');
+  })
+);
 
     qs('#btnSend')?.addEventListener('click', sendChat);
     qs('#chatInput')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendChat(); });
@@ -536,7 +616,8 @@ window.Game = (()=>{
     });
 
     document.addEventListener('click', (e)=>{
-      const row = e.target.closest?.('.item-row'); if(!row || !row.dataset.type) return;
+      const row = e.target.closest?.('.item-row');
+      if(!row || !row.dataset.type) return;
       openBagAction(row.dataset.type, +row.dataset.idx);
     });
 
@@ -554,6 +635,10 @@ window.Game = (()=>{
         if(op==='sell')  bagSellWeapon(idx);
         if(op==='throw') bagThrowWeapon(idx);
         renderBag('weapon');
+      }else if(type==='material'){
+        if(op==='sell')  bagSellMaterial(idx);
+        if(op==='throw') bagThrowMaterial(idx);
+        renderBag('material');
       }
       closeBagAction();
     });
@@ -571,88 +656,117 @@ window.Game = (()=>{
   function openBag(){ seedBagIfMissing(); renderBag('consumable'); const m = qs('#bagModal'); if(!m) return; m.classList.add('show'); m.setAttribute('aria-hidden','false'); }
   function closeBag(){ const m = qs('#bagModal'); if(!m) return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); }
   function switchBagTab(k){ document.querySelectorAll('.bag-tab').forEach(t=> t.classList.toggle('active', t.dataset.bagTab===k)); renderBag(k); }
-  function renderBag(k){
-    const P = state.player; if(!P) return;
-    const box = qs('#bagList'); if(!box) return;
-    box.innerHTML = '';
-    if (k==='consumable') renderConsumables(box, P);
-    else if (k==='weapon') renderWeapons(box, P);
-    else {
-      const tip = document.createElement('div'); tip.className='item-sub';
-      tip.textContent = '此分頁尚未開放';
-      box.appendChild(tip);
-    }
+
+function renderBag(k){
+  const P = state.player; if(!P) return;
+  const box = qs('#bagList'); if(!box) return;
+  box.innerHTML = '';
+  if (k === 'consumable') {
+    renderConsumables(box, P);
+  } else if (k === 'weapon') {
+    renderWeapons(box, P);
+  } else if (k === 'material') {
+    renderMaterials(box, P);
+  } else {
+    const tip = document.createElement('div'); tip.className='item-sub';
+    tip.textContent = '此分頁尚未開放';
+    box.appendChild(tip);
+  }
+}
+
+function openBagAction(type, idx){
+  const P = state.player; if(!P) return;
+  const m = qs('#bagAction'); if(!m) return;
+
+  const isUrl = s => typeof s === 'string' && /^https?:\/\//.test(s);
+  const clampInt = (n, lo, hi)=> Math.max(lo, Math.min(hi, (n|0)));
+
+  let name='', subLeft='', subRight='', iconUrl=null, btnsHtml='';
+
+  if (type === 'consumable') {
+    const it  = (P.bag.consumables || [])[idx]; if (!it) return;
+    const def = ItemDB.getDef('consumables', it.id) || {};
+    name     = it.name || def.name || it.id;
+    const effHp  = it.effect?.hp ?? def.effect?.hp;
+    const effTxt = effHp ? `氣血+${effHp}` : '';
+    subRight = `販售價格 ${it.price ?? def.price ?? 0}`;
+    iconUrl  = isUrl(it.icon) ? it.icon : (isUrl(def.icon) ? def.icon : null);
+    const cnt = clampInt(it.count ?? 0, 0, 9999);
+
+    qs('#actTop').className = 'item-title cons';
+    qs('#actTop').innerHTML = `
+      <span class="item-name">${name}</span>
+      <span class="meta-effect">${effTxt ? `<span class="badge hp">${effTxt}</span>` : ''}</span>
+      <span class="count-slot">×${cnt}</span>
+    `;
+    qs('#actLeft').textContent  = '';
+    qs('#actRight').textContent = subRight;
+
+    btnsHtml = `
+      <button class="opx primary" data-op="use"  data-type="consumable" data-idx="${idx}">使用</button>
+      <button class="opx"         data-op="sell" data-type="consumable" data-idx="${idx}">販賣</button>
+      <button class="opx"         data-op="throw"data-type="consumable" data-idx="${idx}">丟棄</button>
+    `;
+
+  } else if (type === 'material') {
+    const mat = (P.bag.materials || [])[idx]; if (!mat) return;
+    const def = ItemDB.getDef('materials', mat.id) || {};
+    name     = mat.name || def.name || mat.id;
+    iconUrl  = isUrl(mat.icon) ? mat.icon : (isUrl(def.icon) ? def.icon : null);
+    const cnt = clampInt(mat.count ?? 0, 0, 9999);
+    subLeft  = def.rarity ? `稀有度 ${def.rarity}` : '';
+    subRight = `販售價格 ${def.price ?? 0}`;
+
+    qs('#actTop').className = 'item-title';
+    qs('#actTop').innerHTML = `
+      <span class="item-name">${name}</span>
+      <span class="count-slot">×${cnt}</span>
+    `;
+    qs('#actLeft').textContent  = subLeft;
+    qs('#actRight').textContent = subRight;
+
+    btnsHtml = `
+      <button class="opx" data-op="sell"  data-type="material" data-idx="${idx}">販賣</button>
+      <button class="opx" data-op="throw" data-type="material" data-idx="${idx}">丟棄</button>
+    `;
+
+  } else if (type === 'weapon') {
+    const w   = (P.bag.weapons || [])[idx]; if (!w) return;
+    const def = ItemDB.getDef('weapons', w.id) || {};
+    const d0  = Array.isArray(w.dmg) ? w.dmg : (def.dmg || [0,0]);
+    name     = w.name || def.name || w.id;
+    iconUrl  = isUrl(w.icon) ? w.icon : (isUrl(def.icon) ? def.icon : null);
+    subLeft  = `物理攻擊 ${d0[0]}-${d0[1]}`;
+    subRight = `販售價格 ${w.price ?? def.price ?? 0}`;
+
+    qs('#actTop').className = 'item-title wep';
+    qs('#actTop').innerHTML = `
+      <span class="badge-lv">LV.${w.level ?? def.level ?? 1}</span>
+      <span class="item-name">${name}</span>
+      <span class="right-meta">
+        <span>+${w.plus || 0}</span>
+        <span class="dur-chip">耐久 ${(w.dur?.cur ?? def.durMax ?? 0)}/${(w.dur?.max ?? def.durMax ?? 0)}</span>
+      </span>
+    `;
+    qs('#actLeft').textContent  = subLeft;
+    qs('#actRight').textContent = subRight;
+
+    btnsHtml = `
+      <button class="opx primary" data-op="equip" data-type="weapon" data-idx="${idx}">裝備</button>
+      <button class="opx"         data-op="sell"  data-type="weapon" data-idx="${idx}">販賣</button>
+      <button class="opx"         data-op="throw" data-type="weapon" data-idx="${idx}">丟棄</button>
+    `;
+  } else {
+    return;
   }
 
-  function openBagAction(type, idx){
-    const P = state.player; if(!P) return;
-    const m = qs('#bagAction'); if(!m) return;
+  qs('#actIcon').innerHTML = iconUrl ? `<img src="${iconUrl}" alt="">` : '';
+  qs('#actBtns').innerHTML = btnsHtml;
 
-    const isUrl = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
-    const clampInt = (n, lo, hi)=> Math.max(lo, Math.min(hi, (n|0)));
+  m.classList.add('show');
+  m.setAttribute('aria-hidden', 'false');
+}
 
-    let name='', subLeft='', subRight='', iconUrl=null, btnsHtml='';
-
-    if (type === 'consumable') {
-      const it = (P.bag.consumables || [])[idx]; if (!it) return;
-      const def = ItemDB.getDef('consumables', it.id);
-      iconUrl = isUrl(it.icon) ? it.icon : (isUrl(def?.icon) ? def.icon : null);
-
-      name = it.name || '';
-      const eff = it.effect?.hp ? `氣血+${it.effect.hp}` : '';
-      subRight = `販售價格 ${it.price ?? 0}`;
-      const cnt = clampInt(it.count ?? 0, 0, 9999);
-
-      qs('#actTop').className = 'item-title cons';
-      qs('#actTop').innerHTML = `
-        <span class="item-name">${name}</span>
-        <span class="meta-effect">${eff ? `<span class="badge hp">${eff}</span>` : ''}</span>
-        <span class="count-slot">×${cnt}</span>
-      `;
-      qs('#actLeft').textContent  = '';
-      qs('#actRight').textContent = subRight;
-
-      btnsHtml = `
-        <button class="opx primary" data-op="use"  data-type="consumable" data-idx="${idx}">使用</button>
-        <button class="opx"         data-op="sell" data-type="consumable" data-idx="${idx}">販賣</button>
-        <button class="opx"         data-op="throw"data-type="consumable" data-idx="${idx}">丟棄</button>
-      `;
-    } else if (type === 'weapon') {
-      const w = (P.bag.weapons || [])[idx]; if (!w) return;
-      const def = ItemDB.getDef('weapons', w.id);
-      iconUrl = isUrl(w.icon) ? w.icon : (isUrl(def?.icon) ? def.icon : null);
-
-      name = w.name || '';
-      subLeft  = `物理攻擊 ${w.dmg?.[0] ?? 0}-${w.dmg?.[1] ?? 0}`;
-      subRight = `販售價格 ${w.price ?? 0}`;
-
-      qs('#actTop').className = 'item-title wep';
-      qs('#actTop').innerHTML = `
-        <span class="badge-lv">LV.${w.level ?? 1}</span>
-        <span class="item-name">${name}</span>
-        <span class="right-meta">
-          <span>+${w.plus || 0}</span>
-          <span class="dur-chip">耐久 ${w.dur?.cur ?? 0}/${w.dur?.max ?? 0}</span>
-        </span>
-      `;
-      qs('#actLeft').textContent  = subLeft;
-      qs('#actRight').textContent = subRight;
-
-      btnsHtml = `
-        <button class="opx primary" data-op="equip" data-type="weapon" data-idx="${idx}">裝備</button>
-        <button class="opx"         data-op="sell"  data-type="weapon" data-idx="${idx}">販賣</button>
-        <button class="opx"         data-op="throw" data-type="weapon" data-idx="${idx}">丟棄</button>
-      `;
-    } else {
-      return;
-    }
-
-    qs('#actIcon').innerHTML = iconUrl ? `<img src="${iconUrl}" alt="">` : '';
-    qs('#actBtns').innerHTML = btnsHtml;
-
-    m.classList.add('show');
-    m.setAttribute('aria-hidden', 'false');
-  }
   function closeBagAction(){ const m = qs('#bagAction'); if(!m) return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); qs('#actBtns').innerHTML = ''; }
 
   function seedBagIfMissing(){
@@ -678,83 +792,137 @@ window.Game = (()=>{
       if (add>0){ s.count = (s.count||0)+add; remain-=add; }
       if (remain<=0) break;
     }
-    while (remain > 0) {
-      const take = Math.min(MAX, remain);
-      P.bag.consumables.push({ ...def, count: take });
-      remain -= take;
-    }
+  while (remain > 0) {
+  const take = Math.min(MAX, remain);
+  // 只存 id + 數量；名稱/圖示/價格等由 ItemDB 取用
+  P.bag.consumables.push({ id, count: take });
+  remain -= take;
+}
+
+
   }
 
   function addWeaponById(id, plus=0){
     const P = state.player; if(!P) return;
     const d = ItemDB.getDef('weapons', id); if (!d) return;
-    P.bag.weapons.push({ ...d, plus, dur: { cur: d.durMax, max: d.durMax } });
+    P.bag.weapons.push({
+    id: d.id,
+    name: d.name,
+    icon: d.icon,
+    level: d.level ?? 1,
+    price: d.price ?? 0,
+    dmg: Array.isArray(d.dmg) ? d.dmg : [0, 0],
+    plus: plus | 0,
+    dur: { cur: d.durMax, max: d.durMax }
+  });
   }
 
   function renderConsumables(box, P){
-    const items = P.bag.consumables || [];
-    const url = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
+  const items = P.bag.consumables || [];
+  const isUrl = s => typeof s === 'string' && /^https?:\/\//.test(s);
 
-    items.forEach((it, i)=>{
-      const def = ItemDB.getDef('consumables', it.id);
-      const iconUrl = url(it.icon) ? it.icon : (url(def?.icon) ? def.icon : null);
+  items.forEach((it, i) => {
+    const def = ItemDB.getDef('consumables', it.id) || {};
+    const name  = it.name  || def.name  || it.id;
+    const price = (it.price ?? def.price ?? 0);
+    const effHp = (it.effect?.hp ?? def.effect?.hp);
+    const effHtml = effHp ? `<span class="badge hp">氣血+${effHp}</span>` : '';
+    const iconUrl = isUrl(it.icon) ? it.icon : (isUrl(def.icon) ? def.icon : null);
+    const cnt = Math.max(0, it.count || 0);
 
-      const row = document.createElement('div');
-      row.className = 'item-row';
-      row.dataset.type = 'consumable';
-      row.dataset.idx = String(i);
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.type = 'consumable';
+    row.dataset.idx  = String(i);
 
-      const effHtml = it.effect?.hp ? `<span class="badge hp">氣血+${it.effect.hp}</span>` : '';
-      const cnt = Math.max(0, it.count || 0);
-
-      row.innerHTML = `
-        <div class="item-thumb">${iconUrl?`<img src="${iconUrl}" alt="${it.name}">`:''}</div>
-        <div class="item-main">
-          <div class="item-title cons">
-            <span class="item-name">${it.name}</span>
-            <span class="meta-effect">${effHtml}</span>
-            <span class="count-slot">×${cnt}</span>
-          </div>
-          <div class="item-sub">
-            <span class="sub-left"></span>
-            <span class="sub-right">販售價格 ${it.price}</span>
-          </div>
+    row.innerHTML = `
+      <div class="item-thumb">${iconUrl ? `<img src="${iconUrl}" alt="${name}">` : ''}</div>
+      <div class="item-main">
+        <div class="item-title cons">
+          <span class="item-name">${name}</span>
+          <span class="meta-effect">${effHtml}</span>
+          <span class="count-slot">×${cnt}</span>
         </div>
-      `;
-      box.appendChild(row);
-    });
-  }
-
-  function renderWeapons(box, P){
-    const items = P.bag.weapons || [];
-    const url = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
-
-    items.forEach((w, i)=>{
-      const def = ItemDB.getDef('weapons', w.id);
-      const iconUrl = url(w.icon) ? w.icon : (url(def?.icon) ? def.icon : null);
-
-      const row = document.createElement('div');
-      row.className = 'item-row';
-      row.dataset.type = 'weapon';
-      row.dataset.idx = String(i);
-
-      row.innerHTML = `
-        <div class="item-thumb">${iconUrl?`<img src="${iconUrl}" alt="${w.name}">`:''}</div>
-        <div class="item-main">
-          <div class="item-title wep">
-            <span class="badge-lv">LV.${w.level}</span>
-            <span class="item-name">${w.name}</span>
-            <span class="right-meta"><span>+${w.plus || 0}</span><span class="dur-chip">耐久 ${w.dur.cur}/${w.dur.max}</span></span>
-          </div>
-          <div class="item-sub">
-            <span class="sub-left">物理攻擊 ${w.dmg[0]}-${w.dmg[1]}</span>
-            <span class="sub-right">販售價格 ${w.price}</span>
-          </div>
+        <div class="item-sub">
+          <span class="sub-left"></span>
+          <span class="sub-right">販售價格 ${price}</span>
         </div>
-      `;
-      box.appendChild(row);
-    });
+      </div>
+    `;
+    box.appendChild(row);
+  });
+}
+
+
+function renderWeapons(box, P){
+  const items = P.bag.weapons || [];
+  const url = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
+
+  items.forEach((w, i)=>{
+    const def = ItemDB.getDef('weapons', w.id);
+    const iconUrl = url(w.icon) ? w.icon : (url(def?.icon) ? def.icon : null);
+
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.type = 'weapon';
+    row.dataset.idx = String(i);
+
+    row.innerHTML = `
+      <div class="item-thumb">${iconUrl?`<img src="${iconUrl}" alt="${w.name}">`:''}</div>
+      <div class="item-main">
+        <div class="item-title wep">
+          <span class="badge-lv">LV.${w.level}</span>
+          <span class="item-name">${w.name}</span>
+          <span class="right-meta"><span>+${w.plus || 0}</span><span class="dur-chip">耐久 ${w.dur.cur}/${w.dur.max}</span></span>
+        </div>
+        <div class="item-sub">
+          <span class="sub-left">物理攻擊 ${w.dmg[0]}-${w.dmg[1]}</span>
+          <span class="sub-right">販售價格 ${w.price}</span>
+        </div>
+      </div>
+    `;
+    box.appendChild(row);
+  });
+}
+
+/* ★ 新增：材料清單渲染 */
+function renderMaterials(box, P){
+  const items = P.bag.materials || [];
+  const url = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
+
+  items.forEach((m, i)=>{
+    const def = ItemDB.getDef('materials', m.id);
+    const iconUrl = url(m.icon) ? m.icon : (url(def?.icon) ? def.icon : null);
+    const cnt = Math.max(0, m.count || 0);
+    const rarity = def?.rarity ? `稀有度 ${def.rarity}` : '';
+
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.type = 'material';
+    row.dataset.idx = String(i);
+
+    row.innerHTML = `
+      <div class="item-thumb">${iconUrl?`<img src="${iconUrl}" alt="${m.name||def?.name||''}">`:''}</div>
+      <div class="item-main">
+        <div class="item-title">
+          <span class="item-name">${m.name || def?.name || m.id}</span>
+          <span class="count-slot">×${cnt}</span>
+        </div>
+        <div class="item-sub">
+          <span class="sub-left">${rarity}</span>
+          <span class="sub-right">${def?.price ? `販售價格 ${def.price}` : ''}</span>
+        </div>
+      </div>
+    `;
+    box.appendChild(row);
+  });
+
+  if (!items.length){
+    const tip = document.createElement('div'); tip.className='item-sub';
+    tip.textContent = '尚無材料';
+    box.appendChild(tip);
   }
+}
 
   function bagUseConsumable(i){
     const P = state.player; const it = P.bag.consumables[i]; if(!it) return;
@@ -819,6 +987,38 @@ window.Game = (()=>{
     render(P); renderBag('weapon');
   }
 
+  // === 材料：販賣 / 丟棄 ===
+  function bagSellMaterial(i){
+    const P = state.player; const it = P.bag.materials?.[i]; if(!it) return;
+    const def = ItemDB.getDef('materials', it.id);
+    const price = def?.price || 0;
+    const max = it.count || 0;
+    const qty = +prompt(`輸入販賣數量（1-${max}）`, String(max));
+    if (!qty || qty < 1 || qty > max) return;
+
+    P.currencies = P.currencies || { stone: 0, diamond: 0 };
+    P.currencies.stone += qty * price;
+
+    it.count -= qty;
+    if (it.count <= 0) P.bag.materials.splice(i, 1);
+
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('material');
+  }
+
+  function bagThrowMaterial(i){
+    const P = state.player; const it = P.bag.materials?.[i]; if(!it) return;
+    const max = it.count || 0;
+    const qty = +prompt(`輸入丟棄數量（1-${max}）`, String(max));
+    if (!qty || qty < 1 || qty > max) return;
+
+    it.count -= qty;
+    if (it.count <= 0) P.bag.materials.splice(i, 1);
+
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('material');
+  }
+
   function log(txt, cls=''){ const el=document.createElement('div'); el.className = `item ${cls}`; el.textContent = txt; const box=qs('#log'); if(!box) return; box.appendChild(el); box.scrollTop = box.scrollHeight; }
   function sendChat(){ const inp = qs('#chatInput'); const msg = (inp?.value||'').trim(); if(!msg) return; log(`你：${msg}`,'ok'); inp.value=''; }
 
@@ -836,11 +1036,43 @@ window.Game = (()=>{
         currencies: { stone: 0, diamond: 0 },
       }, player || {});
 
-      const hpMax = derivedFrom(p)['氣血上限'];
+    const hpMax = derivedFrom(p)['氣血上限'];
+
+    // HP：若沒有就建立；若已有就只更新上限並夾在 0 ~ max 之間，不回滿
+    if (!p.hp) {
       p.hp = { cur: hpMax, max: hpMax };
+    } else {
+      p.hp.max = hpMax;
+      const cur = (p.hp.cur ?? hpMax);
+      p.hp.cur = Math.max(0, Math.min(cur, hpMax));
+    }
+
+    // MP（真元）：同樣處理
+    const mpMax = derivedFrom(p)['真元上限'];
+    if (!p.mp) {
+      p.mp = { cur: mpMax, max: mpMax };
+    } else {
+      p.mp.max = mpMax;
+      const curM = (p.mp.cur ?? mpMax);
+      p.mp.cur = Math.max(0, Math.min(curM, mpMax));
+    }
+
+
+    // 體力：同理，不強制回滿；沒有才給預設
+    if (!p.sta) {
       p.sta = { cur: 100, max: 100 };
-      p.exp = { cur: p.exp?.cur ?? 0, max: 100 };
-      if (p.exp.cur < 0 || p.exp.cur > p.exp.max) p.exp.cur = 0;
+    } else {
+      p.sta.max = p.sta.max ?? 100;
+      const curSta = (p.sta.cur ?? p.sta.max);
+      p.sta.cur = Math.max(0, Math.min(curSta, p.sta.max));
+    }
+
+    // 經驗：保留原本 cur，若越界就夾回範圍；沒有就用預設
+    p.exp = {
+      cur: Math.max(0, Math.min(p.exp?.cur ?? 0, p.exp?.max ?? 100)),
+      max: p.exp?.max ?? 100
+    };
+
 
       wire();
       render(p);

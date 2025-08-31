@@ -19,7 +19,7 @@
 #eqModal{position:fixed; inset:0; display:none; place-items:center; z-index:999}
 #eqModal.show{display:grid;}
 #eqModal .mask{position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter: blur(2px);}
-#eqModal .sheet{position:relative; width:min(92vw, 520px); border-radius:16px; overflow:hidden;
+#eqModal .sheet{position:relative; width:min(420px, 100svw); border-radius:16px; overflow:hidden;
   background:var(--panel-2); border:1px solid rgba(255,255,255,.12); box-shadow: var(--shadow); color:var(--text);}
 #eqModal .sec-title{background:rgba(255,255,255,.06); border-bottom:1px solid rgba(255,255,255,.08);
   text-align:center; font-weight:900; letter-spacing:4px; padding:8px 12px; position:relative;}
@@ -28,8 +28,8 @@
   background:#ef4444; color:#fff; font-weight:900; cursor:pointer; user-select:none;}
 #eqModal .body{ padding:12px; display:grid; gap:12px; }
 .eq-wrap{padding:4px; display:grid; gap:10px; max-height:60vh; overflow:auto;}
-.eq-grid{display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;}
-.eq-slot{height:64px; border-radius:12px; background:rgba(255,255,255,.06);
+.eq-grid{display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;}
+.eq-slot{height:52px; border-radius:12px; background:rgba(255,255,255,06);
   border:1px solid rgba(255,255,255,.12); display:grid; place-items:center;
   color:#cbd5e1; font-weight:800; letter-spacing:2px; cursor:pointer; user-select:none;
   position:relative; overflow:hidden;}
@@ -39,7 +39,7 @@
 .eq-row{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; }
 .eq-note{ font-size:12px; color:#e879f9; font-weight:900; white-space:nowrap; }
 .eq-medals{ display:flex; gap:10px; padding-top:6px; }
-.eq-hole{width:46px; height:46px; border-radius:50%; border:2px dashed rgba(255,255,255,.2);
+.eq-hole{width:40px; height:40px; border-radius:50%; border:2px dashed rgba(255,255,255,2);
   display:grid; place-items:center; color:#94a3b8; cursor:pointer; overflow:hidden;}
 `; document.head.appendChild(s);
     }

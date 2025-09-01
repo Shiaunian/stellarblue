@@ -232,7 +232,26 @@
       background:linear-gradient(#a6783e,#7f5626); box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 2px 0 rgba(0,0,0,.2);
       font-weight:800; letter-spacing:2px; color:#fff; cursor:pointer; user-select:none;}
     .cbtn[disabled]{opacity:.5; filter:grayscale(1); cursor:not-allowed;}
-    .log{height:110px; overflow:auto; padding:8px 10px; font-size:12px; background:#060a1a; border:1px solid rgba(255,255,255,.2); border-radius:10px;}
+    /* ★ 改善戰鬥／地圖日誌：加大、加行距、背景透黑，並加入分類色 */
+    .log{
+      height:110px;
+      overflow:auto;
+      padding:10px 12px;
+      font-size:13px;
+      line-height:1.4;
+      background:rgba(6,10,26,0.8);
+      border:1px solid rgba(255,255,255,.3);
+      border-radius:10px;
+    }
+    /* 每條訊息底下留一點間距 */
+    .log > div{ margin-bottom:4px; }
+    /* 日誌分類顏色：呼應全域變數 ok/warn/hp 等 */
+    .log .ok  { color: var(--ok);   }
+    .log .warn{ color: var(--warn); }
+    .log .hit { color: var(--hp);   }
+    .log .crit{ color:#ffd166;     }
+    .log .heal{ color:#34d399;     }
+
 
     .footrow{display:flex; gap:8px; justify-content:space-between; align-items:center;}
     .locBadge{font-size:12px; color:#e2e8f0;}
@@ -1411,6 +1430,8 @@ function log(t, cls){
     el.textContent = t;
     if (cls) el.classList.add(cls);
     box.appendChild(el);
+    // ★ 若行數過多，刪除最舊的，以免日誌過長
+    while(box.childElementCount > 60){ box.removeChild(box.firstChild); }
     box.scrollTop = 1e9;
   }
 }

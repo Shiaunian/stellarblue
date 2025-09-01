@@ -29,13 +29,33 @@
 #eqModal .body{ padding:12px; display:grid; gap:12px; }
 .eq-wrap{padding:4px; display:grid; gap:10px; max-height:60vh; overflow:auto;}
 .eq-grid{display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;}
-.eq-slot{height:52px; border-radius:12px; background:rgba(255,255,255,06);
-  border:1px solid rgba(255,255,255,.12); display:grid; place-items:center;
+.eq-slot{
+  aspect-ratio: 1 / 1;     /* 正方形 */
+  width: 38%;              /* ✅ 縮小到原來的 1/3 */
+  max-width: 60px;         /* ✅ 再限制最大寬度，避免在大螢幕撐太大 */
+  border-radius:10px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.12);
+  display:grid; place-items:center;
   color:#cbd5e1; font-weight:800; letter-spacing:2px; cursor:pointer; user-select:none;
-  position:relative; overflow:hidden;}
-.eq-slot .tag{ position:absolute; left:6px; top:6px; font-size:10px; opacity:.8; }
-#eqModal img{ width:100%; height:100%; object-fit:cover; display:block; }
-.eq-slot.empty{ background:rgba(255,255,255,.04); color:#9aa3b2; }
+  position:relative; overflow:hidden;
+}
+.eq-slot .tag{ position:absolute; left:4px; top:4px; font-size:9px; opacity:.8; }
+#eqModal img{
+  width:70%; height:70%;       /* ✅ 圖示也跟著縮小 */
+  object-fit:contain;
+  display:block;
+  background:transparent;
+}
+
+
+.eq-slot.empty{
+  background:rgba(255,255,255,.04);
+  color:#9aa3b2;
+  font-size:10px;    /* ✅ 縮小未裝備顯示的文字 */
+}
+
+
 .eq-row{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; }
 .eq-note{ font-size:12px; color:#e879f9; font-weight:900; white-space:nowrap; }
 .eq-medals{ display:flex; gap:10px; padding-top:6px; }

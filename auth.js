@@ -4,7 +4,7 @@ const STORE_CHAR_PREFIX = 'rpg_character_';
 
 // 只允許這些帳號登入，並可各自設定預設頭像
 const ALLOWED = {
-  test:  { password: '1234', avatar: 'https://picsum.photos/seed/testxian/96' },
+  test:  { password: '1234', avatar: 'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756723857/%E5%BF%B5%E5%BF%B5_bmuc6s.png' },
   admin: { password: '9999', avatar: 'https://picsum.photos/seed/admxx/96' },
   // 再加帳號就照這格式：
   // userA: { password: 'abcd', avatar: 'https://你的預設頭像網址' },

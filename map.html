@@ -71,10 +71,6 @@
     .pill.elem.spirit{background:var(--elem-spirit);}
     .pill.elem.dark{  background:var(--elem-dark);  }
 
-    .elem{font-weight:700;}
-      .elem.none{background:var(--elem-none); color:#0b1024;}
-      .elem.water{background:var(--elem-water); color:#07223a;}
-      .elem.fire{background:var(--elem-fire); color:#2b0a00;}
     .medals{grid-area:medals; display:flex; gap:6px; min-width:0;}
     .medal-slot{width:30px; aspect-ratio:1/1; border-radius:50%; border:2px solid rgba(255,255,255,.25);
       display:flex; align-items:center; justify-content:center; font-size:12px; color:#cbd5e1; background:rgba(255,255,255,.06);
@@ -193,10 +189,37 @@
     .battle.show{display:grid;}
     .arena{display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:end; padding:8px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);}
     .box{background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:8px; display:grid; gap:8px;}
-    .art{width:100%; height:120px; border-radius:10px; background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.15));
-      display:grid; place-items:center; overflow:hidden; border:1px solid rgba(255,255,255,.08);}
-    .portrait{width:auto; height:100%; object-fit:contain; display:block; filter: drop-shadow(0 6px 8px rgba(0,0,0,.35));}
-    .portrait.mirror{transform: scaleX(-1);}
+    /* 立繪容器（保留一點邊距） */
+    .art{
+      width:100%; height:112px;
+      border-radius:10px;
+      background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.15));
+      display:grid; place-items:center; overflow:hidden;
+      border:1px solid rgba(255,255,255,.08);
+      position:relative;
+    }
+
+    /* 100×100 頭像框：玩家圓形、敵人方形 */
+    .frame{
+      width:100px; height:100px;
+      display:grid; place-items:center;
+      overflow:hidden;
+      background:rgba(0,0,0,.15);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .p-frame{ border-radius:50%; }        /* 玩家圓形 */
+    .e-frame{ border-radius:12px; }       /* 敵人方形，帶一點圓角 */
+
+    /* 內部圖片：以 100×100 素材為主，保持完整顯示 */
+    .portrait{
+      width:100%; height:100%;
+      object-fit:contain; display:block;
+      image-rendering:auto;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,.35));
+    }
+    .portrait.mirror{ transform: scaleX(-1); }
+
     .who{display:flex; align-items:center; justify-content:space-between; gap:8px;}
     .name{font-weight:900;}
     .hpbar{height:10px; background:#1f273a; border-radius:999px; overflow:hidden;}
@@ -341,15 +364,19 @@
         </div>
 
         <!-- 先按「進入」才會顯示探險/戰鬥 -->
-        <div class="panel">
-          <div class="locBadge" id="locBadge">尚未選擇地點</div>
-          <div class="row">
-            <button id="btnEnter"  class="btn" disabled>進 入</button>
-            <button id="btnExplore" class="btn" style="display:none;">探險（體力-2）</button>
-            <button id="btnFight"   class="btn" style="display:none;">戰 鬥</button>
-          </div>
-          <div class="hint">請先選擇「大地圖 → 副地圖」並按下「進入」。進入後才會顯示「探險 / 戰鬥」。</div>
+      <div class="panel">
+        <div class="locBadge" id="locBadge">尚未選擇地點</div>
+        <div class="row">
+          <button id="btnEnter"   class="btn" disabled>進 入</button>
+          <button id="btnExplore" class="btn" style="display:none;">探險（體力-2）</button>
+          <button id="btnFight"   class="btn" style="display:none;">戰 鬥</button>
+          <!-- ★ 新增：挑戰 BOSS（紅色） -->
+          <button id="btnBoss"    class="btn" style="display:none; background:#b91c1c; border:1px solid #dc2626;">挑戰 BOSS</button>
         </div>
+        <div class="hint">請先選擇「大地圖 → 副地圖」並按下「進入」。進入後才會顯示「探險 / 戰鬥」。</div>
+        <!-- ★ 新增：萊姆洞窟進度提示 -->
+        <div id="slimeQuestHint" class="hint" style="display:none;"></div>
+      </div>
 
         <!-- ★ 地區情報（固定欄位｜雙欄：左=怪物，右=事件） -->
         <div class="panel info" id="areaInfo">
@@ -388,7 +415,9 @@
           </div>
         </div>
           <div class="art">
-            <img id="pImg" class="portrait" alt="player portrait">
+            <div class="frame p-frame">
+              <img id="pImg" class="portrait" alt="player portrait">
+            </div>
             <div class="fx" id="pFx"></div>
           </div>
           <div class="hpbar"><div id="pHp" class="hpfill"></div></div>
@@ -403,7 +432,9 @@
           </div>
         </div>
           <div class="art">
-            <img id="eImg" class="portrait mirror" alt="enemy portrait">
+            <div class="frame e-frame">
+              <img id="eImg" class="portrait mirror" alt="enemy portrait">
+            </div>
             <div class="fx" id="eFx"></div>
           </div>
           <div class="hpbar"><div id="eHp" class="hpfill"></div></div>
@@ -484,7 +515,8 @@ const PLAYER_IMG_URL = 'https://picsum.photos/seed/xian-hero/400/600';
 /* ===== 地圖資料（大地圖 -> 小地圖） ===== */
 const MAPS = [
   { id:'forest', name:'青木山脈', lv:'1-4', small:[
-    { id:'woodland',  name:'靈木林', lv:'1-3', monsters:['slime','wood_wisp','thorn_fox'] },
+    { id:'slime_cave',  name:'萊姆洞窟', lv:'1-3', monsters:['slime_young','slime','slime_king'] },
+    { id:'woodland',  name:'靈木林', lv:'2-3', monsters:['thorn_fox','thorn_fox','thorn_fox'] },
     { id:'moss_vale', name:'苔石谷', lv:'2-4', monsters:['slime','stone_golem'] },
   ]},
   { id:'tundra', name:'雪原台地', lv:'3-4', small:[
@@ -523,6 +555,10 @@ function loadPlayer(){
     const d=derivedFrom(c); 
     c.hp = { cur:d['氣血上限'], max:d['氣血上限'] }; 
   }
+  // ★ 副地圖進度（萊姆洞窟）
+  c.mapProg = c.mapProg || {};
+  c.mapProg.slime_cave = c.mapProg.slime_cave || { kills:0, bossReady:false };
+
   return c;
 }
 
@@ -550,6 +586,19 @@ function derivedFrom(player){
     '法穿': Math.floor(A.int*0.6),
   };
 }
+// === 只算一次的「最終能力快照」：基礎衍生 + 裝備加成 ===
+function finalDerived(player){
+  const base  = (typeof derivedFrom==='function') ? (derivedFrom(player)||{}) : {};
+  const bonus = (window.Equip && typeof Equip.getBonuses==='function') ? (Equip.getBonuses()||{}) : {};
+  const out = { ...base };
+  for(const k in bonus){ out[k] = (out[k]||0) + (bonus[k]||0); }
+  return out;
+}
+// 重新整理快照（進地圖、開始戰鬥、升級後都可呼叫）
+function refreshLive(){
+  if(!P) return;
+  P._live = finalDerived(P);
+}
 
 /* ===== UI Render ===== */
 function renderHeader(){
@@ -570,7 +619,9 @@ function renderHeader(){
 
 function renderBars(){
   if (!P) return;                      // ← 用全域 P（在 start() 由 loadPlayer() 載入）
-  const d = derivedFrom(P);
+  if (!P._live) refreshLive();
+  const d = P._live;
+
 
   // 體力 / 經驗：保留原值，若不存在才給預設，並做夾限
   if (!P.sta) P.sta = { cur:100, max:100 };
@@ -695,6 +746,43 @@ function setLocBadge(){
   qs('#locBadge').textContent = entered ? `${locTxt}（已進入）` : locTxt;
 }
 
+function getSlimeProg(){
+  P.mapProg = P.mapProg || {};
+  P.mapProg.slime_cave = P.mapProg.slime_cave || { kills:0, bossReady:false };
+  return P.mapProg.slime_cave;
+}
+
+function updateBossUI(){
+  const hint = qs('#slimeQuestHint');
+  const btnBoss = qs('#btnBoss');
+  if(!hint || !btnBoss) return;
+
+  if(curSmall !== 'slime_cave'){
+    hint.style.display = 'none';
+    btnBoss.style.display = 'none';
+    return;
+  }
+
+  const prog = getSlimeProg();
+  // 只有已進入該區時才顯示提示
+  if(!entered){
+    hint.style.display = 'none';
+    btnBoss.style.display = 'none';
+    return;
+  }
+
+  // 顯示當前進度
+  if(prog.bossReady){
+    hint.textContent = `萊姆洞窟：討伐已達 10/10 → 可以挑戰 BOSS（未擊敗前，擊殺數不再累加）`;
+    hint.style.display = 'block';
+    btnBoss.style.display = 'inline-block';
+  }else{
+    hint.textContent = `萊姆洞窟：史萊姆討伐進度 ${prog.kills}/10（達 10/10 將出現 BOSS 按鈕）`;
+    hint.style.display = 'block';
+    btnBoss.style.display = 'none';
+  }
+}
+
 function updateActionPanel(){
   const btnEnter   = qs('#btnEnter');
   const btnExplore = qs('#btnExplore');
@@ -704,16 +792,17 @@ function updateActionPanel(){
   btnEnter.disabled = !canEnter;
 
   if(!entered){
-    // 尚未進入：只顯示「進入」，隱藏探險/戰鬥
     btnEnter.style.display   = 'inline-block';
     btnExplore.style.display = 'none';
     btnFight.style.display   = 'none';
   }else{
-    // 已進入：顯示探險/戰鬥，隱藏「進入」
     btnEnter.style.display   = 'none';
     btnExplore.style.display = 'inline-block';
     btnFight.style.display   = 'inline-block';
   }
+
+  // ★ 同步更新 BOSS UI
+  updateBossUI();
 }
 
 /* ===== 探險 ===== */
@@ -747,10 +836,12 @@ function doExplore(){
   renderHeader(); renderBars(); savePlayer();
 }
 
-/* ===== 戰鬥（ATB） ===== */
+
+
 const ATB_MAX = 1000;      // 滿格門檻
 let battle = null;         // 戰鬥狀態
 let loop = null;           // 計時器
+
 
 function startBattle(){
   if(!curSmall){ log('請先選擇副地圖。'); return; }
@@ -758,29 +849,68 @@ function startBattle(){
 
   const area = MAPS.find(x=>x.id===curBig)?.small?.find(x=>x.id===curSmall);
   if(!area){ log('找不到該地區'); return; }
-  // 隨機一隻怪
-  const pool = (area.monsters||[]).map(id => window.MonsterDB && MonsterDB.DB[id]).filter(Boolean);
-  if(!pool.length){ log('此地尚無怪物資料'); return; }
-  const enemy = JSON.parse(JSON.stringify(pool[Math.floor(Math.random()*pool.length)]));
+  // 若有指定怪（例如 BOSS）則強制該怪；否則隨機
+  let enemy = null;
+  if(window.FORCE_MONSTER_ID){
+    const def = window.MonsterDB && MonsterDB.DB[window.FORCE_MONSTER_ID];
+    if(def) enemy = JSON.parse(JSON.stringify(def));
+    window.FORCE_MONSTER_ID = null; // 用完即清
+  }
+  if(!enemy){
+    const pool = (area.monsters||[]).map(id => window.MonsterDB && MonsterDB.DB[id]).filter(Boolean);
+    if(!pool.length){ log('此地尚無怪物資料'); return; }
+    enemy = JSON.parse(JSON.stringify(pool[Math.floor(Math.random()*pool.length)]));
+  }
 
   // 初始化戰鬥
   qs('#mapSection').style.display='none';
   qs('#battleSection').classList.add('show');
   if(loop){ clearInterval(loop); loop=null; }
 
-  const d = derivedFrom(P);
-  const eCalc = (window.MonsterDB && MonsterDB.deriveAgainst) ? MonsterDB.deriveAgainst(d, enemy.id) : null;
+// 1) 玩家最終衍生值：進入戰鬥前刷新一次快照，只讀 P._live
+refreshLive();
+const d = P._live;
 
-  battle = {
-    enemy,
-    enemyStats: eCalc,
-    p:{ hp:P.hp.cur, hpMax:P.hp.max, atb:0, speed: d['行動條速度'] },
-    e:{ hp:eCalc ? eCalc.hp : enemy.stats.hp,
-        hpMax:eCalc ? eCalc.hp : enemy.stats.hp,
-        atb:0,
-        speed: eCalc ? eCalc.speed : Math.round(100*(enemy.stats.aspd||1.0)) },
-    turn:'none', over:false
-  };
+
+
+// 2) 敵人使用資料庫的「固定 stats」，不再對玩家縮放
+const eBase = enemy?.stats || {};
+const eStats = {
+  atk   : eBase.atk   | 0,
+  matk  : eBase.matk  | 0,
+  def   : eBase.def   | 0,
+  mdef  : eBase.mdef  | 0,
+  acc   : eBase.acc   | 0,
+  eva   : eBase.eva   | 0,
+  crit  : eBase.crit  | 0,
+  aspd  : (typeof eBase.aspd==='number' ? eBase.aspd : 1.00),
+  pen   : 0,           // 目前怪物沒有定義破甲，先視為 0
+};
+
+// 初始化戰鬥物件（全部用固定 DB）
+battle = {
+  enemy,
+  enemyStats: eStats,
+  p:{
+    hp   : P.hp?.cur || 100,
+    hpMax: P.hp?.max || 100,
+    mp   : P.mp?.cur || 0,
+    mpMax: P.mp?.max || 0,
+    atb  : 0,
+    // 玩家行動速度＝最終衍生的「行動條速度」；至少 50，避免太慢
+    speed: Math.max(50, d['行動條速度'] || 100),
+  },
+  e:{
+    hp   : (eBase.hp || 100),
+    hpMax: (eBase.hp || 100),
+    atb  : 0,
+    // 敵人速度用 aspd（倍率）投影到同一尺度；至少 50
+    speed: Math.max(50, Math.round((eStats.aspd || 1) * 100)),
+  },
+
+
+  turn:'none', over:false,
+};
 
   qs('#eName').textContent = enemy.name;
   qs('#eLv').textContent = enemy.level;
@@ -821,9 +951,10 @@ function tickATB(){
     return;
   }
 
-  // 充能（步進放慢：以速度/6，且最小僅 1，不再是 10）
-  const pStep = Math.max(1, Math.floor(battle.p.speed/6));
-  const eStep = Math.max(1, Math.floor(battle.e.speed/6));
+  // 充能：以速度/5 做步進，並設定最小值 3，避免過慢
+  const pStep = Math.max(3, Math.floor(battle.p.speed/5));
+  const eStep = Math.max(3, Math.floor(battle.e.speed/5));
+
   battle.p.atb = clamp(battle.p.atb + pStep, 0, ATB_MAX);
   battle.e.atb = clamp(battle.e.atb + eStep, 0, ATB_MAX);
 
@@ -904,7 +1035,8 @@ function updateCmdEnabled(){
 
 function calcDamage(isPlayer){
   if(isPlayer){
-    const D = derivedFrom(P);
+      if (!P._live) refreshLive();
+      const D = P._live;
     const atk = D['物理攻擊'];
     const pen = D['破甲']||0;
     const critRate = D['暴擊率']||0;
@@ -931,33 +1063,48 @@ function calcDamage(isPlayer){
 
     return { dmg: out, crit:isCrit, note, mult: total, elemMul, stabMul, atkElem, defElem };
 
-  }else{
+    }else{
     const eS = battle.enemyStats || {};
-    const atk = eS.atk || 8;
-    const pen = eS.pen || 0;
-    const critRate = eS.crit || 0;
-    const critDmg = (100 + (eS.critdmg || 50)) / 100;
-    const pDef = Math.max(0, derivedFrom(P)['物理防禦'] - pen);
-    let base = Math.max(1, atk - pDef);
-    base = Math.round(base * (0.9 + Math.random()*0.2));
-    const isCrit = Math.random()*100 < critRate;
-    let out = Math.max(1, Math.round(base * (isCrit ? critDmg : 1)));
+    const atk = Math.max(1, eS.atk || 8);
+    const pen = Math.max(0, eS.pen || 0);
 
+    if (!P._live) refreshLive();
+    const pDef0  = Math.max(0, (P._live['物理防禦']||0));
+    const effDef = Math.max(0, pDef0 - pen);
+
+    // 1) 百分比減傷（防禦越高，傷害係數越低），避免被線性相減鎖成 1
+    const mitigate = 100 / (100 + effDef);        // 0~1
+    let base = Math.round(atk * mitigate);
+
+    // 2) 10% 浮動
+    const variance = 0.9 + Math.random()*0.2;
+    base = Math.max(1, Math.round(base * variance));
+
+    // 3) 最小傷害地板：至少為攻擊的 15%，且最低 2 點
+    const minFloor = Math.max(2, Math.ceil(atk * 0.15));
+    let out = Math.max(minFloor, base);
+
+    // 4) 暴擊
+    const critRate = eS.crit || 0;
+    const critDmg  = (100 + (eS.critdmg || 50)) / 100;
+    const isCrit   = Math.random()*100 < critRate;
+    if (isCrit) out = Math.max(minFloor, Math.round(out * critDmg));
+
+    // 5) 屬性倍率（含 STAB，同屬才啟用）
     const atkElem = battle.enemy?.element || 'none';
     const defElem = P?.element || 'none';
     const elemMul = elemMult(atkElem, defElem);
     const stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
-    const total   = elemMul * stabMul;
-
-    out = Math.max(1, Math.round(out * total));
+    out = Math.max(minFloor, Math.round(out * elemMul * stabMul));
 
     let note = '';
     if (elemMul > 1)      note += `（屬性剋制 ×${elemMul.toFixed(2)}）`;
     else if (elemMul < 1) note += `（被克制 ×${elemMul.toFixed(2)}）`;
     if (stabMul > 1)      note += `（同屬加成 +${Math.round((stabMul-1)*100)}%）`;
 
-    return { dmg: out, crit:isCrit, note, mult: total, elemMul, stabMul, atkElem, defElem };
+    return { dmg: out, crit:isCrit, note, mult: elemMul*stabMul, elemMul, stabMul, atkElem, defElem };
   }
+
 }
 
 function playerAttack(){
@@ -978,35 +1125,181 @@ function playerAttack(){
 
 
 function enemyAttack(){
+  const E = battle.enemy || {};
+  const skills = E.skills || [];
+
+  // --- 有技能就判定是否施放 ---
+  if (skills.length){
+    const s = skills[0]; // 目前只放一招：萊姆波動
+    const hpRate = Math.max(0, battle.e.hp) / Math.max(1, battle.e.hpMax);
+    let useChance = (s.chance ?? 0) + ((hpRate < 0.5) ? (s.lowHpBonus ?? 0) : 0);
+    if (Math.random() < useChance){
+      // ★ 法術打擊（立即傷害）
+      const magic = calcMagicDamageFromEnemy(s.elem || 'none');
+      battle.p.hp = clamp(battle.p.hp - magic.dmg, 0, battle.p.hpMax);
+      showHit('player', magic.dmg, false, 'hit');
+      const rel = elemRelationText(magic.atkElem, magic.defElem, magic.elemMul, magic.stabMul);
+      log(`${E.name} 施放「${s.name}」，對你造成 ${magic.dmg} 法術傷害 ${rel}`);
+
+      // ★ 附加 DoT（每秒 -dps，持續 duration 秒）
+      applyDotToPlayer(s.dps|0, s.duration|0, s.name);
+
+      endCheck();
+      updateBattleBars();
+      return;
+    }
+  }
+
+  // --- 否則用一般攻擊 ---
   const r = calcDamage(false);
   battle.p.hp = clamp(battle.p.hp - r.dmg, 0, battle.p.hpMax);
   showHit('player', r.dmg, false, 'hit');
 
   const rel = elemRelationText(r.atkElem, r.defElem, r.elemMul, r.stabMul);
-  log(`${battle.enemy.name} 對你造成 ${r.dmg} 傷害 ${rel}`);
+  log(`${E.name} 對你造成 ${r.dmg} 傷害 ${rel}`);
 
   endCheck();
   updateBattleBars();
 }
 
+// 工具：用敵方「法術攻擊 vs 我方法術防禦」走一套獨立公式（含元素）
+function calcMagicDamageFromEnemy(atkElem='none'){
+  const eS = battle.enemyStats || {};
+  const matk = Math.max(1, eS.matk || 8);
+  const mpen = Math.max(0, eS.mpen || 0);
+
+  if (!P._live) refreshLive();
+  const pMdef0  = Math.max(0, (P._live['法術防禦']||0));
+  const effMdef = Math.max(0, pMdef0 - mpen);
+
+  let base = Math.max(1, matk - effMdef);
+  base = Math.round(base * (0.9 + Math.random()*0.2));
+  let out = Math.max(1, Math.round(base));
+
+  const defElem = P?.element || 'none';
+  const elemMul = elemMult(atkElem, defElem);
+  const stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
+
+  out = Math.max(1, Math.round(out * elemMul * stabMul));
+  return { dmg: out, atkElem, defElem, elemMul, stabMul };
+}
+
+// 工具：套用 DoT（每秒傷害、持續秒數）
+function applyDotToPlayer(dps, seconds, label='持續傷害'){
+  if(!battle.dotTimers) battle.dotTimers = [];
+  let t = 0;
+  const timer = setInterval(()=>{
+    if(!battle || battle.over){ clearInterval(timer); return; }
+    if(battle.p.hp<=0 || battle.e.hp<=0){ clearInterval(timer); return; }
+    t++;
+    battle.p.hp = clamp(battle.p.hp - Math.max(0,dps|0), 0, battle.p.hpMax);
+    showHit('player', Math.max(0,dps|0), false, 'hit');
+    log(`【持續傷害】${label}：-${dps}（${t}/${seconds}）`, 'warn');
+    updateBattleBars();
+    endCheck();
+    if(t>=seconds) clearInterval(timer);
+  }, 1000);
+  battle.dotTimers.push(timer);
+}
+
+
 
 
 function useItem(){
-  // 優先用氣血丹
   const bag = P.bag || {};
-  const idx = (bag.consumables||[]).findIndex(x=>x?.id==='hp_small' && (x.count||0)>0);
-  if(idx===-1){ log('沒有氣血丹可用', 'warn'); return; }
-  const it = bag.consumables[idx];
-  it.count--; if(it.count<=0) bag.consumables.splice(idx,1);
-  const heal = 25; // 與 items.js 定義一致
-  battle.p.hp = clamp(battle.p.hp + heal, 0, battle.p.hpMax);
-  P.hp.cur = battle.p.hp; // 同步
-  showHit('player', heal, false, 'heal'); // ★ 補血特效
-  log(`使用 ${it.name||'氣血丹'} 回復 ${heal} 氣血。`);
-  battle.p.atb = 0;
-  renderBars(); savePlayer();
-  updateBattleBars(); updateCmdEnabled();
+  const list = (bag.consumables || []).filter(x=>x && x.count>0);
+  if(!list.length){
+    log('沒有可用的消耗品','warn');
+    return;
+  }
+
+  // 建立簡單選單 UI
+  const menu = document.createElement('div');
+  menu.style.position='fixed';
+  menu.style.inset='0';
+  menu.style.background='rgba(0,0,0,0.6)';
+  menu.style.zIndex='9999';
+  menu.style.display='grid';
+  menu.style.placeItems='center';
+
+  const box = document.createElement('div');
+  box.style.background='#1e293b';
+  box.style.padding='12px';
+  box.style.borderRadius='12px';
+  box.style.maxWidth='300px';
+  box.style.display='grid';
+  box.style.gap='8px';
+
+  const title = document.createElement('div');
+  title.textContent = '選擇要使用的消耗品';
+  title.style.fontWeight='700';
+  title.style.marginBottom='6px';
+  box.appendChild(title);
+
+  list.forEach(it=>{
+    const btn = document.createElement('button');
+    btn.style.display='flex';
+    btn.style.alignItems='center';
+    btn.style.gap='6px';
+    btn.style.padding='6px 8px';
+    btn.style.borderRadius='8px';
+    btn.style.background='rgba(255,255,255,0.08)';
+    btn.style.color='#fff';
+    btn.style.border='1px solid rgba(255,255,255,0.15)';
+    btn.style.cursor='pointer';
+
+    const img = document.createElement('img');
+    img.src = it.icon || '';
+    img.style.width='28px';
+    img.style.height='28px';
+    img.style.objectFit='cover';
+    img.style.borderRadius='6px';
+
+    const txt = document.createElement('div');
+    txt.innerHTML = `<b>${it.name}</b> ×${it.count}<br/><small>${it.effect?.hp?`回復HP ${it.effect.hp}`:''}${it.effect?.mp?` 回復MP ${it.effect.mp}`:''}</small>`;
+
+    btn.appendChild(img);
+    btn.appendChild(txt);
+
+    btn.onclick = ()=>{
+      // 扣除數量
+      it.count--; if(it.count<=0) bag.consumables = bag.consumables.filter(x=>x.count>0);
+
+      // 套用效果
+      if(it.effect?.hp){
+        const heal = it.effect.hp;
+        battle.p.hp = clamp(battle.p.hp + heal, 0, battle.p.hpMax);
+        P.hp.cur = battle.p.hp;
+        showHit('player', heal, false, 'heal');
+        log(`使用 ${it.name} 回復 ${heal} 氣血。`);
+      }
+      if(it.effect?.mp){
+        const heal = it.effect.mp;
+        battle.p.mp = clamp((battle.p.mp||0) + heal, 0, battle.p.mpMax);
+        P.mp.cur = battle.p.mp;
+        showHit('player', heal, false, 'heal');
+        log(`使用 ${it.name} 回復 ${heal} 真元。`);
+      }
+
+      battle.p.atb = 0;
+      renderBars(); savePlayer();
+      updateBattleBars(); updateCmdEnabled();
+      menu.remove();
+    };
+
+    box.appendChild(btn);
+  });
+
+  const cancel = document.createElement('button');
+  cancel.textContent='取消';
+  cancel.style.marginTop='6px';
+  cancel.onclick=()=>menu.remove();
+  box.appendChild(cancel);
+
+  menu.appendChild(box);
+  document.body.appendChild(menu);
 }
+
 
 
 function tryRun(){
@@ -1032,8 +1325,11 @@ function endCheck(){
       P.exp.cur -= P.exp.max;
       P.level = (P.level||1) + 1;
       P.unspentPoints = (P.unspentPoints||0) + 5;
-      // 等級提昇重新計算 HP 上限並回滿
-      const d=derivedFrom(P); P.hp.max=d['氣血上限']; P.hp.cur=P.hp.max;
+      // 等級提升：回滿 HP/MP（依最新快照）
+      refreshLive();
+      P.hp.max = P._live['氣血上限']; P.hp.cur = P.hp.max;
+      P.mp = P.mp || {cur:0, max:0};
+      P.mp.max = P._live['真元上限']; P.mp.cur = P.mp.max;
       log(`升級到 LV.${P.level}！獲得屬性點 +5。`,'ok');
       P.exp.max = Math.round(P.exp.max * 1.2);
     }
@@ -1042,37 +1338,62 @@ function endCheck(){
     if(drops?.length){
       log('掉落：' + drops.map(d=>`${d.name||d.id}×${d.amount}`).join('、'), 'ok');
     }
+
+    // ★★ 萊姆洞窟限定：計數與重置邏輯
+    if(curSmall === 'slime_cave'){
+      const prog = (function(){ P.mapProg=P.mapProg||{}; P.mapProg.slime_cave=P.mapProg.slime_cave||{kills:0,bossReady:false}; return P.mapProg.slime_cave; })();
+
+      if(battle.enemy.id === 'slime_boss'){
+        // 擊敗 BOSS → 按鈕消失、計數歸 0、重新開始下一輪
+        prog.bossReady = false;
+        prog.kills = 0;
+        log('你擊敗了萊姆王！挑戰 BOSS 按鈕已關閉，下次需再討伐 10 隻史萊姆才會出現。','ok');
+      }else{
+        // 只對一般史萊姆（幼體/成體）計數；當 bossReady 為真時凍結不累加
+        const isNormalSlime = (battle.enemy.id==='slime_young' || battle.enemy.id==='slime');
+        if(isNormalSlime && !prog.bossReady){
+          prog.kills = Math.min(10, (prog.kills|0) + 1);
+          if(prog.kills >= 10){
+            prog.bossReady = true;
+            log('討伐達 10/10！已開啟「挑戰 BOSS」按鈕。','ok');
+          }else{
+            log(`萊姆洞窟進度：${prog.kills}/10`,'ok');
+          }
+        }
+      }
+      savePlayer();
+      updateBossUI();
+    }
+
     // ★ 自動返回地圖
     setTimeout(()=>{ leaveBattle(); }, 1200);
 
   }else if(battle.p.hp<=0){
-  // 保留 1 HP 的戰敗處理
-  log('你被擊倒了…（保留 1 點氣血）', 'warn');
-
-  // 將玩家當前氣血拉回 1（避免回到地圖時顯示 0）
-  battle.p.hp = 1;
-  if (P && P.hp) {
-    P.hp.cur = 1;
-    P.hp.max = battle.p.hpMax || P.hp.max;
+    log('你被擊倒了…（保留 1 點氣血）', 'warn');
+    battle.p.hp = 1;
+    if (P && P.hp) {
+      P.hp.cur = 1;
+      P.hp.max = battle.p.hpMax || P.hp.max;
+    }
+    renderBars(); savePlayer();
+    setTimeout(()=>{ leaveBattle(); }, 1200);
   }
-
-  // 立即同步 UI 與存檔
-  renderBars();
-  savePlayer();
-
-  // 照舊自動返回
-  setTimeout(()=>{ leaveBattle(); }, 1200);
 }
-}
+
 
 
 function finishBattle(){
   battle.over = true;
   if(loop){ clearInterval(loop); loop=null; }
+  // ★ 清掉所有 DoT 計時器
+  if(battle && Array.isArray(battle.dotTimers)){
+    for(const tm of battle.dotTimers){ try{ clearInterval(tm); }catch(e){} }
+    battle.dotTimers.length = 0;
+  }
   updateBattleBars(); updateCmdEnabled();
-  // 不再顯示返回按鈕，因為已自動回到地圖
   qs('#btnLeaveBattle').style.display='none';
 }
+
 
 
 function leaveBattle(){
@@ -1104,16 +1425,19 @@ function bindEvents(){
   qs('#btnLogout').onclick = ()=>{ if(window.Auth && Auth.logout) Auth.logout(); location.href='index.html'; };
 
   // 進入 → 顯示探險/戰鬥
-  qs('#btnEnter').onclick = ()=>{
-    if(!curSmall){ log('請先選擇副地圖。'); return; }
-    entered = true;
-    setLocBadge();
-    updateActionPanel();
-    log('已進入當前區域，可以進行「探險 / 戰鬥」。','ok');
-  };
+qs('#btnEnter').onclick = ()=>{
+  if(!curSmall){ log('請先選擇副地圖。'); return; }
+  entered = true;
+  refreshLive(); // 進地圖時就鎖定「當下最終能力」
+  setLocBadge();
+  updateActionPanel();
+  log('已進入當前區域，可以進行「探險 / 戰鬥」。','ok');
+};
 
   qs('#btnExplore').onclick = doExplore;
   qs('#btnFight').onclick   = startBattle;
+  // ★ BOSS 戰（以全域旗標指示 startBattle 選固定怪）
+  qs('#btnBoss').onclick    = ()=>{ window.FORCE_MONSTER_ID = 'slime_boss'; startBattle(); };
 
   qs('#actAttack').onclick = playerAttack;
   qs('#actItem').onclick   = useItem;
@@ -1129,6 +1453,7 @@ function bindEvents(){
   buildMapUI();
   bindEvents();
 })();
+
 </script>
 </body>
 </html>

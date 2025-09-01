@@ -16,16 +16,61 @@
   };
 
   const DB = {
-    slime: {
-      id:'slime', name:'史萊姆', level:1, element:'none',
-      img:'https://picsum.photos/seed/slime/500/500', imgMirror:false,
-      // 針對史萊姆微調倍率（沒填的就用 defaultScales）
+    slime_young: {
+      id:'slime_young', name:'萊姆幼體', level:1, element:'none',
+      img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756700521/%E8%90%8A%E5%A7%86%E5%B9%BC%E9%AB%94_vbpjcf.png', imgMirror:false,
+      
       scales:{ '氣血上限':0.85, '物理攻擊':0.80, '行動條速度':0.90 },
       stats:{ hp:105, mp:26, atk:8, matk:7, def:4, mdef:4, acc:79, eva:4, crit:2, aspd:1.0 },
       drops:[
         {type:'currency',  id:'stone',        name:'靈石',          min:6,  max:14, chance:1.00},
+        {type:'material',  id:'slime_jelly',  name:'史萊姆凝膠',    min:1,  max:1,  chance:0.60},
+      ]
+    },
+    slime: {
+      id:'slime', name:'萊姆成體', level:2, element:'none',
+      img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756701712/%E8%90%8A%E5%A7%86%E6%88%90%E9%AB%94_gog4wl.png', imgMirror:false,
+      
+      scales:{ '氣血上限':0.85, '物理攻擊':0.80, '行動條速度':0.90 },
+      stats:{ hp:145, mp:31, atk:8, matk:10, def:5, mdef:6, acc:79, eva:5, crit:3, aspd:1.05 },
+      drops:[
+        {type:'currency',  id:'stone',        name:'靈石',          min:10,  max:14, chance:1.00},
         {type:'material',  id:'slime_jelly',  name:'史萊姆凝膠',    min:1,  max:2,  chance:0.60},
         {type:'consumable',id:'hp_small',     name:'氣血丹',        min:1,  max:1,  chance:0.25},
+      ]
+    },
+        slime_king: {
+      id:'slime_king', name:'史萊姆', level:3, element:'none',
+      img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756701968/%E5%8F%B2%E8%90%8A%E5%A7%86_llcjhj.png', imgMirror:false,
+      scales:{ '氣血上限':0.90, '物理攻擊':0.85, '行動條速度':0.95 },
+      stats:{ hp:195, mp:38, atk:12, matk:14, def:7, mdef:8, acc:82, eva:6, crit:4, aspd:1.10 },
+      drops:[
+        {type:'currency',  id:'stone',        name:'靈石',          min:15,  max:22, chance:1.00},
+        {type:'material',  id:'slime_jelly',  name:'史萊姆凝膠',    min:2,  max:3,  chance:0.75},
+        {type:'consumable',id:'hp_small',     name:'氣血丹',        min:1,  max:2,  chance:0.35},
+      ]
+    },
+
+    // ★ 新增：萊姆王（副本 BOSS）
+    slime_boss: {
+      id:'slime_boss', name:'萊姆王', level:3, element:'none',
+      img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756707781/%E5%8F%B2%E8%90%8A%E7%8E%8B_kzopon.png', imgMirror:false,
+      // 固定數值（不縮放）
+      scales:{}, 
+      stats:{ hp:415, mp:60, atk:16, matk:22, def:9, mdef:12, acc:85, eva:6, crit:5, aspd:1.10 },
+      // 敵方技能
+      skills: [
+        {
+          id:'slime_wave', name:'萊姆波動', kind:'magic_dot',
+          elem:'none',     // 元素（如要之後改成 water…）
+          dps:4, duration:5,             // 每秒 -4，持續 5 秒
+          chance:0.25, lowHpBonus:0.35   // 基礎 25% 機率；血量 <50% 額外 +35%（總 60%）
+        }
+      ],
+      drops:[
+        {type:'currency',  id:'stone',        name:'靈石',          min:28, max:40, chance:1.00},
+        {type:'material',  id:'slime_jelly',  name:'史萊姆凝膠',    min:3,  max:4,  chance:1.00},
+        // 想加禮包可再放消耗品或稀有素材
       ]
     },
     wood_wisp:{

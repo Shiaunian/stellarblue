@@ -85,7 +85,7 @@ async createCharacter(name, element='none', avatarOverride=''){
   var safeElem = (element || 'none').toLowerCase();
 
   var level = 1;
-  var attrs = { str:10, vit:10, dex:10, int:10, wis:10, luk:10 };
+  var attrs = { str:0, vit:0, dex:0, int:0, wis:0, luk:0 };
   var hpMax = 80 + attrs.vit * 12 + level * 6;
 
   var character = {
@@ -95,7 +95,7 @@ async createCharacter(name, element='none', avatarOverride=''){
     avatar: avatarOverride || this.defaultAvatar() || '',
     medals: [],
     attributes: attrs,
-    unspentPoints: 5,
+    unspentPoints: 10,
     sta: { cur: 100, max: 100 },
     exp: { cur: 0,   max: 100 },
     hp:  { cur: hpMax, max: hpMax },
@@ -127,10 +127,12 @@ hasCharacter(){
 
 async saveCharacter(character){
   var u = this.currentUser(); if(!u) return false;
+  try { character._updatedAt = Date.now(); } catch(e) {}
+  _cache.character = character; // 先更新快取，讓其它頁面立刻拿到最新
   await window.DB.ref(charPath(u.username)).set(character);
-  _cache.character = character;
   return true;
 },
+
 
 
 async deleteCharacter(){

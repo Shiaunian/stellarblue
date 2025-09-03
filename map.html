@@ -510,7 +510,10 @@
 <script>
 /* ===== 工具 ===== */
 const qs = (s, p=document)=>p.querySelector(s);
-const qsa = (s, p=document)=>[...p.querySelectorAll(s)];
+const qsa = function(s, p){
+  p = p || document;
+  return Array.prototype.slice.call(p.querySelectorAll(s));
+};
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const pct=(cur,max)=> (max>0? clamp(Math.round(cur/max*100),0,100) : 0);
 const fmt=(n)=> new Intl.NumberFormat('zh-Hant').format(n);
@@ -649,12 +652,24 @@ function derivedFrom(player){
 }
 // === 只算一次的「最終能力快照」：基礎衍生 + 裝備加成 ===
 function finalDerived(player){
-  const base  = (typeof derivedFrom==='function') ? (derivedFrom(player)||{}) : {};
-  const bonus = (window.Equip && typeof Equip.getBonuses==='function') ? (Equip.getBonuses()||{}) : {};
-  const out = { ...base };
-  for(const k in bonus){ out[k] = (out[k]||0) + (bonus[k]||0); }
+  var base  = (typeof derivedFrom==='function') ? (derivedFrom(player)||{}) : {};
+  var bonus = (window.Equip && typeof Equip.getBonuses==='function') ? (Equip.getBonuses()||{}) : {};
+  var out = {};
+  // 相當於 { ...base }
+  for (var k in base) {
+    if (Object.prototype.hasOwnProperty.call(base, k)) out[k] = base[k];
+  }
+  // 疊加裝備加成
+  for (var k2 in bonus) {
+    if (Object.prototype.hasOwnProperty.call(bonus, k2)) {
+      out[k2] = (out[k2]||0) + (bonus[k2]||0);
+    }
+  }
   return out;
 }
+
+
+
 // 重新整理快照（進地圖、開始戰鬥、升級後都可呼叫）
 function refreshLive(){
   if(!P) return;
@@ -758,7 +773,9 @@ function buildMapUI(){
       updateActionPanel();
 
       // 標記 active
-      [...smallCol.children].forEach(x=>x.classList.remove('active'));
+      Array.prototype.slice.call(smallCol.children).forEach(function(x){
+      x.classList.remove('active');
+    });
       btn.classList.add('active');
 
       // 更新地區情報
@@ -773,30 +790,54 @@ function buildMapUI(){
 }
 
 /* 固定欄位：地區情報 */
+/* 固定欄位：地區情報（不用可選鏈/未宣告變數） */
 function renderAreaInfo(){
-  const box = qs('#infoMonsters');
-  const s = getCurrentSmall?.() || CURRENT_SMALL; // 用你實際的取用方式
-  if (!s) { box.innerHTML = '<span class="chip">—</span>'; return; }
+  var box = qs('#infoMonsters');
 
-  const chips = s.monsters.map(id=>{
-    const m = (window.MonsterDB && MonsterDB.get) ? MonsterDB.get(id) : null;
-    if(!m) return `<span class="chip"><span class="mname">${id}</span></span>`;
-    const el = (window.ELEMENT_LABEL && ELEMENT_LABEL[m.element]) || '無';
-    return `<span class="chip">
-      <span class="pill elem ${m.element||'none'}">${el}</span>
-      <span class="mname">${m.name}</span><span class="mlv">LV.${m.level||1}</span>
-    </span>`;
-  });
+  // 依 curBig / curSmall 找到目前的小地圖
+  var big = null, s = null;
+  for (var i=0;i<MAPS.length;i++){
+    if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
+  }
+  if (big && big.small){
+    for (var j=0;j<big.small.length;j++){
+      if (big.small[j].id === curSmall){ s = big.small[j]; break; }
+    }
+  }
+  if (!s){
+    box.innerHTML = '<span class="chip">—</span>';
+    return;
+  }
+
+  var chips = [];
+  var list = s.monsters || [];
+  for (var k=0;k<list.length;k++){
+    var id = list[k];
+    var m = (window.MonsterDB && MonsterDB.get) ? MonsterDB.get(id) : null;
+    if(!m){
+      chips.push('<span class="chip"><span class="mname">'+id+'</span></span>');
+    }else{
+      var el = (window.ELEMENT_LABEL && ELEMENT_LABEL[m.element]) || '無';
+      chips.push(
+        '<span class="chip">' +
+          '<span class="pill elem '+(m.element||'none')+'">'+ el +'</span>' +
+          '<span class="mname">'+ m.name +'</span><span class="mlv">LV.'+(m.level||1)+'</span>' +
+        '</span>'
+      );
+    }
+  }
 
   if (s.boss){
-    const b = (window.MonsterDB && MonsterDB.get) ? MonsterDB.get(s.boss) : null;
+    var b = (window.MonsterDB && MonsterDB.get) ? MonsterDB.get(s.boss) : null;
     if (b){
-      const elb = (window.ELEMENT_LABEL && ELEMENT_LABEL[b.element]) || '無';
-      chips.push(`<span class="chip" style="border-color:#dc2626;background:rgba(220,38,38,.12)">
-        <strong>BOSS</strong>
-        <span class="pill elem ${b.element||'none'}">${elb}</span>
-        <span class="mname">${b.name}</span><span class="mlv">LV.${b.level||1}</span>
-      </span>`);
+      var elb = (window.ELEMENT_LABEL && ELEMENT_LABEL[b.element]) || '無';
+      chips.push(
+        '<span class="chip" style="border-color:#dc2626;background:rgba(220,38,38,.12)">' +
+          '<strong>BOSS</strong>' +
+          '<span class="pill elem '+(b.element||'none')+'">'+ elb +'</span>' +
+          '<span class="mname">'+ b.name +'</span><span class="mlv">LV.'+(b.level||1)+'</span>' +
+        '</span>'
+      );
     }
   }
 
@@ -874,32 +915,44 @@ function updateActionPanel(){
 function doExplore(){
   if(!curSmall){ log('請先選擇副地圖。'); return; }
   if(!entered){ log('請先按「進入」該地區。'); return; }
-  if((P.sta?.cur||0) < 2){ log('體力不足（需要 2）', 'warn'); return; }
-  P.sta.cur -= 2;
 
-  // 50% 靈石 / 30% 素材 / 20% 消耗品
-  const r = Math.random();
+  var staCur = (P && P.sta && typeof P.sta.cur === 'number') ? P.sta.cur : 0;
+  if(staCur < 2){ log('體力不足（需要 2）', 'warn'); return; }
+  P.sta.cur = staCur - 2;
+
+  var r = Math.random();
   if(r < 0.5){
-    const got = 5 + Math.floor(Math.random()*16); // 5~20
+    var got = 5 + Math.floor(Math.random()*16); // 5~20
     P.currencies.stone = (P.currencies.stone||0) + got;
-    log(`探險獲得 靈石 ×${got}`,'ok');
+    log('探險獲得 靈石 ×' + got, 'ok');
   }else if(r < 0.8){
-    // 素材（依地圖選一個：若項目不存在於 ItemDB，回退成 wood_shard）
-    const picks = ['wood_shard','stone_core','ghost_essence'];
-    let id = picks[Math.floor(Math.random()*picks.length)];
-    if(!ItemDB.getDef('materials', id)) id = 'wood_shard';
-    const qty = 1 + Math.floor(Math.random()*2);
-    ItemDB.addMaterialToBag(P.bag, id, qty);
-    log(`探險獲得素材：${(ItemDB.getDef('materials',id)?.name || id)} ×${qty}`,'ok');
+    // 素材
+    var picks = ['wood_shard','stone_core','ghost_essence'];
+    var id = picks[Math.floor(Math.random()*picks.length)];
+    var hasDef = (ItemDB && typeof ItemDB.getDef==='function' && ItemDB.getDef('materials', id));
+    if(!hasDef){ id = 'wood_shard'; }
+    var qty = 1 + Math.floor(Math.random()*2);
+    if(ItemDB && typeof ItemDB.addMaterialToBag==='function') ItemDB.addMaterialToBag(P.bag, id, qty);
+    var mdef = (ItemDB && ItemDB.getDef) ? ItemDB.getDef('materials', id) : null;
+    var mname = (mdef && mdef.name) ? mdef.name : id;
+    log('探險獲得素材：' + mname + ' ×' + qty, 'ok');
   }else{
-    // 消耗品（hp_small 或 mp_small 如果有）
-    const ids = ['hp_small','mp_small'].filter(id=>!!ItemDB.getDef('consumables', id));
-    const id = ids.length? ids[Math.floor(Math.random()*ids.length)] : 'hp_small';
-    ItemDB.addConsumableToBag(P.bag, id, 1);
-    log(`探險獲得丹藥：${(ItemDB.getDef('consumables',id)?.name || id)} ×1`,'ok');
+    // 消耗品
+    var ids = ['hp_small','mp_small'];
+    var filtered = [];
+    for (var i=0; i<ids.length; i++){
+      var ok = (ItemDB && typeof ItemDB.getDef==='function' && ItemDB.getDef('consumables', ids[i]));
+      if(ok) filtered.push(ids[i]);
+    }
+    var cid = filtered.length ? filtered[Math.floor(Math.random()*filtered.length)] : 'hp_small';
+    if(ItemDB && typeof ItemDB.addConsumableToBag==='function') ItemDB.addConsumableToBag(P.bag, cid, 1);
+    var cdef = (ItemDB && ItemDB.getDef) ? ItemDB.getDef('consumables', cid) : null;
+    var cname = (cdef && cdef.name) ? cdef.name : cid;
+    log('探險獲得丹藥：' + cname + ' ×1', 'ok');
   }
   renderHeader(); renderBars(); savePlayer();
 }
+
 
 
 
@@ -912,59 +965,74 @@ function startBattle(){
   if(!curSmall){ log('請先選擇副地圖。'); return; }
   if(!entered){ log('請先按「進入」該地區。'); return; }
 
-  const area = MAPS.find(x=>x.id===curBig)?.small?.find(x=>x.id===curSmall);
+  // 不用 ?. 與 find：用傳統 for 迴圈找區域
+  var big = null, area = null, i, j;
+  for (i = 0; i < MAPS.length; i++){
+    if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
+  }
+  if (big && big.small){
+    for (j = 0; j < big.small.length; j++){
+      if (big.small[j].id === curSmall){ area = big.small[j]; break; }
+    }
+  }
   if(!area){ log('找不到該地區'); return; }
+
   // 若有指定怪（例如 BOSS）則強制該怪；否則隨機
-  let enemy = null;
+  var enemy = null;
   if(window.FORCE_MONSTER_ID){
-    const def = window.MonsterDB && MonsterDB.DB[window.FORCE_MONSTER_ID];
+    var def = (window.MonsterDB && MonsterDB.DB) ? MonsterDB.DB[window.FORCE_MONSTER_ID] : null;
     if(def) enemy = JSON.parse(JSON.stringify(def));
     window.FORCE_MONSTER_ID = null; // 用完即清
   }
   if(!enemy){
-    const pool = (area.monsters||[]).map(id => window.MonsterDB && MonsterDB.DB[id]).filter(Boolean);
+    var pool = [];
+    if (area.monsters && window.MonsterDB && MonsterDB.DB){
+      for (i = 0; i < area.monsters.length; i++){
+        var mid = area.monsters[i];
+        var mdef = MonsterDB.DB[mid];
+        if (mdef) pool.push(mdef);
+      }
+    }
     if(!pool.length){ log('此地尚無怪物資料'); return; }
     enemy = JSON.parse(JSON.stringify(pool[Math.floor(Math.random()*pool.length)]));
   }
 
-  // 初始化戰鬥
-  qs('#mapSection').style.display='none';
+  // 初始化戰鬥畫面
+  qs('#mapSection').style.display = 'none';
   qs('#battleSection').classList.add('show');
-  if(loop){ clearInterval(loop); loop=null; }
+  if (loop){ clearInterval(loop); loop = null; }
 
-// 1) 玩家最終衍生值：進入戰鬥前刷新一次快照，只讀 P._live
-refreshLive();
-const d = P._live;
+  // 1) 玩家最終衍生值：進入戰鬥前刷新一次快照，只讀 P._live
+  refreshLive();
+  var d = (P && P._live) ? P._live : {};
 
+  // 2) 敵人使用資料庫的「固定 stats」，若缺 acc/eva 以 deriveAgainst 或預設值補齊
+  var eBase = (enemy && enemy.stats) ? enemy.stats : {};
+  var derived = null;
+  try{
+    if (window.MonsterDB && MonsterDB.deriveAgainst && P && P._live){
+      derived = MonsterDB.deriveAgainst(P._live, enemy.id) || null;
+    }
+  }catch(_err){ derived = null; }
 
-
-// 2) 敵人使用資料庫的「固定 stats」，若缺 acc/eva 以 deriveAgainst 或預設值補齊
-const eBase = enemy?.stats || {};
-let derived = null;
-try{
-  if (window.MonsterDB && MonsterDB.deriveAgainst && P && P._live) {
-    derived = MonsterDB.deriveAgainst(P._live, enemy.id) || null;
+  function pick(key, fallback){
+    var v0 = (typeof eBase[key] === 'number') ? eBase[key] : null;
+    if (v0 != null && v0 > 0) return v0;
+    if (derived && typeof derived[key] === 'number' && derived[key] > 0) return derived[key];
+    return (typeof fallback === 'number') ? fallback : 0;
   }
-}catch(e){ derived = null; }
 
-const pick = (key, fallback=0)=>{
-  const v0 = eBase[key];
-  if (typeof v0 === 'number' && v0>0) return v0;
-  if (derived && typeof derived[key] === 'number' && derived[key]>0) return derived[key];
-  return fallback;
-};
-
-const eStats = {
-  atk  : eBase.atk  | 0,
-  matk : eBase.matk | 0,
-  def  : eBase.def  | 0,
-  mdef : eBase.mdef | 0,
-  acc  : pick('acc', 75),   // 缺就補：預設 75
-  eva  : pick('eva', 5),    // 缺就補：預設 5
-  crit : eBase.crit | 0,
-  aspd : (typeof eBase.aspd==='number' ? eBase.aspd : 1.00),
-  pen  : 0,                 // 目前怪物未定義破甲
-};
+  var eStats = {
+    atk  : (eBase.atk  | 0),
+    matk : (eBase.matk | 0),
+    def  : (eBase.def  | 0),
+    mdef : (eBase.mdef | 0),
+    acc  : pick('acc', 75),  // 缺就補：預設 75
+    eva  : pick('eva', 5),   // 缺就補：預設 5
+    crit : (eBase.crit | 0),
+    aspd : (typeof eBase.aspd === 'number' ? eBase.aspd : 1.00),
+    pen  : 0                 // 目前怪物未定義破甲
+  };
 
 // 初始化戰鬥物件（全部用固定 DB）
 battle = {
@@ -1533,13 +1601,25 @@ function bindEvents(){
 
   qs('#btnExplore').onclick = doExplore;
   qs('#btnFight').onclick   = startBattle;
-  qs('#btnBoss').onclick = ()=>{
-  const s = getCurrentSmall?.() || CURRENT_SMALL; // 你專案裡若有現成的取用方法就用現成
-  const bossId = s && s.boss;
+// BOSS 直進戰鬥（安全取當前小地圖）
+qs('#btnBoss').onclick = function(){
+  // 找到目前的小地圖資料
+  var big = null, s = null;
+  for (var i=0;i<MAPS.length;i++){
+    if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
+  }
+  if (big && big.small){
+    for (var j=0;j<big.small.length;j++){
+      if (big.small[j].id === curSmall){ s = big.small[j]; break; }
+    }
+  }
+  var bossId = s && s.boss;
   if (!bossId) return;               // 此地沒有 BOSS 就不動
   window.FORCE_MONSTER_ID = bossId;  // 交給既有的 startBattle 流程
   startBattle();
 };
+
+
 
   qs('#actAttack').onclick = playerAttack;
   qs('#actItem').onclick   = useItem;

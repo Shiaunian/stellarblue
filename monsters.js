@@ -85,10 +85,10 @@
       ]
     },
     thorn_fox:{
-      id:'thorn_fox', name:'荊棘木狐', level:3, element:'wood',
-      img:'https://picsum.photos/seed/thornfox/500/500', imgMirror:false,
-      scales:{ '命中率':1.05, '閃避':1.10, '行動條速度':1.00 },
-      stats:{ hp:179, mp:49, atk:17, matk:11, def:10, mdef:8, acc:85, eva:9, crit:6, aspd:1.15 },
+      id:'thorn_fox', name:'荊棘毒狐', level:3, element:'wood',
+      img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756830089/%E8%8D%8A%E6%A3%98%E6%AF%92%E7%8B%90_ibbaqp.png', imgMirror:false,
+      scales:{ '命中率':1.05, '閃避':1.10, '行動條速度':1.10 },
+      stats:{ hp:180, mp:49, atk:17, matk:11, def:10, mdef:8, acc:85, eva:9, crit:6, aspd:1.15 },
       drops:[
         {type:'currency',  id:'stone',       name:'靈石',      min:10, max:22, chance:1.00},
         {type:'material',  id:'fox_tail',    name:'靈狐尾',    min:1,  max:1,  chance:0.40},

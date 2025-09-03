@@ -92,7 +92,7 @@
           <p class="sub">輸入帳號與密碼，首次登入若無角色會進入創角畫面。</p>
           <div class="field">
             <label for="loginUser">帳號</label>
-            <input id="loginUser" type="text" placeholder="例如：player1 / test" autocomplete="username" />
+            <input id="loginUser" type="text" placeholder="例如：7390 / 9975" autocomplete="username" />
           </div>
           <div class="field">
             <label for="loginPass">密碼</label>
@@ -101,8 +101,8 @@
           <div class="msg" id="loginMsg"></div>
           <div class="row">
             <button id="btnLogin">登入</button>
-            <button id="btnQuick" class="ghost" title="快速填入測試帳">一鍵測試</button>
           </div>
+
         </div>
       </section>
 
@@ -155,6 +155,28 @@
 
   <!-- 模擬帳號資料庫／登入邏輯 -->
 <!-- 置於 index.html 末尾的 <script> 內，覆蓋原邏輯 -->
+<!-- Firebase（compat 版，免 ES Module） -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+  (function(){
+    var firebaseConfig = {
+      apiKey: "AIzaSyBvKmn0jCTS_jIgEYOuQjc8vyYU40Q5F3I",
+      authDomain: "stellarblue-system.firebaseapp.com",
+      databaseURL: "https://stellarblue-system-default-rtdb.firebaseio.com",
+      projectId: "stellarblue-system",
+      storageBucket: "stellarblue-system.firebasestorage.app",
+      messagingSenderId: "803212433649",
+      appId: "1:803212433649:web:887080d10a51d533b23150",
+      measurementId: "G-YY94484DV9"
+    };
+    if(!firebase.apps || !firebase.apps.length){
+      firebase.initializeApp(firebaseConfig);
+    }
+    // 提供給 auth.js 使用的全域 DB
+    window.DB = firebase.database();
+  })();
+</script>
 <script src="auth.js"></script>
 <script>
   const scrLogin   = document.getElementById('screen-login');
@@ -177,42 +199,55 @@
     card.querySelector('input[type="radio"]').checked = true;
   });
 
-  document.getElementById('btnQuick').addEventListener('click', ()=>{
-    loginUser.value = 'test';
-    loginPass.value = '1234';
-  });
 
-  document.getElementById('btnLogin').addEventListener('click', ()=>{
-    const u = loginUser.value.trim();
-    const p = loginPass.value.trim();
-    const { success, message, hasCharacter } = Auth.login(u, p);
+document.getElementById('btnLogin').addEventListener('click', async ()=>{
+  const u = loginUser.value.trim();
+  const p = loginPass.value.trim();
 
-    if(!success){ loginMsg.textContent = message || '登入失敗'; loginMsg.style.color='var(--danger)'; return; }
+  loginMsg.style.color = '#fff';
+  loginMsg.textContent = '登入中…';
+
+  try{
+    const res = await Auth.login(u, p);
+    if(!res || !res.success){
+      loginMsg.style.color='var(--danger)';
+      loginMsg.textContent = (res && res.message) ? res.message : '登入失敗';
+      return;
+    }
     loginMsg.style.color = 'var(--ok)';
     loginMsg.textContent = '登入成功';
 
-    if(!hasCharacter){
+    if(!res.hasCharacter){
       scrLogin.classList.add('hidden');
       scrCreate.classList.remove('hidden');
     }else{
-      // 已有角色 → 直接進遊戲
       window.location.href = 'game.html';
     }
-  });
+  }catch(err){
+    loginMsg.style.color='var(--danger)';
+    loginMsg.textContent = '登入錯誤';
+  }
+});
 
-  document.getElementById('btnCreate').addEventListener('click', ()=>{
-    const name = (document.getElementById('charName').value || '').trim();
-    const elem = (elGrid.querySelector('input[name="elem"]:checked') || {}).value || 'none';
-    if(!name){ alert('請輸入角色名稱'); return; }
 
-    const ok = Auth.createCharacter(name, elem);
+document.getElementById('btnCreate').addEventListener('click', async ()=>{
+  const name = (document.getElementById('charName').value || '').trim();
+  const elem = (elGrid.querySelector('input[name="elem"]:checked') || {}).value || 'none';
+  if(!name){ alert('請輸入角色名稱'); return; }
+
+  try{
+    const ok = await Auth.createCharacter(name, elem);
     if(ok){
-      // 創角完成 → 進遊戲
       window.location.href = 'game.html';
     }else{
       alert('創角失敗，請重試');
     }
-  });
+  }catch(e){
+    alert('創角錯誤，請稍後再試');
+  }
+});
+
+
 
   document.getElementById('btnBackLogin').addEventListener('click', ()=>{
     scrCreate.classList.add('hidden');

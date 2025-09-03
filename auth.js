@@ -2,34 +2,66 @@
 const STORE_USER = 'rpg_user';
 const STORE_CHAR_PREFIX = 'rpg_character_';
 
-// 只允許這些帳號登入，並可各自設定預設頭像
-const ALLOWED = {
-  test:  { password: '1234', avatar: 'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756723857/%E5%BF%B5%E5%BF%B5_bmuc6s.png' },
-  admin: { password: '9999', avatar: 'https://picsum.photos/seed/admxx/96' },
-  // 再加帳號就照這格式：
-  // userA: { password: 'abcd', avatar: 'https://你的預設頭像網址' },
-};
+// 帳號清單（寫死在前端）：username / password / avatar
+// 之後要改頭像，只需改這裡的 avatar，玩家下次登入就會拿到最新網址
+var ACCOUNTS = [
+  { username: "0017", password: "0128", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756723857/%E5%BF%B5%E5%BF%B5_bmuc6s.png" },
+  { username: "9975", password: "0807", avatar: "https://example.com/avatars/9975.png" },
+  { username: "2817", password: "0428", avatar: "https://example.com/avatars/2817.png" },
+  { username: "9031", password: "1123", avatar: "https://example.com/avatars/9031.png" },
+  { username: "7905", password: "0824", avatar: "https://example.com/avatars/7905.png" },
+  { username: "0592", password: "0825", avatar: "https://example.com/avatars/0592.png" }
+];
 
-const charKey = (u) => STORE_CHAR_PREFIX + u;
+// 工具：用帳號找對應物件
+function findAccount(username){
+  var i = 0;
+  while(i < ACCOUNTS.length){
+    var a = ACCOUNTS[i];
+    if(a && a.username === username){ return a; }
+    i = i + 1;
+  }
+  return null;
+}
+
+
+// ===== 快取與雲端路徑 =====
+var _cache = { character: null };
+
+function charPath(username){
+  // 統一走這個節點：characters/{username}
+  return 'characters/' + username;
+}
+
+const charKey = (u) => STORE_CHAR_PREFIX + u; // 舊本機 key（保留相容）
+
 
 const Auth = {
-  login(username, password) {
-    const rule = ALLOWED[username];
-    if (!rule || rule.password !== password) {
-      return { success:false, message:'帳密錯誤' };
-    }
-    localStorage.setItem(STORE_USER, JSON.stringify({ username }));
 
-    // 舊版共用 key -> 嘗試搬到每帳號的 key（若存在）
-    const oldRaw = localStorage.getItem('rpg_character');
-    if (oldRaw && !localStorage.getItem(charKey(username))) {
-      localStorage.setItem(charKey(username), oldRaw);
-    }
-    // 移除舊版共用 key（避免之後混淆）
-    localStorage.removeItem('rpg_character');
+async login(username, password) {
+  if(!username || !password){
+    return { success:false, message:'請輸入帳號與密碼' };
+  }
 
-    return { success:true, hasCharacter: !!localStorage.getItem(charKey(username)) };
-  },
+  // 只用寫死清單驗證
+  var acc = findAccount(username);
+  if(!acc || acc.password !== password){
+    return { success:false, message:'帳號或密碼錯誤' };
+  }
+
+  // 記錄使用者資訊（含頭像網址）
+  localStorage.setItem(STORE_USER, JSON.stringify({
+    username: acc.username,
+    avatar: acc.avatar ? acc.avatar : ''
+  }));
+
+  // 到雲端看是否已有存檔
+  var snap = await window.DB.ref(charPath(username)).get();
+  _cache.character = snap.exists() ? snap.val() : null;
+
+  return { success:true, hasCharacter: !!_cache.character };
+},
+
 
   logout(){
     localStorage.removeItem(STORE_USER);
@@ -40,62 +72,73 @@ const Auth = {
     catch { return null; }
   },
 
-  defaultAvatar(){
-    const u = this.currentUser(); if(!u) return '';
-    return ALLOWED[u.username]?.avatar || '';
-  },
+defaultAvatar(){
+  var u = this.currentUser();
+  if(!u){ return ''; }
+  return u.avatar ? u.avatar : '';
+},
 
-  createCharacter(name, element='none', avatarOverride=''){
-    const u = this.currentUser(); if(!u) return false;
+async createCharacter(name, element='none', avatarOverride=''){
+  var u = this.currentUser(); if(!u) return false;
 
-    const safeName = String(name || '').trim().slice(0, 16); // 最長 16 字，防呆
-    const safeElem = (element || 'none').toLowerCase();      // 'none' | 'fire' | 'water'…
+  var safeName = String(name || '').trim().slice(0, 16);
+  var safeElem = (element || 'none').toLowerCase();
 
-  // 先在物件外計算初值（⚠️ const 不能放在物件字面值裡）
-    const level = 1;
-    const attrs = { str:10, vit:10, dex:10, int:10, wis:10, luk:10 };
-    const hpMax = 80 + attrs.vit * 12 + level * 6; // 與 derivedFrom 的公式一致
+  var level = 1;
+  var attrs = { str:10, vit:10, dex:10, int:10, wis:10, luk:10 };
+  var hpMax = 80 + attrs.vit * 12 + level * 6;
 
-    const character = {
-      name: safeName || '無名散修',
-      element: safeElem,
-      level: level,
-      avatar: avatarOverride || this.defaultAvatar() || '',
-      medals: [],
-      attributes: attrs,
-      unspentPoints: 5,
-      sta: { cur: 100, max: 100 },     // 體力滿
-      exp: { cur: 0,   max: 100 },     // 經驗 0/100
-      hp:  { cur: hpMax, max: hpMax }, // 氣血依 VIT/等級計算
-      currencies: { stone: 13000, diamond: 300 }
-    };
+  var character = {
+    name: safeName || '無名散修',
+    element: safeElem,
+    level: level,
+    avatar: avatarOverride || this.defaultAvatar() || '',
+    medals: [],
+    attributes: attrs,
+    unspentPoints: 5,
+    sta: { cur: 100, max: 100 },
+    exp: { cur: 0,   max: 100 },
+    hp:  { cur: hpMax, max: hpMax },
+    currencies: { stone: 13000, diamond: 300 }
+  };
 
-  localStorage.setItem(charKey(u.username), JSON.stringify(character));
+  await window.DB.ref(charPath(u.username)).set(character);
+  _cache.character = character;
   return true;
 },
 
-  getCharacter(){
-    const u = this.currentUser(); if(!u) return null;
-    const raw = localStorage.getItem(charKey(u.username));
-    return raw ? JSON.parse(raw) : null;
-  },
 
-  hasCharacter(){
-    const u = this.currentUser(); if(!u) return false;
-    return !!localStorage.getItem(charKey(u.username));
-  },
+getCharacter(){
+  return _cache.character || null;
+},
 
-  saveCharacter(character){
-    const u = this.currentUser(); if(!u) return false;
-    localStorage.setItem(charKey(u.username), JSON.stringify(character));
-    return true;
-  },
+async loadCharacter(){
+  var u = this.currentUser(); if(!u){ _cache.character=null; return null; }
+  var snap = await window.DB.ref(charPath(u.username)).get();
+  _cache.character = snap.exists() ? snap.val() : null;
+  return _cache.character;
+},
 
-  deleteCharacter(){
-    const u = this.currentUser(); if(!u) return false;
-    localStorage.removeItem(charKey(u.username));
-    return true;
-  }
+
+hasCharacter(){
+  return !!_cache.character;
+},
+
+
+async saveCharacter(character){
+  var u = this.currentUser(); if(!u) return false;
+  await window.DB.ref(charPath(u.username)).set(character);
+  _cache.character = character;
+  return true;
+},
+
+
+async deleteCharacter(){
+  var u = this.currentUser(); if(!u) return false;
+  await window.DB.ref(charPath(u.username)).remove();
+  _cache.character = null;
+  return true;
+}
 };
 
 // 讓其他頁面能透過 window.Auth 使用

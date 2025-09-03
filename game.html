@@ -459,10 +459,35 @@
 
 
 
+<!-- Firebase（compat 版，免 ES Module） -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyBvKmn0jCTS_jIgEYOuQjc8vyYU40Q5F3I",
+    authDomain: "stellarblue-system.firebaseapp.com",
+    databaseURL: "https://stellarblue-system-default-rtdb.firebaseio.com",
+    projectId: "stellarblue-system",
+    storageBucket: "stellarblue-system.firebasestorage.app",
+    messagingSenderId: "803212433649",
+    appId: "1:803212433649:web:887080d10a51d533b23150",
+    measurementId: "G-YY94484DV9"
+  };
+  if(!firebase.apps || !firebase.apps.length){
+    firebase.initializeApp(firebaseConfig);
+  }
+  // 提供給 auth.js / 遊戲頁使用
+  window.DB = firebase.database();
+})();
+</script>
+
 <script src="items.js"></script>
 <script src="auth.js"></script>
 <script src="equip.js"></script>
 <script>
+
+
 /* ===== 公用 ===== */
 const qs = s=>document.querySelector(s);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
@@ -616,42 +641,43 @@ window.Game = (()=>{
     if(qs('#ptRemain')) qs('#ptRemain').textContent = remain;
   }
 
-  function wire(){
-    document.querySelectorAll('.gbtn').forEach(b=>{
-      b.addEventListener('click', ()=>{
-        const txt = b.textContent?.trim();
-        if (txt === '儲物袋') return openBag();
-        if (txt === '裝備欄') return (window.Equip && Equip.open && Equip.open());
-        if (txt === '商店') return openShop();
-        log(`開啟：${txt}`,'warn');
-      });
+function wire(){
+  document.querySelectorAll('.gbtn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const txt = b.textContent?.trim();
+      if (txt === '儲物袋') return openBag();
+      if (txt === '裝備欄') return (window.Equip && Equip.open && Equip.open());
+      if (txt === '商店') return openShop();
+      log(`開啟：${txt}`,'warn');
     });
+  });
 
-    document.querySelectorAll('.card').forEach(c => 
-  c.addEventListener('click', () => {
-    const mod = c.dataset.mod;
-    if (mod === 'map') {
-      location.href = 'map.html';
-      return;
-    }
-    // 其他模組先保留原本行為
-    log(`進入模組：${c.querySelector('.ctitle').textContent}`, 'warn');
-  })
-);
+  document.querySelectorAll('.card').forEach(c => 
+    c.addEventListener('click', () => {
+      const mod = c.dataset.mod;
+      if (mod === 'map') {
+        location.href = 'map.html';
+        return;
+      }
+      log(`進入模組：${c.querySelector('.ctitle').textContent}`, 'warn');
+    })
+  );
 
-    qs('#btnSend')?.addEventListener('click', sendChat);
-    qs('#chatInput')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendChat(); });
+  qs('#btnSend')?.addEventListener('click', sendChat);
+  qs('#chatInput')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendChat(); });
 
-    qs('#uiAvatar')?.addEventListener('click', openAttr);
-    document.querySelectorAll('[data-close="attr"]').forEach(el=> el.addEventListener('click', closeAttr));
-    addEventListener('keydown', e=>{ if(e.key==='Escape') { closeAttr(); closeBag(); closeBagAction(); } });
+  qs('#uiAvatar')?.addEventListener('click', openAttr);
+  document.querySelectorAll('[data-close="attr"]').forEach(el=> el.addEventListener('click', closeAttr));
+  addEventListener('keydown', e=>{ if(e.key==='Escape') { closeAttr(); closeBag(); closeBagAction(); } });
 
-    document.querySelectorAll('[data-close="bag"]').forEach(el=> el.addEventListener('click', closeBag));
+  document.querySelectorAll('[data-close="bag"]').forEach(el=> el.addEventListener('click', closeBag));
 
-    document.addEventListener('click', (e)=>{
-      const el = e.target.closest?.('[data-close="bagAction"]');
-      if(el) closeBagAction();
-    });
+  document.addEventListener('click', (e)=>{
+    const el = e.target.closest?.('[data-close="bagAction"]');
+    if(el) closeBagAction();
+  });
+
+  // 其餘原本 wire() 內的監聽、商店/背包等邏輯照舊
 
     document.addEventListener('click', (e)=>{
       const plus = e.target.closest?.('.attr-plus');
@@ -760,9 +786,9 @@ function renderMerchants(){
   box.appendChild(li);
 
   // 2) 洞窟補給商（打過萊姆洞窟 BOSS 才解鎖）
-  var P = Game.getPlayer(); 
-  var unlocked = false;
-  if(P && P.mapProg && P.mapProg.slime_cave && P.mapProg.slime_cave.bossReady){ unlocked = true; }
+var P = (window.Auth && Auth.getCharacter) ? Auth.getCharacter() : null;
+var unlocked = false;
+if(P && P.mapProg && P.mapProg.slime_cave && P.mapProg.slime_cave.bossReady){ unlocked = true; }
 
   const cave = document.createElement('div');
   cave.className = 'item-row';
@@ -902,6 +928,7 @@ document.querySelectorAll('[data-close="shop"]').forEach(function(el){
 
   /* ===== Bag ===== */
   function openBag(){ seedBagIfMissing(); renderBag('consumable'); const m = qs('#bagModal'); if(!m) return; m.classList.add('show'); m.setAttribute('aria-hidden','false'); }
+  
   function closeBag(){ const m = qs('#bagModal'); if(!m) return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); }
   function switchBagTab(k){ document.querySelectorAll('.bag-tab').forEach(t=> t.classList.toggle('active', t.dataset.bagTab===k)); renderBag(k); }
 
@@ -1191,17 +1218,51 @@ function renderMaterials(box, P){
     render(P); renderBag('consumable');
   }
 
-  function bagEquipWeapon(i){
-    const P = state.player; const w = P.bag.weapons[i]; if(!w) return;
-    if (window.Equip && Equip.equipWeapon) {
-      Equip.equipWeapon(w);
-    } else {
-      P.equip = P.equip || {}; P.equip.weapon = { ...w };
-      if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
-      renderDerived();
+function bagEquipWeapon(i){
+  const P = state.player; if(!P) return;
+  P.bag = P.bag || {}; 
+  P.bag.weapons = Array.isArray(P.bag.weapons) ? P.bag.weapons : [];
+
+  const w = P.bag.weapons[i]; 
+  if(!w) return;
+
+  // 先記住舊武器（避免被覆蓋後消失）
+  const prev = (P.equip && P.equip.weapon) ? P.equip.weapon : null;
+
+  // 裝備新武器（有 Equip 模組就用它，否則直接寫入）
+  if (window.Equip && Equip.equipWeapon) {
+    Equip.equipWeapon(w);
+  } else {
+    P.equip = P.equip || {};
+    try{
+      P.equip.weapon = JSON.parse(JSON.stringify(w));
+    }catch(_){
+      P.equip.weapon = w;
     }
-    log(`已裝備：${w.name}`,'ok');
+    renderDerived();
   }
+
+  // 從背包移除已裝備的那把
+  P.bag.weapons.splice(i, 1);
+
+  // 若原本有裝備，丟回背包前端避免遺失
+  if (prev){
+    try{
+      P.bag.weapons.unshift(JSON.parse(JSON.stringify(prev)));
+    }catch(_){
+      P.bag.weapons.unshift(prev);
+    }
+  }
+
+  // 存檔 + 重繪
+  if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+  render(P); 
+  renderBag('weapon');
+
+  log('已裝備：' + (w.name || '武器'), 'ok');
+}
+
+
   function bagSellWeapon(i){
     const P = state.player; const w = P.bag.weapons[i]; if(!w) return;
     if (!confirm(`確定要販賣：「${w.name}」？（可得 ${w.price} 靈石）`)) return;
@@ -1268,43 +1329,44 @@ function renderMaterials(box, P){
         currencies: { stone: 0, diamond: 0 },
       }, player || {});
 
-    const hpMax = derivedFrom(p)['氣血上限'];
+      // ★ 關鍵：把玩家寫回 state，後面所有功能才能正常讀到
+      state.player = p;
 
-    // HP：若沒有就建立；若已有就只更新上限並夾在 0 ~ max 之間，不回滿
-    if (!p.hp) {
-      p.hp = { cur: hpMax, max: hpMax };
-    } else {
-      p.hp.max = hpMax;
-      const cur = (p.hp.cur ?? hpMax);
-      p.hp.cur = Math.max(0, Math.min(cur, hpMax));
-    }
+      const hpMax = derivedFrom(p)['氣血上限'];
 
-    // MP（真元）：同樣處理
-    const mpMax = derivedFrom(p)['真元上限'];
-    if (!p.mp) {
-      p.mp = { cur: mpMax, max: mpMax };
-    } else {
-      p.mp.max = mpMax;
-      const curM = (p.mp.cur ?? mpMax);
-      p.mp.cur = Math.max(0, Math.min(curM, mpMax));
-    }
+      // HP：若沒有就建立；若已有就只更新上限並夾在 0 ~ max 之間，不回滿
+      if (!p.hp) {
+        p.hp = { cur: hpMax, max: hpMax };
+      } else {
+        p.hp.max = hpMax;
+        const cur = (p.hp.cur ?? hpMax);
+        p.hp.cur = Math.max(0, Math.min(cur, hpMax));
+      }
 
+      // MP（真元）：同樣處理
+      const mpMax = derivedFrom(p)['真元上限'];
+      if (!p.mp) {
+        p.mp = { cur: mpMax, max: mpMax };
+      } else {
+        p.mp.max = mpMax;
+        const curM = (p.mp.cur ?? mpMax);
+        p.mp.cur = Math.max(0, Math.min(curM, mpMax));
+      }
 
-    // 體力：同理，不強制回滿；沒有才給預設
-    if (!p.sta) {
-      p.sta = { cur: 100, max: 100 };
-    } else {
-      p.sta.max = p.sta.max ?? 100;
-      const curSta = (p.sta.cur ?? p.sta.max);
-      p.sta.cur = Math.max(0, Math.min(curSta, p.sta.max));
-    }
+      // 體力：同理，不強制回滿；沒有才給預設
+      if (!p.sta) {
+        p.sta = { cur: 100, max: 100 };
+      } else {
+        p.sta.max = p.sta.max ?? 100;
+        const curSta = (p.sta.cur ?? p.sta.max);
+        p.sta.cur = Math.max(0, Math.min(curSta, p.sta.max));
+      }
 
-    // 經驗：保留原本 cur，若越界就夾回範圍；沒有就用預設
-    p.exp = {
-      cur: Math.max(0, Math.min(p.exp?.cur ?? 0, p.exp?.max ?? 100)),
-      max: p.exp?.max ?? 100
-    };
-
+      // 經驗：保留原本 cur，若越界就夾回範圍；沒有就用預設
+      p.exp = {
+        cur: Math.max(0, Math.min(p.exp?.cur ?? 0, p.exp?.max ?? 100)),
+        max: p.exp?.max ?? 100
+      };
 
       wire();
       render(p);
@@ -1316,21 +1378,37 @@ function renderMaterials(box, P){
   };
 })();
 
-window.addEventListener('DOMContentLoaded', () => {
-  const char = (window.Auth && Auth.getCharacter && Auth.getCharacter()) || null;
-  if (!char) { window.location.href = 'index.html'; return; }
+// ===== 只保留這一段啟動流程（等雲端載入完再進主城）=====
+window.addEventListener('DOMContentLoaded', async () => {
+  // 先檢查是否已登入
+  var user = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
+  if(!user){ window.location.href = 'index.html'; return; }
 
-  Game.start(char);
+  // 讀雲端角色
+  var char = null;
+  try{
+    char = (window.Auth && Auth.loadCharacter) ? (await Auth.loadCharacter()) : null;
+  }catch(e){
+    char = null;
+  }
 
+  // 沒有角色 → 回登入頁的創角頁
+  if (!char){ window.location.href = 'index.html#create'; return; }
+
+  // 有角色 → 啟動遊戲
+  if (window.Game && Game.start) { Game.start(char); }
+
+  // 掛上裝備模組
   if (window.Equip && Equip.mount) {
     Equip.mount({
-      getPlayer: () => Game.getPlayer(),
-      save:      () => Game.save && Game.save(),
-      recalc:    () => Game.recalc && Game.recalc(),
-      log:       (t)=> Game.log ? Game.log(t) : console.log(t),
+      getPlayer: function(){ return Game.getPlayer(); },
+      save:      function(){ return Game.save && Game.save(); },
+      recalc:    function(){ return Game.recalc && Game.recalc(); },
+      log:       function(t){ return Game.log ? Game.log(t) : console.log(t); }
     });
   }
 });
 </script>
 </body>
 </html>
+

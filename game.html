@@ -1317,17 +1317,19 @@ function bagEquipWeapon(i){
 
   return {
     start(player){
-      const p = Object.assign({
-        level: 1,
-        attributes: { str:10, vit:10, dex:10, int:10, wis:10, luk:10 },
-        unspentPoints: 5,
-        medals: [],
-        equip: { weapon: null, earrings: [null,null], rings: [null,null], cloak: null, armor: null, shoes: null, medals: [null,null,null,null,null] },
-        sta: { cur: 100, max: 100 },
-        exp: { cur: 0,   max: 100 },
-        hp:  { cur: 0,   max: 0 },
-        currencies: { stone: 0, diamond: 0 },
-      }, player || {});
+    const defaults = {
+      level: 1,
+      attributes: { str:0, vit:0, dex:0, int:0, wis:0, luk:0 },
+      unspentPoints: 10,
+      medals: [],
+      equip: { weapon: null, earrings: [null,null], rings: [null,null], cloak: null, armor: null, shoes: null, medals: [null,null,null,null,null] },
+      sta: { cur: 100, max: 100 },
+      exp: { cur: 0,   max: 100 },
+      hp:  { cur: 0,   max: 0 },
+      currencies: { stone: 0, diamond: 0 },
+    };
+    const p = Object.assign({}, defaults, player || {});  // 玩家資料優先，避免蓋掉等級
+
 
       // ★ 關鍵：把玩家寫回 state，後面所有功能才能正常讀到
       state.player = p;
@@ -1363,10 +1365,12 @@ function bagEquipWeapon(i){
       }
 
       // 經驗：保留原本 cur，若越界就夾回範圍；沒有就用預設
-      p.exp = {
-        cur: Math.max(0, Math.min(p.exp?.cur ?? 0, p.exp?.max ?? 100)),
-        max: p.exp?.max ?? 100
-      };
+      if (!p.exp) { p.exp = { cur:0, max:100 }; }
+      else {
+        p.exp.max = p.exp.max ?? 100;
+        p.exp.cur = Math.max(0, Math.min(p.exp.cur ?? 0, p.exp.max));
+      }
+
 
       wire();
       render(p);
@@ -1390,6 +1394,19 @@ window.addEventListener('DOMContentLoaded', async () => {
     char = (window.Auth && Auth.loadCharacter) ? (await Auth.loadCharacter()) : null;
   }catch(e){
     char = null;
+  }
+
+  // 若本地快取較新，優先用快取（避免剛存檔未同步）
+  var cached = (window.Auth && Auth.getCharacter) ? Auth.getCharacter() : null;
+  if (cached) {
+    var useCached = false;
+    if (!char) { useCached = true; }
+    else {
+      var t1 = cached && cached._updatedAt ? cached._updatedAt : 0;
+      var t2 = char && char._updatedAt ? char._updatedAt : 0;
+      if (t1 > t2) { useCached = true; }
+    }
+    if (useCached) { char = cached; }
   }
 
   // 沒有角色 → 回登入頁的創角頁

@@ -67,7 +67,7 @@ const DB = {
 
   wood_wisp:{
     id:'wood_wisp', name:'木幽火', level:2, element:'fire',
-    img:'https://picsum.photos/seed/woodwisp/500/500', imgMirror:false,
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756917890/%E6%9C%A8%E5%B9%BD%E7%81%AB_c2r0th.png', imgMirror:false,
     scales:{ '法術攻擊':1.05, '法術防禦':1.05, '行動條速度':0.95 },
     stats:{ hp:142, mp:50, atk:8,  matk:12, def:6, mdef:8, acc:81, eva:7, crit:3, aspd:1.05 },
     drops:[
@@ -89,7 +89,7 @@ const DB = {
   },
   stone_golem:{
     id:'stone_golem', name:'石像守衛', level:4, element:'earth',
-    img:'https://picsum.photos/seed/golem/500/500', imgMirror:false,
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756917889/%E7%9F%B3%E5%83%8F%E5%AE%88%E8%A1%9B_dqcolr.png', imgMirror:false,
     scales:{ '氣血上限':1.20, '物理防禦':1.20, '行動條速度':0.80 },
     stats:{ hp:300, mp:39, atk:25, matk:10, def:23, mdef:14, acc:82, eva:4, crit:3, aspd:0.90 },
     drops:[
@@ -100,7 +100,7 @@ const DB = {
   },
   wraith:{
     id:'wraith', name:'幽怨亡靈', level:5, element:'dark',
-    img:'https://picsum.photos/seed/wraith/500/500', imgMirror:false,
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756917889/%E5%B9%BD%E6%80%A8%E4%BA%A1%E9%9D%88_ac6oug.png', imgMirror:false,
     scales:{ '法術攻擊':1.15, '法術防禦':1.10, '行動條速度':0.95 },
     stats:{ hp:270, mp:110, atk:20, matk:30, def:13, mdef:25, acc:88, eva:9, crit:7, aspd:1.10 },
     drops:[

@@ -346,100 +346,116 @@ const DB = {
 
 
 // === 工具 ===
-const rnd = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+  const rnd = function(a,b){ return Math.floor(Math.random()*(b-a+1))+a; };
 
-function get(id){ return DB[id] || null; }
-function byLevel(level){ return Object.values(DB).filter(m=>m.level===level); }
+  function get(id){ return DB[id] || null; }
+  function byLevel(level){ return Object.values(DB).filter(function(m){ return m.level===level; }); }
 
-function rollDrops(monsterId){
-  const m = get(monsterId); if(!m) return [];
-  const drops=[];
-  for(const d of m.drops){
-    if(Math.random() <= (d.chance ?? 0)){
-      const qty = rnd(d.min|0, d.max|0);
-      if(qty>0) drops.push({ type:d.type, id:d.id, name:d.name, amount:qty });
+  function rollDrops(monsterId){
+    var m = get(monsterId); if(!m) return [];
+    var drops=[];
+    for(var i=0;i<(m.drops||[]).length;i++){
+      var d = m.drops[i];
+      var chance = (typeof d.chance==='number') ? d.chance : 0;
+      if(Math.random() <= chance){
+        var min = d.min|0, max = d.max|0;
+        var qty = rnd(min, max);
+        if(qty>0) drops.push({ type:d.type, id:d.id, name:d.name, amount:qty });
+      }
     }
+    return drops;
   }
-  return drops;
-}
 
-// 直接把掉落套用到玩家（呼叫 ItemDB / 加靈石）
-function applyDrops(player, drops){
-  if(!player || !Array.isArray(drops)) return;
-  player.currencies = player.currencies || { stone:0, diamond:0 };
-  player.bag = player.bag || (window.ItemDB && ItemDB.getDefaultBag ? ItemDB.getDefaultBag() : {consumables:[],weapons:[],ornaments:[],materials:[],hidden:[]});
-  for(const d of drops){
-    if(d.type==='currency' && d.id==='stone'){
-      player.currencies.stone += d.amount|0;
-    }else if(d.type==='consumable'){
-      if(window.ItemDB && ItemDB.addConsumableToBag) ItemDB.addConsumableToBag(player.bag, d.id, d.amount|0);
-    }else if(d.type==='material'){
-      if(window.ItemDB && ItemDB.addMaterialToBag)  ItemDB.addMaterialToBag(player.bag, d.id, d.amount|0);
+  // 直接把掉落套用到玩家（呼叫 ItemDB / 加靈石）
+  function applyDrops(player, drops){
+    if(!player || !drops || !drops.length) return;
+    player.currencies = player.currencies || { stone:0, diamond:0 };
+    player.bag = player.bag || (window.ItemDB && ItemDB.getDefaultBag ? ItemDB.getDefaultBag() : {consumables:[],weapons:[],ornaments:[],materials:[],hidden:[]});
+    for(var i=0;i<drops.length;i++){
+      var d = drops[i];
+      if(d.type==='currency' && d.id==='stone'){
+        player.currencies.stone += (d.amount|0);
+      }else if(d.type==='consumable'){
+        if(window.ItemDB && ItemDB.addConsumableToBag) ItemDB.addConsumableToBag(player.bag, d.id, d.amount|0);
+      }else if(d.type==='material'){
+        if(window.ItemDB && ItemDB.addMaterialToBag)  ItemDB.addMaterialToBag(player.bag, d.id, d.amount|0);
+      }
     }
+    if(window.Auth && Auth.saveCharacter) Auth.saveCharacter(player);
   }
-  if(window.Auth && Auth.saveCharacter) Auth.saveCharacter(player);
-}
 
-function getImage(id){
-  const m = get(id);
-  return { url: (m && m.img) ? m.img : DEFAULT_IMG, mirror: !!(m && m.imgMirror) };
-}
+  function getImage(id){
+    var m = get(id);
+    return { url: (m && m.img) ? m.img : DEFAULT_IMG, mirror: !!(m && m.imgMirror) };
+  }
 
-// 依玩家衍生值 × 怪物倍率 → 生成怪物實際數值
-function deriveAgainst(dp, monsterId){
-  const m = get(monsterId); if(!m) return null;
-  const sc = Object.assign({}, defaultScales, m.scales||{});
-  const pick = (k, round=true)=> {
-    const v = (dp[k] ?? 0) * (sc[k] ?? 1.0);
-    return round ? Math.max(1, Math.round(v)) : v;
+  // 依玩家衍生值 × 怪物倍率 → 生成怪物實際數值
+  function deriveAgainst(dp, monsterId){
+    var m = get(monsterId); if(!m) return null;
+    var sc = Object.assign({}, defaultScales, m.scales||{});
+    function pick(k, round){
+      if(round===void 0) round=true;
+      var v = (dp && dp[k] ? dp[k] : 0) * (sc[k]!==undefined ? sc[k] : 1.0);
+      return round ? Math.max(1, Math.round(v)) : v;
+    }
+    return {
+      hp: pick('氣血上限'),
+      mp: pick('真元上限'),
+      atk: pick('物理攻擊'),
+      matk: pick('法術攻擊'),
+      def: pick('物理防禦'),
+      mdef: pick('法術防禦'),
+      acc: pick('命中率'),
+      eva: pick('閃避'),
+      crit: Math.min(100, pick('暴擊率')),
+      critdmg: Math.max(100, pick('暴擊傷害')),
+      speed: Math.max(40, pick('行動條速度')),
+      regen_mp: pick('回氣/回合'),
+      regen_hp: pick('回血/回合'),
+      pen: pick('破甲'),
+      mpen: pick('法穿')
+    };
+  }
+
+  /* === 怪物 Rank 與經驗規則（供 map.html 使用）=== */
+  var EXP_RULE = {
+    normal: function(lvl){ return Math.round(8 + lvl*4); },        // 基礎
+    elite:  function(lvl){ return Math.round((8 + lvl*4) * 1.8); },// 菁英倍率
+    boss:   function(lvl){ return Math.round((8 + lvl*4) * 4.0); } // BOSS 倍率
   };
-  return {
-    hp: pick('氣血上限'),
-    mp: pick('真元上限'),
-    atk: pick('物理攻擊'),
-    matk: pick('法術攻擊'),
-    def: pick('物理防禦'),
-    mdef: pick('法術防禦'),
-    acc: pick('命中率'),
-    eva: pick('閃避'),
-    crit: Math.min(100, pick('暴擊率')),
-    critdmg: Math.max(100, pick('暴擊傷害')),
-    speed: Math.max(40, pick('行動條速度')),
-    regen_mp: pick('回氣/回合'),
-    regen_hp: pick('回血/回合'),
-    pen: pick('破甲'),
-    mpen: pick('法穿'),
+
+  // 舊怪未標 rank：依 id 後綴推斷；否則預設 normal
+  function rankOf(id){
+    var m = get(id);
+    if (m && m.rank) return m.rank;
+    var sid = String(id||'');
+    if (sid.slice(-5)==='_boss') return 'boss';
+    if (sid.slice(-6)==='_elite') return 'elite';
+    return 'normal';
+  }
+
+  // 可吃 id 或整個 monster 物件
+  function expFor(mon){
+    var m = (typeof mon==='string') ? get(mon) : mon;
+    if(!m) return EXP_RULE.normal(1);
+    var r = rankOf(m.id);
+    var lvl = m.level || 1;
+    var fn = EXP_RULE[r] || EXP_RULE.normal;
+    return fn(lvl);
+  }
+
+  // 對外
+  window.MonsterDB = {
+    DB: DB,
+    get: get,
+    byLevel: byLevel,
+    rollDrops: rollDrops,
+    applyDrops: applyDrops,
+    getImage: getImage,
+    deriveAgainst: deriveAgainst,
+    rankOf: rankOf,
+    expFor: expFor
   };
-}
-
-/* === 新增：怪物 Rank 與經驗規則 === */
-const EXP_RULE = {
-  normal: lvl => Math.round(8 + lvl*4),        // 基礎
-  elite:  lvl => Math.round((8 + lvl*4) * 1.8),// 菁英倍率
-  boss:   lvl => Math.round((8 + lvl*4) * 4.0) // BOSS 倍率
-};
-
-// 不動舊資料：若未標 rank，依 id 後綴推斷；否則預設 normal
-function rankOf(id){
-  const m = get(id);
-  if (m?.rank) return m.rank;              // 新增怪可直接標 rank
-  if (String(id).endsWith('_boss')) return 'boss';
-  if (String(id).endsWith('_elite')) return 'elite';
-  return 'normal';
-}
-
-// 讓 map.html 用：可吃 id 或整個 monster 物件
-function expFor(mon){
-  const m = (typeof mon==='string') ? get(mon) : mon;
-  if(!m) return EXP_RULE.normal(1);
-  const r = rankOf(m.id);
-  const lvl = m.level || 1;
-  const fn = EXP_RULE[r] || EXP_RULE.normal;
-  return fn(lvl);
-}
-
-// 對外
-window.MonsterDB = { DB, get, byLevel, rollDrops, applyDrops, getImage, deriveAgainst, rankOf, expFor };
-  
 })();
+
 

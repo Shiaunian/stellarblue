@@ -558,15 +558,33 @@ const PLAYER_IMG_URL = 'https://picsum.photos/seed/xian-hero/400/600';
 /* ===== 地圖資料（大地圖 -> 小地圖） ===== */
 const MAPS = [
   { id:'forest', name:'青木山脈', lv:'1-4', small:[
-    { id:'slime_cave',  name:'萊姆洞窟', lv:'1-3', monsters:['slime_young','slime','slime_king'] },
-    { id:'woodland',  name:'靈木林', lv:'2-3', monsters:['thorn_fox','thorn_fox','thorn_fox'] },
-    { id:'moss_vale', name:'苔石谷', lv:'2-4', monsters:['slime','stone_golem'] },
+    { id:'slime_cave',  name:'萊姆洞窟', lv:'1-3',
+      monsters:['slime_young','slime','slime_king'], boss:'slime_boss' },
+    { id:'woodland',    name:'靈木林',   lv:'2-3',
+      monsters:['thorn_fox','wood_wisp','brass_beetle'] },
+    { id:'moss_vale',   name:'苔石谷',   lv:'2-4',
+      monsters:['slime','stone_golem'],  boss:'stone_golem_boss' },
   ]},
-  { id:'tundra', name:'雪原台地', lv:'3-4', small:[
-    { id:'wolf_ridge',  name:'雪狼坡', lv:'3-4', monsters:['snow_wolf','ice_bear'] },
-    { id:'ice_bramble', name:'冰棘丘', lv:'3-4', monsters:['ice_thorn','snow_wolf'] },
-  ]}
+  { id:'tundra', name:'雪原台地', lv:'3-5', small:[
+    { id:'snowfield',   name:'雪原狩場', lv:'3-4',
+      monsters:['snow_wolf','ice_thorn'], boss:'ice_bear_boss' },
+    { id:'ice_cave',    name:'寒晶洞穴', lv:'4-5',
+      monsters:['ice_bear','ice_thorn'] },
+  ]},
+  { id:'ruins', name:'幽怨遺跡', lv:'5-7', small:[
+    { id:'spirit_hall', name:'靈侍大殿', lv:'4-6',
+      monsters:['spirit_acolyte','wraith'], boss:'spirit_acolyte_boss' },
+    { id:'shadow_pit',  name:'影翼深坑', lv:'4-6',
+      monsters:['shadow_bat','wraith'],     boss:'shadow_bat_boss' },
+  ]},
+  { id:'canyon', name:'磐石峽谷', lv:'3-6', small:[
+    { id:'beetle_ridge', name:'雷角嶺',  lv:'5-6',
+      monsters:['brass_beetle','thunder_beetle'], boss:'thunder_beetle_boss' },
+    { id:'bog',          name:'泥潭窪地',lv:'3-5',
+      monsters:['bog_tortoise','stone_golem'],    boss:'ancient_tortoise_boss' },
+  ]},
 ];
+
 
 
 /* ===== 玩家/導入角色 ===== */
@@ -756,31 +774,35 @@ function buildMapUI(){
 
 /* 固定欄位：地區情報 */
 function renderAreaInfo(){
-  const infoMon = qs('#infoMonsters');
-  const infoEvt = qs('#infoEvents');
-  if(!infoMon) return;
+  const box = qs('#infoMonsters');
+  const s = getCurrentSmall?.() || CURRENT_SMALL; // 用你實際的取用方式
+  if (!s) { box.innerHTML = '<span class="chip">—</span>'; return; }
 
-  const big = MAPS.find(x=>x.id===curBig);
-  const small = big?.small?.find(x=>x.id===curSmall);
+  const chips = s.monsters.map(id=>{
+    const m = (window.MonsterDB && MonsterDB.get) ? MonsterDB.get(id) : null;
+    if(!m) return `<span class="chip"><span class="mname">${id}</span></span>`;
+    const el = (window.ELEMENT_LABEL && ELEMENT_LABEL[m.element]) || '無';
+    return `<span class="chip">
+      <span class="pill elem ${m.element||'none'}">${el}</span>
+      <span class="mname">${m.name}</span><span class="mlv">LV.${m.level||1}</span>
+    </span>`;
+  });
 
-  // 1) 怪物清單（依副地圖設定）
-  if(!small || !(small.monsters||[]).length){
-    infoMon.innerHTML = '<span class="chip">—</span>';
-  }else{
-    const chips = (small.monsters||[]).map(id=>{
-      const m = (window.MonsterDB && MonsterDB.DB && MonsterDB.DB[id]) ? MonsterDB.DB[id] : {name:id, level:'?', element:'none'};
-      const elem = (m.element||'none').toLowerCase();
-      const elemName = (ELEMENT_LABEL?.[elem] || '無');
-      return `<span class="chip"><span class="mname">${m.name}</span><span class="pill elem ${elem}">${elemName}</span><span class="mlv">LV.${m.level||'?'}</span></span>`;
-    });
-    infoMon.innerHTML = chips.join('');
+  if (s.boss){
+    const b = (window.MonsterDB && MonsterDB.get) ? MonsterDB.get(s.boss) : null;
+    if (b){
+      const elb = (window.ELEMENT_LABEL && ELEMENT_LABEL[b.element]) || '無';
+      chips.push(`<span class="chip" style="border-color:#dc2626;background:rgba(220,38,38,.12)">
+        <strong>BOSS</strong>
+        <span class="pill elem ${b.element||'none'}">${elb}</span>
+        <span class="mname">${b.name}</span><span class="mlv">LV.${b.level||1}</span>
+      </span>`);
+    }
   }
 
-  // 2) 事件清單（固定規則，已在 HTML 寫死；這裡可視需要做動態呈現）
-  if(infoEvt && !infoEvt.dataset.bound){
-    infoEvt.dataset.bound = '1'; // 目前規則固定即可
-  }
+  box.innerHTML = chips.join('');
 }
+
 
 function setLocBadge(){
   const big = MAPS.find(x=>x.id===curBig);
@@ -1511,7 +1533,13 @@ function bindEvents(){
 
   qs('#btnExplore').onclick = doExplore;
   qs('#btnFight').onclick   = startBattle;
-  qs('#btnBoss').onclick    = ()=>{ window.FORCE_MONSTER_ID = 'slime_boss'; startBattle(); };
+  qs('#btnBoss').onclick = ()=>{
+  const s = getCurrentSmall?.() || CURRENT_SMALL; // 你專案裡若有現成的取用方法就用現成
+  const bossId = s && s.boss;
+  if (!bossId) return;               // 此地沒有 BOSS 就不動
+  window.FORCE_MONSTER_ID = bossId;  // 交給既有的 startBattle 流程
+  startBattle();
+};
 
   qs('#actAttack').onclick = playerAttack;
   qs('#actItem').onclick   = useItem;

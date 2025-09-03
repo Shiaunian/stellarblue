@@ -478,10 +478,34 @@
   </div>
 </div>
 
+<!-- Firebase（compat 版，免 ES Module） -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+  (function(){
+    var firebaseConfig = {
+      apiKey: "AIzaSyBvKmn0jCTS_jIgEYOuQjc8vyYU40Q5F3I",
+      authDomain: "stellarblue-system.firebaseapp.com",
+      databaseURL: "https://stellarblue-system-default-rtdb.firebaseio.com",
+      projectId: "stellarblue-system",
+      storageBucket: "stellarblue-system.firebasestorage.app",
+      messagingSenderId: "803212433649",
+      appId: "1:803212433649:web:887080d10a51d533b23150",
+      measurementId: "G-YY94484DV9"
+    };
+    if(!firebase.apps || !firebase.apps.length){
+      firebase.initializeApp(firebaseConfig);
+    }
+    // 提供給 auth.js 使用
+    window.DB = firebase.database();
+  })();
+</script>
+
 <!-- 資料庫/帳號 -->
 <script src="items.js"></script>
 <script src="monsters.js"></script>
 <script src="auth.js"></script>
+
 
 <script>
 /* ===== 工具 ===== */
@@ -1445,19 +1469,17 @@ function bindEvents(){
   };
   qs('#btnLogout').onclick = ()=>{ if(window.Auth && Auth.logout) Auth.logout(); location.href='index.html'; };
 
-  // 進入 → 顯示探險/戰鬥
-qs('#btnEnter').onclick = ()=>{
-  if(!curSmall){ log('請先選擇副地圖。'); return; }
-  entered = true;
-  refreshLive(); // 進地圖時就鎖定「當下最終能力」
-  setLocBadge();
-  updateActionPanel();
-  log('已進入當前區域，可以進行「探險 / 戰鬥」。','ok');
-};
+  qs('#btnEnter').onclick = ()=>{
+    if(!curSmall){ log('請先選擇副地圖。'); return; }
+    entered = true;
+    refreshLive();
+    setLocBadge();
+    updateActionPanel();
+    log('已進入當前區域，可以進行「探險 / 戰鬥」。','ok');
+  };
 
   qs('#btnExplore').onclick = doExplore;
   qs('#btnFight').onclick   = startBattle;
-  // ★ BOSS 戰（以全域旗標指示 startBattle 選固定怪）
   qs('#btnBoss').onclick    = ()=>{ window.FORCE_MONSTER_ID = 'slime_boss'; startBattle(); };
 
   qs('#actAttack').onclick = playerAttack;
@@ -1467,13 +1489,28 @@ qs('#btnEnter').onclick = ()=>{
   qs('#btnLeaveBattle').onclick = leaveBattle;
 }
 
-/* ===== 啟動 ===== */
-(function start(){
+/* ===== 啟動（改為等雲端載入）===== */
+window.addEventListener('DOMContentLoaded', async function(){
+  // 先檢查是否已登入
+  var user = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
+  if(!user){ location.href = 'index.html'; return; }
+
+  // 從雲端載入角色（不要只用快取）
+  var char = null;
+  try{
+    char = (window.Auth && Auth.loadCharacter) ? (await Auth.loadCharacter()) : null;
+  }catch(e){
+    char = null;
+  }
+  if(!char){ location.href = 'index.html#create'; return; }
+
+  // 成功載入 → 用原本流程建立 P 並渲染
   P = loadPlayer(); if(!P) return;
   renderHeader(); renderBars();
   buildMapUI();
   bindEvents();
-})();
+});
+
 
 </script>
 </body>

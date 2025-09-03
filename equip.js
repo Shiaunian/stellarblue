@@ -28,11 +28,11 @@
   background:#ef4444; color:#fff; font-weight:900; cursor:pointer; user-select:none;}
 #eqModal .body{ padding:12px; display:grid; gap:12px; }
 .eq-wrap{padding:4px; display:grid; gap:10px; max-height:60vh; overflow:auto;}
-.eq-grid{display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;}
+.eq-grid{display:grid; grid-template-columns: repeat(4, 60px); column-gap:4px; row-gap:8px; justify-content:center;}
 .eq-slot{
-  aspect-ratio: 1 / 1;     /* 正方形 */
-  width: 38%;              /* ✅ 縮小到原來的 1/3 */
-  max-width: 60px;         /* ✅ 再限制最大寬度，避免在大螢幕撐太大 */
+  aspect-ratio: 1 / 1;
+  width: 80%;
+  max-width: 60px;
   border-radius:10px;
   background:rgba(255,255,255,.04);
   border:1px solid rgba(255,255,255,.12);
@@ -40,9 +40,10 @@
   color:#cbd5e1; font-weight:800; letter-spacing:2px; cursor:pointer; user-select:none;
   position:relative; overflow:hidden;
 }
+
 .eq-slot .tag{ position:absolute; left:4px; top:4px; font-size:9px; opacity:.8; }
 #eqModal img{
-  width:70%; height:70%;       /* ✅ 圖示也跟著縮小 */
+  width:100%; height:100%;       /* ✅ 圖示也跟著縮小 */
   object-fit:contain;
   display:block;
   background:transparent;
@@ -58,7 +59,7 @@
 
 .eq-row{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; }
 .eq-note{ font-size:12px; color:#e879f9; font-weight:900; white-space:nowrap; }
-.eq-medals{ display:flex; gap:10px; padding-top:6px; }
+.eq-medals{ display:flex; justify-content:center; gap:10px; padding-top:6px; }
 .eq-hole{width:40px; height:40px; border-radius:50%; border:2px dashed rgba(255,255,255,2);
   display:grid; place-items:center; color:#94a3b8; cursor:pointer; overflow:hidden;}
 `; document.head.appendChild(s);
@@ -77,7 +78,6 @@
     <div class="body eq-wrap">
       <div class="eq-row">
         <div class="sec-title" style="letter-spacing:2px;">部位</div>
-        <div class="eq-note">同類上限：武器1、耳環2、戒指2、披風1、衣服1、鞋子1；勳章最多5且不可重複</div>
       </div>
       <div class="eq-grid" id="eqGrid"></div>
       <div class="sec-title" style="letter-spacing:2px;">勳章（最多 5、不可重複）</div>
@@ -166,7 +166,22 @@
   }
 
   /* 對外：從其它地方裝上 */
-  function equipWeapon(w){ const P=api.getPlayer&&api.getPlayer(); if(!P) return false; P.equip.weapon={...w}; api.save(); render(); api.recalc(); return true; }
+  function equipWeapon(w){
+  const P = api.getPlayer && api.getPlayer(); 
+  if(!P) return false;
+  P.equip = P.equip || {};
+  try{
+    P.equip.weapon = JSON.parse(JSON.stringify(w));
+  }catch(_){
+    P.equip.weapon = w;
+  }
+  api.save(); 
+  render(); 
+  api.recalc(); 
+  return true;
+}
+
+
   function equipMedal(m){
     const P=api.getPlayer&&api.getPlayer(); if(!P) return false;
     const arr = P.equip.medals || (P.equip.medals=[null,null,null,null,null]);

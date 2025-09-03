@@ -97,21 +97,72 @@
   function open(){ const m = document.getElementById('eqModal'); if(!m) return; render(); m.classList.add('show'); m.setAttribute('aria-hidden','false'); }
   function close(){ const m = document.getElementById('eqModal'); if(!m) return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); }
 
-  function onClick(e){
-    const closeBtn = e.target.closest('[data-eq-close]'); if (closeBtn){ close(); return; }
-    const slot = e.target.closest('.eq-slot, .eq-hole'); if(!slot) return;
+function onClick(e){
+  const closeBtn = e.target.closest('[data-eq-close]'); if (closeBtn){ close(); return; }
+  const slot = e.target.closest('.eq-slot, .eq-hole'); if(!slot) return;
 
-    const P = api.getPlayer && api.getPlayer(); if(!P) return;
-    const part = slot.dataset.part; const idx = +slot.dataset.idx || 0;
+  const P = api.getPlayer && api.getPlayer(); if(!P) return;
+  const part = slot.dataset.part; const idx = +slot.dataset.idx || 0;
 
-    // 點擊 = 卸下
-    if (part==='weapon'){ if(P.equip?.weapon){ P.equip.weapon = null; api.log('已卸下武器'); } }
-    else if (part==='earrings' || part==='rings'){ const arr=P.equip?.[part]||[]; if(arr[idx]){ arr[idx]=null; api.log(`已卸下${part==='earrings'?'耳環':'戒指'}`); } }
-    else if (part==='cloak'||part==='armor'||part==='shoes'){ if(P.equip?.[part]){ P.equip[part]=null; api.log('已卸下'); } }
-    else if (part==='medals'){ const arr=P.equip?.medals||[]; if(arr[idx]){ arr[idx]=null; api.log('已卸下勳章'); } }
+  // 將卸下的裝備放回背包
+  const backToBag = (kind, obj) => {
+    if (!obj) return;
+    P.bag = P.bag || {};
+    if (kind === 'weapon') {
+      P.bag.weapons = Array.isArray(P.bag.weapons) ? P.bag.weapons : [];
+      try { P.bag.weapons.unshift(JSON.parse(JSON.stringify(obj))); }
+      catch(_) { P.bag.weapons.unshift(obj); }
+    } else if (kind === 'orn') {
+      // 先歸到 ornaments（耳環/戒指/披風/衣服/鞋子）— 之後若你有更細類別可再拆
+      P.bag.ornaments = Array.isArray(P.bag.ornaments) ? P.bag.ornaments : [];
+      try { P.bag.ornaments.unshift(JSON.parse(JSON.stringify(obj))); }
+      catch(_) { P.bag.ornaments.unshift(obj); }
+    } else if (kind === 'medal') {
+      // 先暫放 hidden，未來若有專屬勳章袋可再改
+      P.bag.hidden = Array.isArray(P.bag.hidden) ? P.bag.hidden : [];
+      try { P.bag.hidden.unshift(JSON.parse(JSON.stringify(obj))); }
+      catch(_) { P.bag.hidden.unshift(obj); }
+    }
+  };
 
-    api.save(); render(); api.recalc();
+  // 點擊 = 卸下（改為：先回袋，再清空欄位）
+  if (part === 'weapon') {
+    if (P.equip?.weapon) {
+      backToBag('weapon', P.equip.weapon);
+      P.equip.weapon = null;
+      api.log('已卸下武器 → 回到儲物袋');
+    }
   }
+  else if (part === 'earrings' || part === 'rings') {
+    const arr = P.equip?.[part] || [];
+    const cur = arr[idx];
+    if (cur) {
+      backToBag('orn', cur);
+      arr[idx] = null;
+      api.log(`已卸下${part === 'earrings' ? '耳環' : '戒指'} → 回到儲物袋`);
+    }
+  }
+  else if (part === 'cloak' || part === 'armor' || part === 'shoes') {
+    const cur = P.equip?.[part];
+    if (cur) {
+      backToBag('orn', cur);
+      P.equip[part] = null;
+      api.log('已卸下 → 回到儲物袋');
+    }
+  }
+  else if (part === 'medals') {
+    const arr = P.equip?.medals || [];
+    const cur = arr[idx];
+    if (cur) {
+      backToBag('medal', cur);
+      arr[idx] = null;
+      api.log('已卸下勳章 → 暫放背包(hidden)');
+    }
+  }
+
+  api.save(); render(); api.recalc();
+}
+
 
   function render(){
     const P = api.getPlayer && api.getPlayer(); if(!P) return;

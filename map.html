@@ -916,18 +916,32 @@ const d = P._live;
 
 
 
-// 2) 敵人使用資料庫的「固定 stats」，不再對玩家縮放
+// 2) 敵人使用資料庫的「固定 stats」，若缺 acc/eva 以 deriveAgainst 或預設值補齊
 const eBase = enemy?.stats || {};
+let derived = null;
+try{
+  if (window.MonsterDB && MonsterDB.deriveAgainst && P && P._live) {
+    derived = MonsterDB.deriveAgainst(P._live, enemy.id) || null;
+  }
+}catch(e){ derived = null; }
+
+const pick = (key, fallback=0)=>{
+  const v0 = eBase[key];
+  if (typeof v0 === 'number' && v0>0) return v0;
+  if (derived && typeof derived[key] === 'number' && derived[key]>0) return derived[key];
+  return fallback;
+};
+
 const eStats = {
-  atk   : eBase.atk   | 0,
-  matk  : eBase.matk  | 0,
-  def   : eBase.def   | 0,
-  mdef  : eBase.mdef  | 0,
-  acc   : eBase.acc   | 0,
-  eva   : eBase.eva   | 0,
-  crit  : eBase.crit  | 0,
-  aspd  : (typeof eBase.aspd==='number' ? eBase.aspd : 1.00),
-  pen   : 0,           // 目前怪物沒有定義破甲，先視為 0
+  atk  : eBase.atk  | 0,
+  matk : eBase.matk | 0,
+  def  : eBase.def  | 0,
+  mdef : eBase.mdef | 0,
+  acc  : pick('acc', 75),   // 缺就補：預設 75
+  eva  : pick('eva', 5),    // 缺就補：預設 5
+  crit : eBase.crit | 0,
+  aspd : (typeof eBase.aspd==='number' ? eBase.aspd : 1.00),
+  pen  : 0,                 // 目前怪物未定義破甲
 };
 
 // 初始化戰鬥物件（全部用固定 DB）
@@ -1035,15 +1049,19 @@ function updateBattleBars(){
 }
 
 /* ====== 受擊特效：浮字 + 閃光 + 抖動 ====== */
-// side: 'player' | 'enemy' ; type: 'dmg' | 'crit' | 'heal'
+// side: 'player' | 'enemy' ; type: 'dmg' | 'crit' | 'heal' | 'miss'
 function spawnFloat(side, value, type='dmg'){
   const host = side==='player' ? qs('#pFx') : qs('#eFx');
   if(!host) return;
   const el = document.createElement('div');
-  el.className = 'dmg-float ' + (type==='heal'?'heal':(type==='crit'?'crit dmg':'dmg'));
-  el.textContent = (type==='heal' ? '+' : '-') + value;
+  if (type==='miss'){
+    el.className = 'dmg-float';
+    el.textContent = 'MISS';
+  }else{
+    el.className = 'dmg-float ' + (type==='heal'?'heal':(type==='crit'?'crit dmg':'dmg'));
+    el.textContent = (type==='heal' ? '+' : '-') + value;
+  }
   host.appendChild(el);
-  // 動畫結束移除
   setTimeout(()=>{ el.remove(); }, 1000);
 }
 
@@ -1077,13 +1095,28 @@ function updateCmdEnabled(){
 }
 
 function calcDamage(isPlayer){
+  const clamp01 = (x,min,max)=> Math.max(min, Math.min(max, x));
+  const hitChanceOf = (attAcc, defEva, base=75)=> clamp01(base + (attAcc|0) - (defEva|0), 5, 98);
+
   if(isPlayer){
-      if (!P._live) refreshLive();
-      const D = P._live;
+    if (!P._live) refreshLive();
+    const D = P._live;
+
+    // 命中檢定
+    const attAcc = D['命中率'] || 0;
+    const defEva = (battle.enemyStats?.eva || 0);
+    const hitChance = hitChanceOf(attAcc, defEva, 75);
+    if (Math.random()*100 >= hitChance){
+      const atkElem = P?.element || 'none';
+      const defElem = battle.enemy?.element || 'none';
+      return { dmg:0, miss:true, crit:false, note:'', elemMul:1, stabMul:1, atkElem, defElem, hitChance };
+    }
+
+    // 傷害（與原來相同）
     const atk = D['物理攻擊'];
     const pen = D['破甲']||0;
     const critRate = D['暴擊率']||0;
-    const critDmg = (100 + (D['暴擊傷害']||50)) / 100;
+    const critDmg  = (100 + (D['暴擊傷害']||50)) / 100;
     const eDef = Math.max(0, (battle.enemyStats?.def || 0) - pen);
     let base = Math.max(1, atk - eDef);
     base = Math.round(base * (0.9 + Math.random()*0.2));
@@ -1094,76 +1127,66 @@ function calcDamage(isPlayer){
     const defElem = battle.enemy?.element || 'none';
     const elemMul = elemMult(atkElem, defElem);
     const stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
-    const total   = elemMul * stabMul;
+    out = Math.max(1, Math.round(out * elemMul * stabMul));
 
-    out = Math.max(1, Math.round(out * total));
-
-    // 舊 note 保留（相剋/被克制/同屬+%），並回傳元素資訊
     let note = '';
     if (elemMul > 1)      note += `（屬性剋制 ×${elemMul.toFixed(2)}）`;
     else if (elemMul < 1) note += `（被克制 ×${elemMul.toFixed(2)}）`;
     if (stabMul > 1)      note += `（同屬加成 +${Math.round((stabMul-1)*100)}%）`;
 
-    return { dmg: out, crit:isCrit, note, mult: total, elemMul, stabMul, atkElem, defElem };
-
-    }else{
+    return { dmg: out, miss:false, crit:isCrit, note, elemMul, stabMul, atkElem, defElem, hitChance };
+  }else{
     const eS = battle.enemyStats || {};
+
+    // 命中檢定（敵方 → 我方）
+    if (!P._live) refreshLive();
+    const attAcc = eS.acc || 0;
+    const defEva = P._live['閃避'] || 0;
+    const hitChance = hitChanceOf(attAcc, defEva, 75);
+    if (Math.random()*100 >= hitChance){
+      const atkElem = battle.enemy?.element || 'none';
+      const defElem = P?.element || 'none';
+      return { dmg:0, miss:true, crit:false, note:'', elemMul:1, stabMul:1, atkElem, defElem, hitChance };
+    }
+
+    // 傷害（與原來相同）
     const atk = Math.max(1, eS.atk || 8);
     const pen = Math.max(0, eS.pen || 0);
-
-    if (!P._live) refreshLive();
     const pDef0  = Math.max(0, (P._live['物理防禦']||0));
     const effDef = Math.max(0, pDef0 - pen);
 
-    // 1) 百分比減傷（防禦越高，傷害係數越低），避免被線性相減鎖成 1
-    const mitigate = 100 / (100 + effDef);        // 0~1
-    let base = Math.round(atk * mitigate);
+    let base = Math.max(1, atk - effDef);
+    base = Math.round(base * (0.9 + Math.random()*0.2));
+    let out = Math.max(1, Math.round(base));
 
-    // 2) 10% 浮動
-    const variance = 0.9 + Math.random()*0.2;
-    base = Math.max(1, Math.round(base * variance));
-
-    // 3) 最小傷害地板：至少為攻擊的 15%，且最低 2 點
-    const minFloor = Math.max(2, Math.ceil(atk * 0.15));
-    let out = Math.max(minFloor, base);
-
-    // 4) 暴擊
-    const critRate = eS.crit || 0;
-    const critDmg  = (100 + (eS.critdmg || 50)) / 100;
-    const isCrit   = Math.random()*100 < critRate;
-    if (isCrit) out = Math.max(minFloor, Math.round(out * critDmg));
-
-    // 5) 屬性倍率（含 STAB，同屬才啟用）
     const atkElem = battle.enemy?.element || 'none';
     const defElem = P?.element || 'none';
     const elemMul = elemMult(atkElem, defElem);
     const stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
-    out = Math.max(minFloor, Math.round(out * elemMul * stabMul));
+    out = Math.max(1, Math.round(out * elemMul * stabMul));
 
-    let note = '';
-    if (elemMul > 1)      note += `（屬性剋制 ×${elemMul.toFixed(2)}）`;
-    else if (elemMul < 1) note += `（被克制 ×${elemMul.toFixed(2)}）`;
-    if (stabMul > 1)      note += `（同屬加成 +${Math.round((stabMul-1)*100)}%）`;
-
-    return { dmg: out, crit:isCrit, note, mult: elemMul*stabMul, elemMul, stabMul, atkElem, defElem };
+    return { dmg: out, miss:false, crit:false, note:'', elemMul, stabMul, atkElem, defElem, hitChance };
   }
-
 }
+
 
 function playerAttack(){
   const r = calcDamage(true);
-  battle.e.hp = clamp(battle.e.hp - r.dmg, 0, battle.e.hpMax);
-  showHit('enemy', r.dmg, !!r.crit, 'hit');
-
-  // 固定加上相性說明（×1.00 也會顯示）
-  const rel = elemRelationText(r.atkElem, r.defElem, r.elemMul, r.stabMul);
-  log(`你對 ${battle.enemy.name} 造成 ${r.dmg} 傷害${r.crit?'（暴擊）':''} ${rel}`);
-
+  if (r.miss){
+    spawnFloat('enemy', 0, 'miss');
+    log(`你攻擊落空！（命中機率 ${Math.round(r.hitChance)}%）`, 'warn');
+  }else{
+    battle.e.hp = clamp(battle.e.hp - r.dmg, 0, battle.e.hpMax);
+    showHit('enemy', r.dmg, !!r.crit, 'hit');
+    const rel = elemRelationText(r.atkElem, r.defElem, r.elemMul, r.stabMul);
+    log(`你對 ${battle.enemy.name} 造成 ${r.dmg} 傷害${r.crit?'（暴擊）':''} ${rel}`);
+  }
   battle.p.atb = 0;
   endCheck();
   updateBattleBars(); updateCmdEnabled();
   if(!battle.over && battle.e.atb>=ATB_MAX){ enemyAttack(); battle.e.atb=0; updateBattleBars(); }
 }
+
 
 
 
@@ -1193,16 +1216,21 @@ function enemyAttack(){
     }
   }
 
-  // --- 否則用一般攻擊 ---
-  const r = calcDamage(false);
+// --- 否則用一般攻擊 ---
+const r = calcDamage(false);
+if (r.miss){
+  spawnFloat('player', 0, 'miss');
+  log(`${E.name} 的攻擊落空！（命中機率 ${Math.round(r.hitChance)}%）`, 'warn');
+}else{
   battle.p.hp = clamp(battle.p.hp - r.dmg, 0, battle.p.hpMax);
   showHit('player', r.dmg, false, 'hit');
-
   const rel = elemRelationText(r.atkElem, r.defElem, r.elemMul, r.stabMul);
   log(`${E.name} 對你造成 ${r.dmg} 傷害 ${rel}`);
+}
+endCheck();
+updateBattleBars();
 
-  endCheck();
-  updateBattleBars();
+
 }
 
 // 工具：用敵方「法術攻擊 vs 我方法術防禦」走一套獨立公式（含元素）
@@ -1361,7 +1389,10 @@ function endCheck(){
   if(battle.e.hp<=0){ // 勝利
     const drops = (window.MonsterDB && MonsterDB.rollDrops) ? MonsterDB.rollDrops(battle.enemy.id) : [];
     if(window.MonsterDB && MonsterDB.applyDrops) MonsterDB.applyDrops(P, drops);
-    const expGain = 10 + Math.floor(battle.enemy.level*4);
+    const rank = (window.MonsterDB && MonsterDB.rankOf) ? MonsterDB.rankOf(battle.enemy.id) : 'normal';
+    const expGain = (window.MonsterDB && MonsterDB.expFor)
+    ? MonsterDB.expFor(battle.enemy)   // 依「怪物類型＋等級」自動算
+    : (10 + Math.floor(battle.enemy.level*4)); // 後備：保留舊規則
     P.exp = P.exp || {cur:0, max:100};
     P.exp.cur += expGain;
     while(P.exp.cur >= P.exp.max){
@@ -1377,7 +1408,7 @@ function endCheck(){
       P.exp.max = Math.round(P.exp.max * 1.2);
     }
     renderHeader(); renderBars(); savePlayer();
-    log(`你打倒了 ${battle.enemy.name}！獲得經驗 ${expGain}。`,'ok');
+    log(`你打倒了 [${rank==='boss'?'BOSS':rank==='elite'?'菁英':'普通'}] ${battle.enemy.name}！獲得經驗 ${expGain}。`,'ok');
     if(drops?.length){
       log('掉落：' + drops.map(d=>`${d.name||d.id}×${d.amount}`).join('、'), 'ok');
     }

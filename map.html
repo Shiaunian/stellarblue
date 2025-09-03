@@ -562,7 +562,7 @@ const PLAYER_IMG_URL = 'https://picsum.photos/seed/xian-hero/400/600';
 const MAPS = [
   { id:'forest', name:'青木山脈', lv:'1-4', small:[
     { id:'slime_cave',  name:'萊姆洞窟', lv:'1-3',
-      monsters:['slime_young','slime','slime_king'], boss:'slime_boss' },
+      monsters:['slime_young','slime','slime_elite','slime_king'], boss:'slime_boss' },
     { id:'woodland',    name:'靈木林',   lv:'2-3',
       monsters:['thorn_fox','wood_wisp','brass_beetle'] },
     { id:'moss_vale',   name:'苔石谷',   lv:'2-4',
@@ -626,7 +626,44 @@ function loadPlayer(){
   return c;
 }
 
-function savePlayer(){ if(window.Auth && Auth.saveCharacter) Auth.saveCharacter(P); }
+async function savePlayer(){
+  // 直接寫入 Realtime DB，避免白名單漏欄位或靜默失敗
+  try{
+    var user = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
+    if(!user || !window.DB) return;
+    var path = '/characters/' + user.username;
+
+    // 明確列出要存的欄位（不使用展開運算子）
+    var payload = {
+      name:   (P && P.name) ? P.name : '無名散修',
+      avatar: (P && P.avatar) ? P.avatar : '',
+      element: (P && (P.element || P.elem)) ? (P.element || P.elem) : 'none',
+      level: (P && typeof P.level === 'number') ? P.level : 1,
+      exp:  (P && P.exp) ? { cur: (P.exp.cur|0),  max: (P.exp.max|0) } : { cur:0, max:100 },
+      sta:  (P && P.sta) ? { cur: (P.sta.cur|0),  max: (P.sta.max|0) } : { cur:100, max:100 },
+      hp:   (P && P.hp ) ? { cur: (P.hp.cur|0),   max: (P.hp.max|0)  } : { cur:80,  max:80  },
+      mp:   (P && P.mp ) ? { cur: (P.mp.cur|0),   max: (P.mp.max|0)  } : { cur:40,  max:40  },
+      attributes: (P && P.attributes) ? {
+        str: (P.attributes.str|0), vit: (P.attributes.vit|0), dex: (P.attributes.dex|0),
+        int: (P.attributes.int|0), wis: (P.attributes.wis|0), luk: (P.attributes.luk|0)
+      } : {str:10, vit:10, dex:10, int:10, wis:10, luk:10},
+      currencies: (P && P.currencies) ? {
+        stone: (P.currencies.stone|0), diamond: (P.currencies.diamond|0)
+      } : {stone:0, diamond:0},
+      equip: (P && P.equip) ? P.equip : {},
+      bag:   (P && P.bag) ? P.bag : { consumables:[], weapons:[], ornaments:[], materials:[], hidden:[] },
+      mapProg: (P && P.mapProg) ? P.mapProg : {}
+    };
+
+    // 深拷貝，避免傳參考
+    var clean = JSON.parse(JSON.stringify(payload));
+    await window.DB.ref(path).set(clean);
+  }catch(err){
+    try{ console.warn('savePlayer() 失敗：', err); }catch(_){}
+  }
+}
+
+
 
 /* ===== 衍生能力（與主城公式一致） ===== */
 function derivedFrom(player){
@@ -912,7 +949,7 @@ function updateActionPanel(){
 }
 
 /* ===== 探險 ===== */
-function doExplore(){
+async function doExplore(){
   if(!curSmall){ log('請先選擇副地圖。'); return; }
   if(!entered){ log('請先按「進入」該地區。'); return; }
 
@@ -950,16 +987,19 @@ function doExplore(){
     var cname = (cdef && cdef.name) ? cdef.name : cid;
     log('探險獲得丹藥：' + cname + ' ×1', 'ok');
   }
-  renderHeader(); renderBars(); savePlayer();
+
+  renderHeader();
+  renderBars();
+  if (window.Auth && Auth.saveCharacter) {
+    try { await Auth.saveCharacter(P); } catch(e) {}
+  }
+  try { await savePlayer(); } catch(e) {}
 }
 
-
-
-
+/* ===== 戰鬥（ATB） ===== */
 const ATB_MAX = 1000;      // 滿格門檻
 let battle = null;         // 戰鬥狀態
 let loop = null;           // 計時器
-
 
 function startBattle(){
   if(!curSmall){ log('請先選擇副地圖。'); return; }
@@ -1034,81 +1074,68 @@ function startBattle(){
     pen  : 0                 // 目前怪物未定義破甲
   };
 
-// 初始化戰鬥物件（全部用固定 DB）
-battle = {
-  enemy,
-  enemyStats: eStats,
-  p:{
-    hp   : P.hp?.cur || 100,
-    hpMax: P.hp?.max || 100,
-    mp   : P.mp?.cur || 0,
-    mpMax: P.mp?.max || 0,
-    atb  : 0,
-    // 玩家行動速度＝最終衍生的「行動條速度」；至少 50，避免太慢
-    speed: Math.max(50, d['行動條速度'] || 100),
-  },
-  e:{
-    hp   : (eBase.hp || 100),
-    hpMax: (eBase.hp || 100),
-    atb  : 0,
-    // 敵人速度用 aspd（倍率）投影到同一尺度；至少 50
-    speed: Math.max(50, Math.round((eStats.aspd || 1) * 100)),
-  },
-
-
-  turn:'none', over:false,
-};
+  // 初始化戰鬥物件（全部用固定 DB）
+  battle = {
+    enemy: enemy,
+    enemyStats: eStats,
+    p:{
+      hp   : (P && P.hp && typeof P.hp.cur==='number') ? P.hp.cur : 100,
+      hpMax: (P && P.hp && typeof P.hp.max==='number') ? P.hp.max : 100,
+      mp   : (P && P.mp && typeof P.mp.cur==='number') ? P.mp.cur : 0,
+      mpMax: (P && P.mp && typeof P.mp.max==='number') ? P.mp.max : 0,
+      atb  : 0,
+      speed: Math.max(50, d['行動條速度'] || 100),
+    },
+    e:{
+      hp   : (eBase.hp || 100),
+      hpMax: (eBase.hp || 100),
+      atb  : 0,
+      speed: Math.max(50, Math.round((eStats.aspd || 1) * 100)),
+    },
+    turn:'none',
+    over:false
+  };
 
   qs('#eName').textContent = enemy.name;
   qs('#eLv').textContent = enemy.level;
   qs('#pLv').textContent = P.level;
 
-  // === 新增：顯示雙方元素膠囊 ===
-  const getElemLabel = (k)=> (ELEMENT_LABEL?.[k] || k);
-  const pElem = (P.element || P.elem || 'none');
-  const eElem = (enemy.element || enemy.elem || 'none');
+  // 顯示雙方元素膠囊
+  var getElemLabel = function(k){ return (ELEMENT_LABEL && ELEMENT_LABEL[k]) ? ELEMENT_LABEL[k] : k; };
+  var pElem = (P && (P.element || P.elem)) ? (P.element || P.elem) : 'none';
+  var eElem = (enemy && (enemy.element || enemy.elem)) ? (enemy.element || enemy.elem) : 'none';
 
-  const pEl = qs('#pElem'), eEl = qs('#eElem');
+  var pEl = qs('#pElem'), eEl = qs('#eElem');
   if (pEl) { pEl.textContent = getElemLabel(pElem); pEl.className = 'pill elem ' + pElem; }
   if (eEl) { eEl.textContent = getElemLabel(eElem); eEl.className = 'pill elem ' + eElem; }
 
-  // 額外：進場提示一次雙方元素
-  log(`元素資訊｜你：${getElemLabel(pElem)}　敵人：${getElemLabel(eElem)}`);
+  log('元素資訊｜你：' + getElemLabel(pElem) + '　敵人：' + getElemLabel(eElem));
 
-
-  const pSrc = (P.avatar && typeof P.avatar==='string' && P.avatar.trim()) ? P.avatar : PLAYER_IMG_URL;
-  const pic = (window.MonsterDB && MonsterDB.getImage) ? MonsterDB.getImage(enemy.id) : {url:'',mirror:false};
-  const pImg = qs('#pImg'); const eImg = qs('#eImg');
+  var pSrc = (P && P.avatar && typeof P.avatar==='string' && P.avatar.trim()) ? P.avatar : PLAYER_IMG_URL;
+  var pic = (window.MonsterDB && MonsterDB.getImage) ? MonsterDB.getImage(enemy.id) : {url:'',mirror:false};
+  var pImg = qs('#pImg'); var eImg = qs('#eImg');
   if(pImg) pImg.src = pSrc;
   if(eImg){ eImg.src = pic.url || ''; eImg.classList.toggle('mirror', !!pic.mirror); }
 
   updateBattleBars();
   updateCmdEnabled();
-  log(`在 ${area.name} 遭遇 ${enemy.name}！`);
+  log('在 ' + (area.name||'當前地區') + ' 遭遇 ' + enemy.name + '！');
   loop = setInterval(tickATB, 60);
 }
 
 function tickATB(){
   if(!battle || battle.over) return;
-
-  // 玩家滿條就「暫停時間」（等待玩家選指令，不再讓敵人繼續充）
   if (battle.p.atb >= ATB_MAX) {
     updateCmdEnabled();
     updateBattleBars();
     return;
   }
-
-  // 充能：以速度/5 做步進，並設定最小值 3，避免過慢
-  const pStep = Math.max(3, Math.floor(battle.p.speed/5));
-  const eStep = Math.max(3, Math.floor(battle.e.speed/5));
-
+  var pStep = Math.max(3, Math.floor(battle.p.speed/5));
+  var eStep = Math.max(3, Math.floor(battle.e.speed/5));
   battle.p.atb = clamp(battle.p.atb + pStep, 0, ATB_MAX);
   battle.e.atb = clamp(battle.e.atb + eStep, 0, ATB_MAX);
-
   updateBattleBars();
   updateCmdEnabled();
-
-  // 敵人自動：滿就出手
   if (battle.e.atb >= ATB_MAX){
     enemyAttack();
     battle.e.atb = 0;
@@ -1117,14 +1144,12 @@ function tickATB(){
 }
 
 function updateBattleBars(){
-  // 更新戰鬥區顯示
   qs('#pHp').style.width  = pct(battle.p.hp, battle.p.hpMax) + '%';
   qs('#eHp').style.width  = pct(battle.e.hp, battle.e.hpMax) + '%';
   qs('#pATB').style.width = pct(battle.p.atb, ATB_MAX) + '%';
   qs('#eATB').style.width = pct(battle.e.atb, ATB_MAX) + '%';
   qs('#btState').textContent = battle.over ? '戰鬥結束' : (battle.p.atb>=ATB_MAX?'輪到你行動':'等待行動條…');
 
-  // 同步玩家角色物件
   if(P && P.hp){
     P.hp.cur = battle.p.hp;
     P.hp.max = battle.p.hpMax;
@@ -1133,17 +1158,15 @@ function updateBattleBars(){
     P.mp.cur = battle.p.mp || P.mp.cur || 0;
     P.mp.max = battle.p.mpMax || P.mp.max || 0;
   }
-
-  // 上方 UI 條同步
   renderBars();
 }
 
-/* ====== 受擊特效：浮字 + 閃光 + 抖動 ====== */
-// side: 'player' | 'enemy' ; type: 'dmg' | 'crit' | 'heal' | 'miss'
-function spawnFloat(side, value, type='dmg'){
-  const host = side==='player' ? qs('#pFx') : qs('#eFx');
+// 受擊浮字 / 閃光 / 抖動
+function spawnFloat(side, value, type){
+  type = type || 'dmg';
+  var host = (side==='player') ? qs('#pFx') : qs('#eFx');
   if(!host) return;
-  const el = document.createElement('div');
+  var el = document.createElement('div');
   if (type==='miss'){
     el.className = 'dmg-float';
     el.textContent = 'MISS';
@@ -1152,25 +1175,20 @@ function spawnFloat(side, value, type='dmg'){
     el.textContent = (type==='heal' ? '+' : '-') + value;
   }
   host.appendChild(el);
-  setTimeout(()=>{ el.remove(); }, 1000);
+  setTimeout(function(){ el.remove(); }, 1000);
 }
-
 function flashShake(side){
-  const img = side==='player' ? qs('#pImg') : qs('#eImg');
-  const fx  = side==='player' ? qs('#pFx') : qs('#eFx');
+  var img = (side==='player') ? qs('#pImg') : qs('#eImg');
+  var fx  = (side==='player') ? qs('#pFx') : qs('#eFx');
   if(!img || !fx) return;
-  // 閃
-  const f = document.createElement('div');
+  var f = document.createElement('div');
   f.className = 'flash';
   fx.appendChild(f);
-  setTimeout(()=>{ f.remove(); }, 260);
-  // 抖
+  setTimeout(function(){ f.remove(); }, 260);
   img.classList.add('shake');
-  setTimeout(()=> img.classList.remove('shake'), 520);
+  setTimeout(function(){ img.classList.remove('shake'); }, 520);
 }
-
-// 綜合顯示：受擊時呼叫；heal=true 時顯示綠字
-function showHit(side, amount, isCrit=false, kind='hit'){
+function showHit(side, amount, isCrit, kind){
   if(kind==='heal'){
     spawnFloat(side, amount, 'heal');
     return;
@@ -1180,96 +1198,83 @@ function showHit(side, amount, isCrit=false, kind='hit'){
 }
 
 function updateCmdEnabled(){
-  const canAct = battle && !battle.over && battle.p.atb>=ATB_MAX;
-  ['actAttack','actSkill','actItem','actRun'].forEach(id=>{ qs('#'+id).disabled = !canAct; });
+  var canAct = battle && !battle.over && battle.p.atb>=ATB_MAX;
+  ['actAttack','actSkill','actItem','actRun'].forEach(function(id){ qs('#'+id).disabled = !canAct; });
 }
 
 function calcDamage(isPlayer){
-  const clamp01 = (x,min,max)=> Math.max(min, Math.min(max, x));
-  const hitChanceOf = (attAcc, defEva, base=75)=> clamp01(base + (attAcc|0) - (defEva|0), 5, 98);
+  function clamp01(x,min,max){ return Math.max(min, Math.min(max, x)); }
+  function hitChanceOf(attAcc, defEva, base){ base = (typeof base==='number')?base:75; return clamp01(base + (attAcc|0) - (defEva|0), 5, 98); }
 
   if(isPlayer){
     if (!P._live) refreshLive();
-    const D = P._live;
+    var D = P._live;
 
-    // 命中檢定
-    const attAcc = D['命中率'] || 0;
-    const defEva = (battle.enemyStats?.eva || 0);
-    const hitChance = hitChanceOf(attAcc, defEva, 75);
+    var attAcc = D['命中率'] || 0;
+    var defEva = (battle.enemyStats && battle.enemyStats.eva) ? battle.enemyStats.eva : 0;
+    var hitChance = hitChanceOf(attAcc, defEva, 75);
     if (Math.random()*100 >= hitChance){
-      const atkElem = P?.element || 'none';
-      const defElem = battle.enemy?.element || 'none';
-      return { dmg:0, miss:true, crit:false, note:'', elemMul:1, stabMul:1, atkElem, defElem, hitChance };
+      var atkElem0 = (P && (P.element||P.elem)) ? (P.element||P.elem) : 'none';
+      var defElem0 = (battle.enemy && (battle.enemy.element||battle.enemy.elem)) ? (battle.enemy.element||battle.enemy.elem) : 'none';
+      return { dmg:0, miss:true, crit:false, note:'', elemMul:1, stabMul:1, atkElem:atkElem0, defElem:defElem0, hitChance:hitChance };
     }
 
-    // 傷害（與原來相同）
-    const atk = D['物理攻擊'];
-    const pen = D['破甲']||0;
-    const critRate = D['暴擊率']||0;
-    const critDmg  = (100 + (D['暴擊傷害']||50)) / 100;
-    const eDef = Math.max(0, (battle.enemyStats?.def || 0) - pen);
-    let base = Math.max(1, atk - eDef);
+    var atk = D['物理攻擊']||0;
+    var pen = D['破甲']||0;
+    var critRate = D['暴擊率']||0;
+    var critDmg  = (100 + (D['暴擊傷害']||50)) / 100;
+    var eDef = Math.max(0, ((battle.enemyStats && battle.enemyStats.def) ? battle.enemyStats.def : 0) - pen);
+    var base = Math.max(1, atk - eDef);
     base = Math.round(base * (0.9 + Math.random()*0.2));
-    const isCrit = Math.random()*100 < critRate;
-    let out = Math.max(1, Math.round(base * (isCrit ? critDmg : 1)));
+    var isCrit = Math.random()*100 < critRate;
+    var out = Math.max(1, Math.round(base * (isCrit ? critDmg : 1)));
 
-    const atkElem = P?.element || 'none';
-    const defElem = battle.enemy?.element || 'none';
-    const elemMul = elemMult(atkElem, defElem);
-    const stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
+    var atkElem = (P && (P.element||P.elem)) ? (P.element||P.elem) : 'none';
+    var defElem = (battle.enemy && (battle.enemy.element||battle.enemy.elem)) ? (battle.enemy.element||battle.enemy.elem) : 'none';
+    var elemMul = elemMult(atkElem, defElem);
+    var stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
     out = Math.max(1, Math.round(out * elemMul * stabMul));
 
-    let note = '';
-    if (elemMul > 1)      note += `（屬性剋制 ×${elemMul.toFixed(2)}）`;
-    else if (elemMul < 1) note += `（被克制 ×${elemMul.toFixed(2)}）`;
-    if (stabMul > 1)      note += `（同屬加成 +${Math.round((stabMul-1)*100)}%）`;
-
-    return { dmg: out, miss:false, crit:isCrit, note, elemMul, stabMul, atkElem, defElem, hitChance };
+    return { dmg: out, miss:false, crit:isCrit, note:'', elemMul:elemMul, stabMul:stabMul, atkElem:atkElem, defElem:defElem, hitChance:hitChance };
   }else{
-    const eS = battle.enemyStats || {};
-
-    // 命中檢定（敵方 → 我方）
+    var eS = battle.enemyStats || {};
     if (!P._live) refreshLive();
-    const attAcc = eS.acc || 0;
-    const defEva = P._live['閃避'] || 0;
-    const hitChance = hitChanceOf(attAcc, defEva, 75);
-    if (Math.random()*100 >= hitChance){
-      const atkElem = battle.enemy?.element || 'none';
-      const defElem = P?.element || 'none';
-      return { dmg:0, miss:true, crit:false, note:'', elemMul:1, stabMul:1, atkElem, defElem, hitChance };
+    var attAcc2 = eS.acc || 0;
+    var defEva2 = P._live['閃避'] || 0;
+    var hitChance2 = hitChanceOf(attAcc2, defEva2, 75);
+    if (Math.random()*100 >= hitChance2){
+      var atkElem1 = (battle.enemy && (battle.enemy.element||battle.enemy.elem)) ? (battle.enemy.element||battle.enemy.elem) : 'none';
+      var defElem1 = (P && (P.element||P.elem)) ? (P.element||P.elem) : 'none';
+      return { dmg:0, miss:true, crit:false, note:'', elemMul:1, stabMul:1, atkElem:atkElem1, defElem:defElem1, hitChance:hitChance2 };
     }
+    var atk2 = Math.max(1, eS.atk || 8);
+    var pen2 = Math.max(0, eS.pen || 0);
+    var pDef0  = Math.max(0, (P._live['物理防禦']||0));
+    var effDef = Math.max(0, pDef0 - pen2);
+    var base2 = Math.max(1, atk2 - effDef);
+    base2 = Math.round(base2 * (0.9 + Math.random()*0.2));
+    var out2 = Math.max(1, Math.round(base2));
 
-    // 傷害（與原來相同）
-    const atk = Math.max(1, eS.atk || 8);
-    const pen = Math.max(0, eS.pen || 0);
-    const pDef0  = Math.max(0, (P._live['物理防禦']||0));
-    const effDef = Math.max(0, pDef0 - pen);
+    var atkElem2 = (battle.enemy && (battle.enemy.element||battle.enemy.elem)) ? (battle.enemy.element||battle.enemy.elem) : 'none';
+    var defElem2 = (P && (P.element||P.elem)) ? (P.element||P.elem) : 'none';
+    var elemMul2 = elemMult(atkElem2, defElem2);
+    var stabMul2 = (atkElem2!=='none') ? (window.STAB||1) : 1;
+    out2 = Math.max(1, Math.round(out2 * elemMul2 * stabMul2));
 
-    let base = Math.max(1, atk - effDef);
-    base = Math.round(base * (0.9 + Math.random()*0.2));
-    let out = Math.max(1, Math.round(base));
-
-    const atkElem = battle.enemy?.element || 'none';
-    const defElem = P?.element || 'none';
-    const elemMul = elemMult(atkElem, defElem);
-    const stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
-    out = Math.max(1, Math.round(out * elemMul * stabMul));
-
-    return { dmg: out, miss:false, crit:false, note:'', elemMul, stabMul, atkElem, defElem, hitChance };
+    return { dmg: out2, miss:false, crit:false, note:'', elemMul:elemMul2, stabMul:stabMul2, atkElem:atkElem2, defElem:defElem2, hitChance:hitChance2 };
   }
 }
 
-
 function playerAttack(){
-  const r = calcDamage(true);
+  var r = calcDamage(true);
   if (r.miss){
     spawnFloat('enemy', 0, 'miss');
-    log(`你攻擊落空！（命中機率 ${Math.round(r.hitChance)}%）`, 'warn');
+    log('你攻擊落空！（命中機率 ' + Math.round(r.hitChance) + '%）', 'warn');
   }else{
     battle.e.hp = clamp(battle.e.hp - r.dmg, 0, battle.e.hpMax);
     showHit('enemy', r.dmg, !!r.crit, 'hit');
-    const rel = elemRelationText(r.atkElem, r.defElem, r.elemMul, r.stabMul);
-    log(`你對 ${battle.enemy.name} 造成 ${r.dmg} 傷害${r.crit?'（暴擊）':''} ${rel}`);
+    var rel = elemRelationText(r.atkElem, r.defElem, r.elemMul, r.stabMul);
+    log('你對 ' + battle.enemy.name + ' 造成 ' + r.dmg + ' 傷害' + (r.crit?'（暴擊）':'') + ' ' + rel);
   }
   battle.p.atb = 0;
   endCheck();
@@ -1277,85 +1282,68 @@ function playerAttack(){
   if(!battle.over && battle.e.atb>=ATB_MAX){ enemyAttack(); battle.e.atb=0; updateBattleBars(); }
 }
 
-
-
-
 function enemyAttack(){
-  const E = battle.enemy || {};
-  const skills = E.skills || [];
-
-  // --- 有技能就判定是否施放 ---
+  var E = battle.enemy || {};
+  var skills = E.skills || [];
   if (skills.length){
-    const s = skills[0]; // 目前只放一招：萊姆波動
-    const hpRate = Math.max(0, battle.e.hp) / Math.max(1, battle.e.hpMax);
-    let useChance = (s.chance ?? 0) + ((hpRate < 0.5) ? (s.lowHpBonus ?? 0) : 0);
+    var s = skills[0];
+    var hpRate = Math.max(0, battle.e.hp) / Math.max(1, battle.e.hpMax);
+    var useChance = (typeof s.chance==='number'?s.chance:0) + ((hpRate < 0.5) ? (typeof s.lowHpBonus==='number'?s.lowHpBonus:0) : 0);
     if (Math.random() < useChance){
-      // ★ 法術打擊（立即傷害）
-      const magic = calcMagicDamageFromEnemy(s.elem || 'none');
+      var magic = calcMagicDamageFromEnemy(s.elem || 'none');
       battle.p.hp = clamp(battle.p.hp - magic.dmg, 0, battle.p.hpMax);
       showHit('player', magic.dmg, false, 'hit');
-      const rel = elemRelationText(magic.atkElem, magic.defElem, magic.elemMul, magic.stabMul);
-      log(`${E.name} 施放「${s.name}」，對你造成 ${magic.dmg} 法術傷害 ${rel}`);
-
-      // ★ 附加 DoT（每秒 -dps，持續 duration 秒）
+      var rel2 = elemRelationText(magic.atkElem, magic.defElem, magic.elemMul, magic.stabMul);
+      log(E.name + ' 施放「' + s.name + '」，對你造成 ' + magic.dmg + ' 法術傷害 ' + rel2);
       applyDotToPlayer(s.dps|0, s.duration|0, s.name);
-
       endCheck();
       updateBattleBars();
       return;
     }
   }
-
-// --- 否則用一般攻擊 ---
-const r = calcDamage(false);
-if (r.miss){
-  spawnFloat('player', 0, 'miss');
-  log(`${E.name} 的攻擊落空！（命中機率 ${Math.round(r.hitChance)}%）`, 'warn');
-}else{
-  battle.p.hp = clamp(battle.p.hp - r.dmg, 0, battle.p.hpMax);
-  showHit('player', r.dmg, false, 'hit');
-  const rel = elemRelationText(r.atkElem, r.defElem, r.elemMul, r.stabMul);
-  log(`${E.name} 對你造成 ${r.dmg} 傷害 ${rel}`);
-}
-endCheck();
-updateBattleBars();
-
-
+  var r = calcDamage(false);
+  if (r.miss){
+    spawnFloat('player', 0, 'miss');
+    log(E.name + ' 的攻擊落空！（命中機率 ' + Math.round(r.hitChance) + '%）', 'warn');
+  }else{
+    battle.p.hp = clamp(battle.p.hp - r.dmg, 0, battle.p.hpMax);
+    showHit('player', r.dmg, false, 'hit');
+    var rel = elemRelationText(r.atkElem, r.defElem, r.elemMul, r.stabMul);
+    log(E.name + ' 對你造成 ' + r.dmg + ' 傷害 ' + rel);
+  }
+  endCheck();
+  updateBattleBars();
 }
 
-// 工具：用敵方「法術攻擊 vs 我方法術防禦」走一套獨立公式（含元素）
-function calcMagicDamageFromEnemy(atkElem='none'){
-  const eS = battle.enemyStats || {};
-  const matk = Math.max(1, eS.matk || 8);
-  const mpen = Math.max(0, eS.mpen || 0);
-
+function calcMagicDamageFromEnemy(atkElem){
+  atkElem = atkElem || 'none';
+  var eS = battle.enemyStats || {};
+  var matk = Math.max(1, eS.matk || 8);
+  var mpen = Math.max(0, eS.mpen || 0);
   if (!P._live) refreshLive();
-  const pMdef0  = Math.max(0, (P._live['法術防禦']||0));
-  const effMdef = Math.max(0, pMdef0 - mpen);
-
-  let base = Math.max(1, matk - effMdef);
+  var pMdef0  = Math.max(0, (P._live['法術防禦']||0));
+  var effMdef = Math.max(0, pMdef0 - mpen);
+  var base = Math.max(1, matk - effMdef);
   base = Math.round(base * (0.9 + Math.random()*0.2));
-  let out = Math.max(1, Math.round(base));
-
-  const defElem = P?.element || 'none';
-  const elemMul = elemMult(atkElem, defElem);
-  const stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
-
+  var out = Math.max(1, Math.round(base));
+  var defElem = (P && (P.element||P.elem)) ? (P.element||P.elem) : 'none';
+  var elemMul = elemMult(atkElem, defElem);
+  var stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
   out = Math.max(1, Math.round(out * elemMul * stabMul));
-  return { dmg: out, atkElem, defElem, elemMul, stabMul };
+  return { dmg: out, atkElem:atkElem, defElem:defElem, elemMul:elemMul, stabMul:stabMul };
 }
 
-// 工具：套用 DoT（每秒傷害、持續秒數）
-function applyDotToPlayer(dps, seconds, label='持續傷害'){
+function applyDotToPlayer(dps, seconds, label){
+  dps = dps|0; seconds = seconds|0; label = label || '持續傷害';
   if(!battle.dotTimers) battle.dotTimers = [];
-  let t = 0;
-  const timer = setInterval(()=>{
+  var t = 0;
+  var timer = setInterval(function(){
     if(!battle || battle.over){ clearInterval(timer); return; }
     if(battle.p.hp<=0 || battle.e.hp<=0){ clearInterval(timer); return; }
     t++;
-    battle.p.hp = clamp(battle.p.hp - Math.max(0,dps|0), 0, battle.p.hpMax);
-    showHit('player', Math.max(0,dps|0), false, 'hit');
-    log(`【持續傷害】${label}：-${dps}（${t}/${seconds}）`, 'warn');
+    battle.p.hp = clamp(battle.p.hp - Math.max(0,dps), 0, battle.p.hpMax);
+    showHit('player', Math.max(0,dps), false, 'hit');
+    log('【持續傷害】' + label + '：-' + dps + '（' + t + '/' + seconds + '）', 'warn');
     updateBattleBars();
     endCheck();
     if(t>=seconds) clearInterval(timer);
@@ -1363,19 +1351,14 @@ function applyDotToPlayer(dps, seconds, label='持續傷害'){
   battle.dotTimers.push(timer);
 }
 
-
-
-
 function useItem(){
-  const bag = P.bag || {};
-  const list = (bag.consumables || []).filter(x=>x && x.count>0);
+  var bag = P.bag || {};
+  var list = (bag.consumables || []).filter(function(x){ return x && x.count>0; });
   if(!list.length){
     log('沒有可用的消耗品','warn');
     return;
   }
-
-  // 建立簡單選單 UI
-  const menu = document.createElement('div');
+  var menu = document.createElement('div');
   menu.style.position='fixed';
   menu.style.inset='0';
   menu.style.background='rgba(0,0,0,0.6)';
@@ -1383,7 +1366,7 @@ function useItem(){
   menu.style.display='grid';
   menu.style.placeItems='center';
 
-  const box = document.createElement('div');
+  var box = document.createElement('div');
   box.style.background='#1e293b';
   box.style.padding='12px';
   box.style.borderRadius='12px';
@@ -1391,14 +1374,14 @@ function useItem(){
   box.style.display='grid';
   box.style.gap='8px';
 
-  const title = document.createElement('div');
+  var title = document.createElement('div');
   title.textContent = '選擇要使用的消耗品';
   title.style.fontWeight='700';
   title.style.marginBottom='6px';
   box.appendChild(title);
 
-  list.forEach(it=>{
-    const btn = document.createElement('button');
+  list.forEach(function(it){
+    var btn = document.createElement('button');
     btn.style.display='flex';
     btn.style.alignItems='center';
     btn.style.gap='6px';
@@ -1409,39 +1392,35 @@ function useItem(){
     btn.style.border='1px solid rgba(255,255,255,0.15)';
     btn.style.cursor='pointer';
 
-    const img = document.createElement('img');
+    var img = document.createElement('img');
     img.src = it.icon || '';
     img.style.width='28px';
     img.style.height='28px';
     img.style.objectFit='cover';
     img.style.borderRadius='6px';
 
-    const txt = document.createElement('div');
-    txt.innerHTML = `<b>${it.name}</b> ×${it.count}<br/><small>${it.effect?.hp?`回復HP ${it.effect.hp}`:''}${it.effect?.mp?` 回復MP ${it.effect.mp}`:''}</small>`;
+    var txt = document.createElement('div');
+    txt.innerHTML = '<b>' + it.name + '</b> ×' + it.count + '<br/><small>' + (it.effect && it.effect.hp ? ('回復HP ' + it.effect.hp) : '') + (it.effect && it.effect.mp ? (' 回復MP ' + it.effect.mp) : '') + '</small>';
 
     btn.appendChild(img);
     btn.appendChild(txt);
 
-    btn.onclick = ()=>{
-      // 扣除數量
-      it.count--; if(it.count<=0) bag.consumables = bag.consumables.filter(x=>x.count>0);
-
-      // 套用效果
-      if(it.effect?.hp){
-        const heal = it.effect.hp;
+    btn.onclick = function(){
+      it.count--; if(it.count<=0) bag.consumables = (bag.consumables||[]).filter(function(x){ return x.count>0; });
+      if(it.effect && typeof it.effect.hp==='number'){
+        var heal = it.effect.hp;
         battle.p.hp = clamp(battle.p.hp + heal, 0, battle.p.hpMax);
-        P.hp.cur = battle.p.hp;
+        if (P && P.hp) P.hp.cur = battle.p.hp;
         showHit('player', heal, false, 'heal');
-        log(`使用 ${it.name} 回復 ${heal} 氣血。`);
+        log('使用 ' + it.name + ' 回復 ' + heal + ' 氣血。');
       }
-      if(it.effect?.mp){
-        const heal = it.effect.mp;
-        battle.p.mp = clamp((battle.p.mp||0) + heal, 0, battle.p.mpMax);
-        P.mp.cur = battle.p.mp;
-        showHit('player', heal, false, 'heal');
-        log(`使用 ${it.name} 回復 ${heal} 真元。`);
+      if(it.effect && typeof it.effect.mp==='number'){
+        var heal2 = it.effect.mp;
+        battle.p.mp = clamp((battle.p.mp||0) + heal2, 0, battle.p.mpMax);
+        if (P && P.mp) P.mp.cur = battle.p.mp;
+        showHit('player', heal2, false, 'heal');
+        log('使用 ' + it.name + ' 回復 ' + heal2 + ' 真元。');
       }
-
       battle.p.atb = 0;
       renderBars(); savePlayer();
       updateBattleBars(); updateCmdEnabled();
@@ -1451,20 +1430,18 @@ function useItem(){
     box.appendChild(btn);
   });
 
-  const cancel = document.createElement('button');
+  var cancel = document.createElement('button');
   cancel.textContent='取消';
   cancel.style.marginTop='6px';
-  cancel.onclick=()=>menu.remove();
+  cancel.onclick=function(){ menu.remove(); };
   box.appendChild(cancel);
 
   menu.appendChild(box);
   document.body.appendChild(menu);
 }
 
-
-
 function tryRun(){
-  const ok = Math.random()<0.6;
+  var ok = Math.random()<0.6;
   if(ok){
     log('成功脫離戰鬥。','ok');
     finishBattle(false);
@@ -1475,62 +1452,49 @@ function tryRun(){
   }
 }
 
-function endCheck(){
-  if(battle.e.hp<=0){ // 勝利
-    const drops = (window.MonsterDB && MonsterDB.rollDrops) ? MonsterDB.rollDrops(battle.enemy.id) : [];
-    if(window.MonsterDB && MonsterDB.applyDrops) MonsterDB.applyDrops(P, drops);
-    const rank = (window.MonsterDB && MonsterDB.rankOf) ? MonsterDB.rankOf(battle.enemy.id) : 'normal';
-    const expGain = (window.MonsterDB && MonsterDB.expFor)
-    ? MonsterDB.expFor(battle.enemy)   // 依「怪物類型＋等級」自動算
-    : (10 + Math.floor(battle.enemy.level*4)); // 後備：保留舊規則
-    P.exp = P.exp || {cur:0, max:100};
-    P.exp.cur += expGain;
-    while(P.exp.cur >= P.exp.max){
+async function endCheck(){
+  if(!battle || battle.over) return;
+
+  if(battle.e.hp<=0){
+    log('你打倒了 ' + (battle.e.name||'敵人') + '！','ok');
+    finishBattle();
+
+    var exp = 10 + (battle.e.level||1)*4;
+    try{
+      if (window.MonsterDB && MonsterDB.expFor) {
+        exp = MonsterDB.expFor(battle.e);
+      }
+    }catch(e){}
+
+    if (!P.exp) P.exp = {cur:0, max:100};
+    if (typeof P.exp.max !== 'number') { P.exp.max = 100; }
+    P.exp.cur = (P.exp.cur|0) + (exp|0);
+
+    while (P.exp.cur >= P.exp.max){
       P.exp.cur -= P.exp.max;
-      P.level = (P.level||1) + 1;
-      P.unspentPoints = (P.unspentPoints||0) + 5;
-      // 等級提升：回滿 HP/MP（依最新快照）
-      refreshLive();
-      P.hp.max = P._live['氣血上限']; P.hp.cur = P.hp.max;
-      P.mp = P.mp || {cur:0, max:0};
-      P.mp.max = P._live['真元上限']; P.mp.cur = P.mp.max;
-      log(`升級到 LV.${P.level}！獲得屬性點 +5。`,'ok');
-      P.exp.max = Math.round(P.exp.max * 1.2);
-    }
-    renderHeader(); renderBars(); savePlayer();
-    log(`你打倒了 [${rank==='boss'?'BOSS':rank==='elite'?'菁英':'普通'}] ${battle.enemy.name}！獲得經驗 ${expGain}。`,'ok');
-    if(drops?.length){
-      log('掉落：' + drops.map(d=>`${d.name||d.id}×${d.amount}`).join('、'), 'ok');
+      P.level = (P.level|0) + 1;
+      P.exp.max = Math.round((P.exp.max || 100) * 1.25);
+      log('升到 ' + P.level + ' 級！','ok');
     }
 
-    // ★★ 萊姆洞窟限定：計數與重置邏輯
-    if(curSmall === 'slime_cave'){
-      const prog = (function(){ P.mapProg=P.mapProg||{}; P.mapProg.slime_cave=P.mapProg.slime_cave||{kills:0,bossReady:false}; return P.mapProg.slime_cave; })();
+    renderBars();
+    if (window.Auth && Auth.saveCharacter) {
+      try{ await Auth.saveCharacter(P); }catch(e){}
+    }
+    try{ await savePlayer(); }catch(e){}
 
-      if(battle.enemy.id === 'slime_boss'){
-        // 擊敗 BOSS → 按鈕消失、計數歸 0、重新開始下一輪
-        prog.bossReady = false;
-        prog.kills = 0;
-        log('你擊敗了萊姆王！挑戰 BOSS 按鈕已關閉，下次需再討伐 10 隻史萊姆才會出現。','ok');
-      }else{
-        // 只對一般史萊姆（幼體/成體）計數；當 bossReady 為真時凍結不累加
-        const isNormalSlime = (battle.enemy.id==='slime_young' || battle.enemy.id==='slime');
-        if(isNormalSlime && !prog.bossReady){
-          prog.kills = Math.min(10, (prog.kills|0) + 1);
-          if(prog.kills >= 10){
-            prog.bossReady = true;
-            log('討伐達 10/10！已開啟「挑戰 BOSS」按鈕。','ok');
-          }else{
-            log(`萊姆洞窟進度：${prog.kills}/10`,'ok');
-          }
+    try{
+      var s = (typeof getCurrentSmall==='function') ? getCurrentSmall() : null;
+      if (s && s.id === 'slime_cave'){
+        s._kill = (s._kill|0) + 1;
+        if (!s.bossReady && s._kill >= 10){
+          s.bossReady = true;
+          log('BOSS 已出現！','ok');
         }
       }
-      savePlayer();
-      updateBossUI();
-    }
+    }catch(e){}
 
-    // ★ 自動返回地圖
-    setTimeout(()=>{ leaveBattle(); }, 1200);
+    setTimeout(function(){ leaveBattle(); }, 1200);
 
   }else if(battle.p.hp<=0){
     log('你被擊倒了…（保留 1 點氣血）', 'warn');
@@ -1539,26 +1503,25 @@ function endCheck(){
       P.hp.cur = 1;
       P.hp.max = battle.p.hpMax || P.hp.max;
     }
-    renderBars(); savePlayer();
-    setTimeout(()=>{ leaveBattle(); }, 1200);
+    renderBars();
+    if (window.Auth && Auth.saveCharacter) {
+      try{ await Auth.saveCharacter(P); }catch(e){}
+    }
+    try{ await savePlayer(); }catch(e){}
+    setTimeout(function(){ leaveBattle(); }, 1200);
   }
 }
-
-
 
 function finishBattle(){
   battle.over = true;
   if(loop){ clearInterval(loop); loop=null; }
-  // ★ 清掉所有 DoT 計時器
   if(battle && Array.isArray(battle.dotTimers)){
-    for(const tm of battle.dotTimers){ try{ clearInterval(tm); }catch(e){} }
+    for(var i=0;i<battle.dotTimers.length;i++){ try{ clearInterval(battle.dotTimers[i]); }catch(e){} }
     battle.dotTimers.length = 0;
   }
   updateBattleBars(); updateCmdEnabled();
   qs('#btnLeaveBattle').style.display='none';
 }
-
-
 
 function leaveBattle(){
   qs('#battleSection').classList.remove('show');
@@ -1583,11 +1546,13 @@ function log(t, cls){
 
 
 /* ===== 事件 ===== */
-function bindEvents(){
-  qs('#btnBackHome').onclick = ()=>{
-    if (P) { savePlayer(); }
-    location.href = 'game.html';
-  };
+qs('#btnBackHome').onclick = async function(){
+  try{ if(P){ await savePlayer(); } }catch(e){}
+  location.href = 'game.html';
+};
+
+
+  
   qs('#btnLogout').onclick = ()=>{ if(window.Auth && Auth.logout) Auth.logout(); location.href='index.html'; };
 
   qs('#btnEnter').onclick = ()=>{
@@ -1604,20 +1569,21 @@ function bindEvents(){
 // BOSS 直進戰鬥（安全取當前小地圖）
 qs('#btnBoss').onclick = function(){
   // 找到目前的小地圖資料
-  var big = null, s = null;
-  for (var i=0;i<MAPS.length;i++){
+  var big = null, s = null, i, j;
+  for (i=0;i<MAPS.length;i++){
     if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
   }
   if (big && big.small){
-    for (var j=0;j<big.small.length;j++){
+    for (j=0;j<big.small.length;j++){
       if (big.small[j].id === curSmall){ s = big.small[j]; break; }
     }
   }
   var bossId = s && s.boss;
-  if (!bossId) return;               // 此地沒有 BOSS 就不動
-  window.FORCE_MONSTER_ID = bossId;  // 交給既有的 startBattle 流程
+  if (!bossId){ log('這區沒有 BOSS'); return; }
+  window.FORCE_MONSTER_ID = bossId; // 交給 startBattle 走既有流程
   startBattle();
 };
+
 
 
 
@@ -1626,7 +1592,7 @@ qs('#btnBoss').onclick = function(){
   qs('#actRun').onclick    = tryRun;
 
   qs('#btnLeaveBattle').onclick = leaveBattle;
-}
+
 
 /* ===== 啟動（改為等雲端載入）===== */
 window.addEventListener('DOMContentLoaded', async function(){
@@ -1634,20 +1600,43 @@ window.addEventListener('DOMContentLoaded', async function(){
   var user = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
   if(!user){ location.href = 'index.html'; return; }
 
-  // 從雲端載入角色（不要只用快取）
+  // 從雲端載入角色（只用雲端的，不再回讀舊快取覆蓋）
   var char = null;
-  try{
-    char = (window.Auth && Auth.loadCharacter) ? (await Auth.loadCharacter()) : null;
-  }catch(e){
-    char = null;
-  }
+  try{ char = (window.Auth && Auth.loadCharacter) ? (await Auth.loadCharacter()) : null; }
+  catch(e){ char = null; }
   if(!char){ location.href = 'index.html#create'; return; }
 
-  // 成功載入 → 用原本流程建立 P 並渲染
-  P = loadPlayer(); if(!P) return;
-  renderHeader(); renderBars();
+  // 直接使用雲端回傳的角色
+  P = char;
+
+  // === 正規化欄位（原本 loadPlayer() 做的事，這裡直接補齊） ===
+  if(!P.bag) P.bag = { consumables:[], weapons:[], ornaments:[], materials:[], hidden:[] };
+  if(!Array.isArray(P.bag.consumables)) P.bag.consumables = [];
+  if(!Array.isArray(P.bag.weapons))     P.bag.weapons     = [];
+  if(!Array.isArray(P.bag.ornaments))   P.bag.ornaments   = [];
+  if(!Array.isArray(P.bag.materials))   P.bag.materials   = [];
+  if(!Array.isArray(P.bag.hidden))      P.bag.hidden      = [];
+
+  if(!P.attributes) P.attributes = {str:10, vit:10, dex:10, int:10, wis:10, luk:10};
+  if(typeof P.level !== 'number') P.level = 1;
+
+  var d0 = derivedFrom(P);
+  if(!P.hp) P.hp = { cur: d0['氣血上限'], max: d0['氣血上限'] };
+  if(!P.mp) P.mp = { cur: d0['真元上限'], max: d0['真元上限'] };
+  if(!P.sta) P.sta = { cur:100, max:100 };
+  if(!P.exp) P.exp = { cur:0,   max:100 };
+
+  P.mapProg = P.mapProg || {};
+  if(!P.mapProg.slime_cave) P.mapProg.slime_cave = { kills:0, bossReady:false };
+
+  renderHeader();
+  renderBars();
   buildMapUI();
   bindEvents();
+
+  window.addEventListener('beforeunload', function(){
+    try{ if (P) savePlayer(); }catch(e){}
+  });
 });
 
 

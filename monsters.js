@@ -331,6 +331,41 @@ const DB = {
     scales:{}, stats:{ hp:1008, mp:45, atk:32, matk:11, def:57, mdef:32, acc:88, eva:3, crit:2, aspd:0.74 }, drops:[]
   },
 };
+/* === 裝備掉落補丁（集中放在這裡，方便之後調整） === */
+if (DB.slime_king) DB.slime_king.drops.push(
+  {type:'ornament', id:'ring_green',   name:'翠玉戒指', min:1, max:1, chance:0.15}
+);
+if (DB.snow_wolf) DB.snow_wolf.drops.push(
+  {type:'ornament', id:'ear_wolf',     name:'狼嚎耳飾', min:1, max:1, chance:0.14}
+);
+if (DB.shadow_bat) DB.shadow_bat.drops.push(
+  {type:'ornament', id:'cloak_shadow', name:'影帛披風', min:1, max:1, chance:0.10}
+);
+if (DB.stone_golem) DB.stone_golem.drops.push(
+  {type:'ornament', id:'armor_rock',   name:'岩甲',     min:1, max:1, chance:0.12}
+);
+if (DB.ice_bear) DB.ice_bear.drops.push(
+  {type:'ornament', id:'shoes_fur',    name:'熊皮靴',   min:1, max:1, chance:0.16}
+);
+if (DB.thunder_beetle) DB.thunder_beetle.drops.push(
+  {type:'ornament', id:'ring_thunder', name:'雷角戒',   min:1, max:1, chance:0.12}
+);
+if (DB.wraith) DB.wraith.drops.push(
+  {type:'ornament', id:'ring_midnight',name:'子夜之環', min:1, max:1, chance:0.10}
+);
+
+/* BOSS / 特殊掉落（示範：勳章 or 武器） */
+if (DB.slime_boss) DB.slime_boss.drops.push(
+  {type:'medal', id:'medal_slime_crown', name:'萊姆之冠', min:1, max:1, chance:0.25}
+);
+if (DB.wraith_boss) DB.wraith_boss.drops && DB.wraith_boss.drops.push(
+  {type:'medal', id:'medal_wraith', name:'幽王勳章', min:1, max:1, chance:0.22}
+);
+if (DB.stone_golem && !DB.stone_golem_boss && DB.thunder_beetle){
+  // 非必要：也可以讓部分普通怪偶爾掉落新武器
+  DB.thunder_beetle.drops.push({type:'weapon', id:'iron_sword1',  name:'打鐵長劍', min:1, max:1, chance:0.08});
+}
+
 
 
 // === 正規化（把缺的能力補齊，特別是 acc / eva / crit / aspd）===
@@ -366,23 +401,39 @@ const DB = {
     return drops;
   }
 
-  // 直接把掉落套用到玩家（呼叫 ItemDB / 加靈石）
-  function applyDrops(player, drops){
-    if(!player || !drops || !drops.length) return;
-    player.currencies = player.currencies || { stone:0, diamond:0 };
-    player.bag = player.bag || (window.ItemDB && ItemDB.getDefaultBag ? ItemDB.getDefaultBag() : {consumables:[],weapons:[],ornaments:[],materials:[],hidden:[]});
-    for(var i=0;i<drops.length;i++){
-      var d = drops[i];
-      if(d.type==='currency' && d.id==='stone'){
-        player.currencies.stone += (d.amount|0);
-      }else if(d.type==='consumable'){
-        if(window.ItemDB && ItemDB.addConsumableToBag) ItemDB.addConsumableToBag(player.bag, d.id, d.amount|0);
-      }else if(d.type==='material'){
-        if(window.ItemDB && ItemDB.addMaterialToBag)  ItemDB.addMaterialToBag(player.bag, d.id, d.amount|0);
-      }
+
+// 直接把掉落套用到玩家（含武器/飾品/勳章）
+function applyDrops(player, drops){
+  if(!player || !Array.isArray(drops) || !drops.length) return;
+  player.currencies = player.currencies || { stone:0, diamond:0 };
+  player.bag = player.bag || (window.ItemDB && ItemDB.getDefaultBag ? ItemDB.getDefaultBag() : {consumables:[],weapons:[],ornaments:[],materials:[],hidden:[]});
+
+  for(var i=0;i<drops.length;i++){
+    var d = drops[i];
+    var qty = d.amount|0; if(qty<=0) continue;
+
+    if(d.type==='currency' && d.id==='stone'){
+      player.currencies.stone += qty;
     }
-    if(window.Auth && Auth.saveCharacter) Auth.saveCharacter(player);
+    else if(d.type==='consumable'){
+      if(window.ItemDB && ItemDB.addConsumableToBag) ItemDB.addConsumableToBag(player.bag, d.id, qty);
+    }
+    else if(d.type==='material'){
+      if(window.ItemDB && ItemDB.addMaterialToBag)  ItemDB.addMaterialToBag(player.bag, d.id, qty);
+    }
+    else if(d.type==='weapon'){
+      if(window.ItemDB && ItemDB.addWeaponToBag)    ItemDB.addWeaponToBag(player.bag, d.id, qty);
+    }
+    else if(d.type==='ornament'){
+      if(window.ItemDB && ItemDB.addOrnamentToBag)  ItemDB.addOrnamentToBag(player.bag, d.id, qty);
+    }
+    else if(d.type==='medal'){
+      if(window.ItemDB && ItemDB.addMedalToBag)     ItemDB.addMedalToBag(player.bag, d.id, qty);
+    }
   }
+  if(window.Auth && Auth.saveCharacter) Auth.saveCharacter(player);
+}
+
 
   function getImage(id){
     var m = get(id);

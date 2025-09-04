@@ -627,46 +627,48 @@ function loadPlayer(){
 }
 
 async function savePlayer(){
-  // 直接寫入 Realtime DB，避免白名單漏欄位或靜默失敗
   try{
     var user = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
     if(!user || !window.DB) return;
     var path = '/characters/' + user.username;
 
-    // 明確列出要存的欄位（不使用展開運算子）
     var payload = {
       name:   (P && P.name) ? P.name : '無名散修',
       avatar: (P && P.avatar) ? P.avatar : '',
       element: (P && (P.element || P.elem)) ? (P.element || P.elem) : 'none',
       level: (P && typeof P.level === 'number') ? P.level : 1,
 
-      // ★ 修正：可分配點數與勳章也要保存，避免被蓋掉
-      unspentPoints: (P && typeof P.unspentPoints === 'number') ? (P.unspentPoints|0) : 0,
-      medals: (P && Array.isArray(P.medals)) ? P.medals : [],
-
       exp:  (P && P.exp) ? { cur: (P.exp.cur|0),  max: (P.exp.max|0) } : { cur:0, max:100 },
       sta:  (P && P.sta) ? { cur: (P.sta.cur|0),  max: (P.sta.max|0) } : { cur:100, max:100 },
       hp:   (P && P.hp ) ? { cur: (P.hp.cur|0),   max: (P.hp.max|0)  } : { cur:80,  max:80  },
       mp:   (P && P.mp ) ? { cur: (P.mp.cur|0),   max: (P.mp.max|0)  } : { cur:40,  max:40  },
+
       attributes: (P && P.attributes) ? {
         str: (P.attributes.str|0), vit: (P.attributes.vit|0), dex: (P.attributes.dex|0),
         int: (P.attributes.int|0), wis: (P.attributes.wis|0), luk: (P.attributes.luk|0)
       } : {str:10, vit:10, dex:10, int:10, wis:10, luk:10},
+
       currencies: (P && P.currencies) ? {
         stone: (P.currencies.stone|0), diamond: (P.currencies.diamond|0)
       } : {stone:0, diamond:0},
+
+      unspentPoints: (P && typeof P.unspentPoints === 'number') ? P.unspentPoints : 0,
+      medals: (P && Array.isArray(P.medals)) ? P.medals : [],
+
       equip: (P && P.equip) ? P.equip : {},
       bag:   (P && P.bag) ? P.bag : { consumables:[], weapons:[], ornaments:[], materials:[], hidden:[] },
-      mapProg: (P && P.mapProg) ? P.mapProg : {}
+      mapProg: (P && P.mapProg) ? P.mapProg : {},
+
+      _updatedAt: Date.now()
     };
 
-    // 深拷貝，避免傳參考
     var clean = JSON.parse(JSON.stringify(payload));
     await window.DB.ref(path).set(clean);
   }catch(err){
     try{ console.warn('savePlayer() 失敗：', err); }catch(_){}
   }
 }
+
 
 
 
@@ -1463,43 +1465,53 @@ async function endCheck(){
     log('你打倒了 ' + (battle.e.name||'敵人') + '！','ok');
     finishBattle();
 
-    // 經驗結算
-    var exp = 10 + (battle.e.level||1)*4;
+    // 1) 經驗獎勵（優先使用 MonsterDB.expFor）
+    var expGain = 10 + (battle.e.level||1)*4;
     try{
-      if (window.MonsterDB && MonsterDB.expFor) {
-        exp = MonsterDB.expFor(battle.e);
+      if (window.MonsterDB && typeof MonsterDB.expFor === 'function'){
+        expGain = MonsterDB.expFor(battle.e);
       }
     }catch(_){}
 
-    if (!P.exp) P.exp = {cur:0, max:100};
-    if (typeof P.exp.max !== 'number') { P.exp.max = 100; }
-    P.exp.cur = (P.exp.cur|0) + (exp|0);
+    // 2) 確保 exp 結構健全
+    if (!P.exp) P.exp = { cur:0, max:100 };
+    if (typeof P.exp.cur !== 'number') P.exp.cur = 0;
+    if (typeof P.exp.max !== 'number' || P.exp.max <= 0) P.exp.max = 100;
 
+    // 3) 加總並處理溢出升級
+    P.exp.cur = (P.exp.cur|0) + (expGain|0);
+
+    var leveled = 0;
     while (P.exp.cur >= P.exp.max){
-      P.exp.cur -= P.exp.max;
-      P.level = (P.level|0) + 1;
-      P.exp.max = Math.round((P.exp.max || 100) * 1.25);
-      log('升到 ' + P.level + ' 級！','ok');
+      P.exp.cur = P.exp.cur - P.exp.max;                           // 保留溢出
+      P.level   = (P.level|0) + 1;                                  // 升級
+      P.exp.max = Math.max(50, Math.round((P.exp.max||100) * 1.25));// 新上限
+      leveled   = leveled + 1;
     }
 
-    // 萊姆洞窟進度（寫在 P.mapProg）
-    if (curSmall === 'slime_cave'){
-      P.mapProg = P.mapProg || {};
-      P.mapProg.slime_cave = P.mapProg.slime_cave || { kills:0, bossReady:false };
-      if (!P.mapProg.slime_cave.bossReady){
-        P.mapProg.slime_cave.kills = (P.mapProg.slime_cave.kills|0) + 1;
-        if (P.mapProg.slime_cave.kills >= 10){
-          P.mapProg.slime_cave.kills = 10;
-          P.mapProg.slime_cave.bossReady = true;
-          log('BOSS 已出現！','ok');
-        }
-      }
-      updateBossUI();
+    if (leveled > 0){
+      log('升到 ' + P.level + ' 級！（溢出經驗 ' + P.exp.cur + '/' + P.exp.max + '）','ok');
+      refreshLive();
+      renderHeader();
     }
 
     renderBars();
+
+    // 4) 先本地快取再雲端，避免跨頁讀到舊資料
     try{ if (window.Auth && Auth.saveCharacter) await Auth.saveCharacter(P); }catch(_){}
     try{ await savePlayer(); }catch(_){}
+
+    // 5) 區域進度（萊姆洞窟）
+    try{
+      var s = (typeof getCurrentSmall==='function') ? getCurrentSmall() : null;
+      if (s && s.id === 'slime_cave'){
+        s._kill = (s._kill|0) + 1;
+        if (!s.bossReady && s._kill >= 10){
+          s.bossReady = true;
+          log('BOSS 已出現！','ok');
+        }
+      }
+    }catch(_){}
 
     setTimeout(function(){ leaveBattle(); }, 1200);
 
@@ -1516,6 +1528,7 @@ async function endCheck(){
     setTimeout(function(){ leaveBattle(); }, 1200);
   }
 }
+
 
 
 function finishBattle(){

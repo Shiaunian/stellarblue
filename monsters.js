@@ -568,12 +568,21 @@ function applyDrops(player, drops){
 
 
 
-  /* === 怪物 Rank 與經驗規則（平均上調 10%）=== */
+/* === 怪物 Rank 與經驗規則（供 map.html 使用）=== */
   var EXP_RULE = {
-    normal: function(lvl){ return Math.round((8 + lvl*4) * 1.10); },  // +10%
-    elite:  function(lvl){ return Math.round((8 + lvl*4) * 1.98); },  // 1.8 * 1.10
-    boss:   function(lvl){ return Math.round((8 + lvl*4) * 4.40); }   // 4.0 * 1.10
+    normal: function(lvl){ return Math.round(8 + lvl*4); },        // 基礎
+    elite:  function(lvl){ return Math.round((8 + lvl*4) * 1.8); },// 菁英倍率
+    boss:   function(lvl){ return Math.round((8 + lvl*4) * 4.0); } // BOSS 倍率
   };
+
+/* === 活動：全局經驗倍率（預設 1.0，可動態調整）=== */
+  var EXP_EVENT_MUL = 1.0;
+  function setGlobalExpMultiplier(x){
+    if (typeof x==='number' && x>0) { EXP_EVENT_MUL = x; }
+  }
+  function clearGlobalExpMultiplier(){
+    EXP_EVENT_MUL = 1.0;
+  }
 
 
   // 舊怪未標 rank：依 id 後綴推斷；否則預設 normal
@@ -587,14 +596,20 @@ function applyDrops(player, drops){
   }
 
   // 可吃 id 或整個 monster 物件
-  function expFor(mon){
+function expFor(mon){
     var m = (typeof mon==='string') ? get(mon) : mon;
-    if(!m) return EXP_RULE.normal(1);
+    var mul = (typeof EXP_EVENT_MUL==='number' && EXP_EVENT_MUL>0) ? EXP_EVENT_MUL : 1;
+
+    if(!m){
+      return Math.round(EXP_RULE.normal(1) * mul);
+    }
     var r = rankOf(m.id);
     var lvl = m.level || 1;
     var fn = EXP_RULE[r] || EXP_RULE.normal;
-    return fn(lvl);
+    var base = fn(lvl);
+    return Math.round(base * mul);
   }
+
 
   window.MonsterDB = {
     DB: DB,

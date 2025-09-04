@@ -1005,7 +1005,7 @@ function startBattle(){
   if(!curSmall){ log('請先選擇副地圖。'); return; }
   if(!entered){ log('請先按「進入」該地區。'); return; }
 
-  // 不用 ?. 與 find：用傳統 for 迴圈找區域
+  // 找到目前區域
   var big = null, area = null, i, j;
   for (i = 0; i < MAPS.length; i++){
     if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
@@ -1017,12 +1017,12 @@ function startBattle(){
   }
   if(!area){ log('找不到該地區'); return; }
 
-  // 若有指定怪（例如 BOSS）則強制該怪；否則隨機
+  // 指定怪（BOSS）或隨機
   var enemy = null;
   if(window.FORCE_MONSTER_ID){
     var def = (window.MonsterDB && MonsterDB.DB) ? MonsterDB.DB[window.FORCE_MONSTER_ID] : null;
     if(def) enemy = JSON.parse(JSON.stringify(def));
-    window.FORCE_MONSTER_ID = null; // 用完即清
+    window.FORCE_MONSTER_ID = null;
   }
   if(!enemy){
     var pool = [];
@@ -1037,16 +1037,16 @@ function startBattle(){
     enemy = JSON.parse(JSON.stringify(pool[Math.floor(Math.random()*pool.length)]));
   }
 
-  // 初始化戰鬥畫面
+  // 顯示戰鬥區
   qs('#mapSection').style.display = 'none';
   qs('#battleSection').classList.add('show');
   if (loop){ clearInterval(loop); loop = null; }
 
-  // 1) 玩家最終衍生值：進入戰鬥前刷新一次快照，只讀 P._live
+  // 玩家衍生值快照
   refreshLive();
   var d = (P && P._live) ? P._live : {};
 
-  // 2) 敵人使用「怪物衍生表」（鍵名與主城一致），完全不再依賴玩家數值
+  // 取怪物衍生表
   var dMon = null;
   try{
     if (window.MonsterDB && MonsterDB.getDerived){
@@ -1054,7 +1054,6 @@ function startBattle(){
     }
   }catch(_err){ dMon = null; }
 
-  // 從衍生表轉成戰鬥用的簡表（沿用你目前 eStats 結構）
   function pickD(key, fallback){
     var v = (dMon && typeof dMon[key]==='number') ? dMon[key] : fallback;
     return (typeof v==='number') ? v : (fallback||0);
@@ -1068,12 +1067,10 @@ function startBattle(){
     acc  : pickD('命中率',     75),
     eva  : pickD('閃避',        5),
     crit : Math.min(100, pickD('暴擊率', 3)),
-    aspd : Math.max(0.5,  (pickD('行動條速度', 100) / 100)),
+    aspd : Math.max(0.5, pickD('行動條速度', 100) / 100),
     pen  : pickD('破甲',        0)
   };
 
-
-  // 初始化戰鬥物件（全部用固定 DB）
   battle = {
     enemy: enemy,
     enemyStats: eStats,
@@ -1083,16 +1080,14 @@ function startBattle(){
       mp   : (P && P.mp && typeof P.mp.cur==='number') ? P.mp.cur : 0,
       mpMax: (P && P.mp && typeof P.mp.max==='number') ? P.mp.max : 0,
       atb  : 0,
-      speed: Math.max(50, d['行動條速度'] || 100),
+      speed: Math.max(50, d['行動條速度'] || 100)
     },
     e:{
       hp   : pickD('氣血上限', 100),
       hpMax: pickD('氣血上限', 100),
       atb  : 0,
-      speed: Math.max(50, pickD('行動條速度', 100)),
+      speed: Math.max(50, pickD('行動條速度', 100))
     },
-
-
     turn:'none',
     over:false
   };
@@ -1101,7 +1096,6 @@ function startBattle(){
   qs('#eLv').textContent = enemy.level;
   qs('#pLv').textContent = P.level;
 
-  // 顯示雙方元素膠囊
   var getElemLabel = function(k){ return (ELEMENT_LABEL && ELEMENT_LABEL[k]) ? ELEMENT_LABEL[k] : k; };
   var pElem = (P && (P.element || P.elem)) ? (P.element || P.elem) : 'none';
   var eElem = (enemy && (enemy.element || enemy.elem)) ? (enemy.element || enemy.elem) : 'none';
@@ -1123,6 +1117,7 @@ function startBattle(){
   log('在 ' + (area.name||'當前地區') + ' 遭遇 ' + enemy.name + '！');
   loop = setInterval(tickATB, 60);
 }
+
 
 function tickATB(){
   if(!battle || battle.over) return;
@@ -1460,12 +1455,13 @@ async function endCheck(){
     log('你打倒了 ' + (battle.e.name||'敵人') + '！','ok');
     finishBattle();
 
+    // 經驗結算
     var exp = 10 + (battle.e.level||1)*4;
     try{
       if (window.MonsterDB && MonsterDB.expFor) {
         exp = MonsterDB.expFor(battle.e);
       }
-    }catch(e){}
+    }catch(_){}
 
     if (!P.exp) P.exp = {cur:0, max:100};
     if (typeof P.exp.max !== 'number') { P.exp.max = 100; }
@@ -1478,22 +1474,24 @@ async function endCheck(){
       log('升到 ' + P.level + ' 級！','ok');
     }
 
-    renderBars();
-    if (window.Auth && Auth.saveCharacter) {
-      try{ await Auth.saveCharacter(P); }catch(e){}
-    }
-    try{ await savePlayer(); }catch(e){}
-
-    try{
-      var s = (typeof getCurrentSmall==='function') ? getCurrentSmall() : null;
-      if (s && s.id === 'slime_cave'){
-        s._kill = (s._kill|0) + 1;
-        if (!s.bossReady && s._kill >= 10){
-          s.bossReady = true;
+    // 萊姆洞窟進度（寫在 P.mapProg）
+    if (curSmall === 'slime_cave'){
+      P.mapProg = P.mapProg || {};
+      P.mapProg.slime_cave = P.mapProg.slime_cave || { kills:0, bossReady:false };
+      if (!P.mapProg.slime_cave.bossReady){
+        P.mapProg.slime_cave.kills = (P.mapProg.slime_cave.kills|0) + 1;
+        if (P.mapProg.slime_cave.kills >= 10){
+          P.mapProg.slime_cave.kills = 10;
+          P.mapProg.slime_cave.bossReady = true;
           log('BOSS 已出現！','ok');
         }
       }
-    }catch(e){}
+      updateBossUI();
+    }
+
+    renderBars();
+    try{ if (window.Auth && Auth.saveCharacter) await Auth.saveCharacter(P); }catch(_){}
+    try{ await savePlayer(); }catch(_){}
 
     setTimeout(function(){ leaveBattle(); }, 1200);
 
@@ -1505,13 +1503,12 @@ async function endCheck(){
       P.hp.max = battle.p.hpMax || P.hp.max;
     }
     renderBars();
-    if (window.Auth && Auth.saveCharacter) {
-      try{ await Auth.saveCharacter(P); }catch(e){}
-    }
-    try{ await savePlayer(); }catch(e){}
+    try{ if (window.Auth && Auth.saveCharacter) await Auth.saveCharacter(P); }catch(_){}
+    try{ await savePlayer(); }catch(_){}
     setTimeout(function(){ leaveBattle(); }, 1200);
   }
 }
+
 
 function finishBattle(){
   battle.over = true;
@@ -1597,20 +1594,19 @@ qs('#btnBoss').onclick = function(){
 
 /* ===== 啟動（改為等雲端載入）===== */
 window.addEventListener('DOMContentLoaded', async function(){
-  // 先檢查是否已登入
+  // 登入檢查
   var user = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
   if(!user){ location.href = 'index.html'; return; }
 
-  // 從雲端載入角色（只用雲端的，不再回讀舊快取覆蓋）
+  // 載入角色（以雲端為準）
   var char = null;
   try{ char = (window.Auth && Auth.loadCharacter) ? (await Auth.loadCharacter()) : null; }
-  catch(e){ char = null; }
+  catch(_){ char = null; }
   if(!char){ location.href = 'index.html#create'; return; }
 
-  // 直接使用雲端回傳的角色
   P = char;
 
-  // === 正規化欄位（原本 loadPlayer() 做的事，這裡直接補齊） ===
+  // 正規化欄位
   if(!P.bag) P.bag = { consumables:[], weapons:[], ornaments:[], materials:[], hidden:[] };
   if(!Array.isArray(P.bag.consumables)) P.bag.consumables = [];
   if(!Array.isArray(P.bag.weapons))     P.bag.weapons     = [];
@@ -1633,10 +1629,10 @@ window.addEventListener('DOMContentLoaded', async function(){
   renderHeader();
   renderBars();
   buildMapUI();
-  bindEvents();
+  updateBossUI(); // 初始同步一次（避免提示沒出現）
 
   window.addEventListener('beforeunload', function(){
-    try{ if (P) savePlayer(); }catch(e){}
+    try{ if (P) savePlayer(); }catch(_){}
   });
 });
 

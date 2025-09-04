@@ -568,12 +568,13 @@ function applyDrops(player, drops){
 
 
 
-  /* === 怪物 Rank 與經驗規則（供 map.html 使用）=== */
+  /* === 怪物 Rank 與經驗規則（平均上調 10%）=== */
   var EXP_RULE = {
-    normal: function(lvl){ return Math.round(8 + lvl*4); },        // 基礎
-    elite:  function(lvl){ return Math.round((8 + lvl*4) * 1.8); },// 菁英倍率
-    boss:   function(lvl){ return Math.round((8 + lvl*4) * 4.0); } // BOSS 倍率
+    normal: function(lvl){ return Math.round((8 + lvl*4) * 1.10); },  // +10%
+    elite:  function(lvl){ return Math.round((8 + lvl*4) * 1.98); },  // 1.8 * 1.10
+    boss:   function(lvl){ return Math.round((8 + lvl*4) * 4.40); }   // 4.0 * 1.10
   };
+
 
   // 舊怪未標 rank：依 id 後綴推斷；否則預設 normal
   function rankOf(id){

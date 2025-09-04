@@ -570,7 +570,7 @@ const PLAYER_IMG_URL = 'https://picsum.photos/seed/xian-hero/400/600';
 const MAPS = [
   { id:'forest', name:'青木山脈', lv:'1-4', small:[
     { id:'slime_cave',  name:'萊姆洞窟', lv:'1-3',
-      monsters:['slime_young','slime','slime_elite'], boss:'slime_boss' },
+      monsters:['slime_young','slime','slime_king'], boss:'slime_boss' },
     { id:'woodland',    name:'靈木林',   lv:'2-3',
       monsters:['thorn_fox','wood_wisp','brass_beetle'] },
     { id:'moss_vale',   name:'苔石谷',   lv:'2-4',
@@ -1472,101 +1472,72 @@ async function endCheck(){
   if(battle.e.hp<=0){
     log('你打倒了 ' + (battle.e.name||'敵人') + '！','ok');
 
-    // 1) 先結束戰鬥循環（ATB 停住）
+    // 1) 停止敵方行動、淡出（不再跑 ATB）
     finishBattle();
+    var eImg = document.getElementById('eImg');
+    if(eImg){ eImg.classList.add('fade-out'); }
 
-    // 2) 敵人立繪淡出
-    var eImg = qs('#eImg');
-    if (eImg) { eImg.classList.add('fade-out'); }
+    // 2) 掉落：改用 MonsterDB 的 rollDrops/applyDrops（與 monsters.js 結構一致）
+    (function resolveDrops(monId){
+      try{
+        var loots = (window.MonsterDB && typeof MonsterDB.rollDrops==='function') ? MonsterDB.rollDrops(monId) : [];
+        if(!loots || !loots.length){
+          log('戰利品：—');
+        }else{
+          if(window.MonsterDB && typeof MonsterDB.applyDrops==='function'){ MonsterDB.applyDrops(P, loots); }
+          var txt = [];
+          for (var i=0;i<loots.length;i++){
+            var it = loots[i]||{};
+            var shown = it.name || it.id || '';
+            if(!shown){
+              if (it.type==='material' && window.ItemDB && ItemDB.getDef){
+                var mdef = ItemDB.getDef('materials', it.id); if(mdef && mdef.name) shown = mdef.name;
+              }else if (it.type==='consumable' && window.ItemDB && ItemDB.getDef){
+                var cdef = ItemDB.getDef('consumables', it.id); if(cdef && cdef.name) shown = cdef.name;
+              }
+            }
+            if(it.type==='currency' && it.id==='stone') shown = '靈石';
+            if(it.type==='currency' && it.id==='diamond') shown = '鑽石';
+            var amount = it.amount|0;
+            if(amount>0) txt.push(shown + ' ×' + amount);
+          }
+          log('戰利品：' + (txt.length ? txt.join('；') : '—'), txt.length ? 'ok' : undefined);
+        }
+      }catch(_e){}
+    })((battle.enemy && battle.enemy.id) ? battle.enemy.id : battle.enemy);
 
-    // 3) 經驗結算（保留溢出）
+    // 3) 經驗與升級（保留溢出）
     var expGain = 10 + (battle.e.level||1)*4;
     try{
-      if (window.MonsterDB && typeof MonsterDB.expFor === 'function'){
+      if (window.MonsterDB && typeof MonsterDB.expFor==='function') {
         expGain = MonsterDB.expFor(battle.e);
       }
     }catch(_){}
-    if (!P.exp) P.exp = { cur:0, max:100 };
-    if (typeof P.exp.cur !== 'number') P.exp.cur = 0;
-    if (typeof P.exp.max !== 'number' || P.exp.max <= 0) P.exp.max = 100;
 
+    if (!P.exp) P.exp = {cur:0, max:100};
+    if (typeof P.exp.cur!=='number') P.exp.cur = 0;
+    if (typeof P.exp.max!=='number' || P.exp.max<=0) P.exp.max = 100;
     P.exp.cur = (P.exp.cur|0) + (expGain|0);
+
+    // ★ 每升一級 +2 基礎屬性點（unspentPoints）
     var leveled = 0;
     while (P.exp.cur >= P.exp.max){
       P.exp.cur = P.exp.cur - P.exp.max;
-      P.level   = (P.level|0) + 1;
+      P.level = (P.level|0) + 1;
       P.exp.max = Math.max(50, Math.round((P.exp.max||100) * 1.25));
-      leveled   = leveled + 1;
+      leveled = leveled + 1;
     }
-    if (leveled > 0){
-      log('升到 ' + P.level + ' 級！（溢出經驗 ' + P.exp.cur + '/' + P.exp.max + '）','ok');
-      refreshLive();
-      renderHeader();
+    if (leveled>0){
+      if (typeof P.unspentPoints!=='number') P.unspentPoints = 0;
+      P.unspentPoints = P.unspentPoints + (leveled * 2);
+      log('升到 ' + P.level + ' 級！獲得屬性點 +' + (leveled*2) + '（可到主城分配）','ok');
+      refreshLive(); renderHeader();
     }
 
-    // 4) 掉落結算（currency/material/consumable）
-    (function resolveDrops(mon){
-      var list = (mon && mon.drops) ? mon.drops : [];
-      if (!list || !list.length) return log('戰利品：—');
-
-      var parts = [];
-      for (var i=0;i<list.length;i++){
-        var d = list[i]||{};
-        var chance = (typeof d.chance==='number') ? d.chance : 0;
-        if (Math.random() >= chance) continue;
-
-        var min = (d.qty && typeof d.qty.min==='number') ? d.qty.min : 1;
-        var max = (d.qty && typeof d.qty.max==='number') ? d.qty.max : min;
-        if (max < min) max = min;
-        var cnt = min + Math.floor(Math.random() * (max - min + 1));
-
-        var type = d.type || '';
-        var id   = d.id   || '';
-        var shownName = d.name || id;
-
-        if (type === 'currency'){
-          P.currencies = P.currencies || {};
-          var cur = (typeof P.currencies[id]==='number') ? P.currencies[id] : 0;
-          P.currencies[id] = cur + cnt;
-          if (id==='stone') shownName = '靈石';
-          if (id==='diamond') shownName = '鑽石';
-          parts.push(shownName + ' ×' + cnt);
-        }else if(type === 'material'){
-          if (window.ItemDB && typeof ItemDB.addMaterialToBag==='function'){
-            ItemDB.addMaterialToBag(P.bag, id, cnt);
-          }
-          var mdef = (window.ItemDB && ItemDB.getDef) ? ItemDB.getDef('materials', id) : null;
-          parts.push( (mdef && mdef.name ? mdef.name : shownName) + ' ×' + cnt );
-        }else if(type === 'consumable'){
-          if (window.ItemDB && typeof ItemDB.addConsumableToBag==='function'){
-            ItemDB.addConsumableToBag(P.bag, id, cnt);
-          }
-          var cdef = (window.ItemDB && ItemDB.getDef) ? ItemDB.getDef('consumables', id) : null;
-          parts.push( (cdef && cdef.name ? cdef.name : shownName) + ' ×' + cnt );
-        }
-      }
-      log('戰利品：' + (parts.length ? parts.join('；') : '—'), parts.length?'ok':undefined);
-    })(battle.enemy);
-
-    // 5) 萊姆洞窟進度（保留你原本的邏輯）
-    try{
-      var s = (typeof getCurrentSmall==='function') ? getCurrentSmall() : null;
-      if (s && s.id === 'slime_cave'){
-        s._kill = (s._kill|0) + 1;
-        if (!s.bossReady && s._kill >= 10){
-          s.bossReady = true;
-          log('BOSS 已出現！','ok');
-        }
-      }
-    }catch(_){}
-
-    // 6) 更新條與儲存
     renderBars();
-    try{ if (window.Auth && Auth.saveCharacter) await Auth.saveCharacter(P); }catch(_){}
+    if (window.Auth && Auth.saveCharacter) { try{ await Auth.saveCharacter(P); }catch(_){ } }
     try{ await savePlayer(); }catch(_){}
-
-    // 7) 等淡出完成再離場
-    setTimeout(function(){ leaveBattle(); }, 1400);
+    setTimeout(function(){ leaveBattle(); }, 1200);
 
   }else if(battle.p.hp<=0){
     log('你被擊倒了…（保留 1 點氣血）', 'warn');
@@ -1576,11 +1547,12 @@ async function endCheck(){
       P.hp.max = battle.p.hpMax || P.hp.max;
     }
     renderBars();
-    try{ if (window.Auth && Auth.saveCharacter) await Auth.saveCharacter(P); }catch(_){}
+    if (window.Auth && Auth.saveCharacter) { try{ await Auth.saveCharacter(P); }catch(_){} }
     try{ await savePlayer(); }catch(_){}
     setTimeout(function(){ leaveBattle(); }, 1200);
   }
 }
+
 
 
 function finishBattle(){

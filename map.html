@@ -1046,33 +1046,32 @@ function startBattle(){
   refreshLive();
   var d = (P && P._live) ? P._live : {};
 
-  // 2) 敵人使用資料庫的「固定 stats」，若缺 acc/eva 以 deriveAgainst 或預設值補齊
-  var eBase = (enemy && enemy.stats) ? enemy.stats : {};
-  var derived = null;
+  // 2) 敵人使用「怪物衍生表」（鍵名與主城一致），完全不再依賴玩家數值
+  var dMon = null;
   try{
-    if (window.MonsterDB && MonsterDB.deriveAgainst && P && P._live){
-      derived = MonsterDB.deriveAgainst(P._live, enemy.id) || null;
+    if (window.MonsterDB && MonsterDB.getDerived){
+      dMon = MonsterDB.getDerived(enemy.id) || null;
     }
-  }catch(_err){ derived = null; }
+  }catch(_err){ dMon = null; }
 
-  function pick(key, fallback){
-    var v0 = (typeof eBase[key] === 'number') ? eBase[key] : null;
-    if (v0 != null && v0 > 0) return v0;
-    if (derived && typeof derived[key] === 'number' && derived[key] > 0) return derived[key];
-    return (typeof fallback === 'number') ? fallback : 0;
+  // 從衍生表轉成戰鬥用的簡表（沿用你目前 eStats 結構）
+  function pickD(key, fallback){
+    var v = (dMon && typeof dMon[key]==='number') ? dMon[key] : fallback;
+    return (typeof v==='number') ? v : (fallback||0);
   }
 
   var eStats = {
-    atk  : (eBase.atk  | 0),
-    matk : (eBase.matk | 0),
-    def  : (eBase.def  | 0),
-    mdef : (eBase.mdef | 0),
-    acc  : pick('acc', 75),  // 缺就補：預設 75
-    eva  : pick('eva', 5),   // 缺就補：預設 5
-    crit : (eBase.crit | 0),
-    aspd : (typeof eBase.aspd === 'number' ? eBase.aspd : 1.00),
-    pen  : 0                 // 目前怪物未定義破甲
+    atk  : pickD('物理攻擊',   10),
+    matk : pickD('法術攻擊',   10),
+    def  : pickD('物理防禦',    8),
+    mdef : pickD('法術防禦',    8),
+    acc  : pickD('命中率',     75),
+    eva  : pickD('閃避',        5),
+    crit : Math.min(100, pickD('暴擊率', 3)),
+    aspd : Math.max(0.5,  (pickD('行動條速度', 100) / 100)),
+    pen  : pickD('破甲',        0)
   };
+
 
   // 初始化戰鬥物件（全部用固定 DB）
   battle = {
@@ -1087,11 +1086,13 @@ function startBattle(){
       speed: Math.max(50, d['行動條速度'] || 100),
     },
     e:{
-      hp   : (eBase.hp || 100),
-      hpMax: (eBase.hp || 100),
+      hp   : pickD('氣血上限', 100),
+      hpMax: pickD('氣血上限', 100),
       atb  : 0,
-      speed: Math.max(50, Math.round((eStats.aspd || 1) * 100)),
+      speed: Math.max(50, pickD('行動條速度', 100)),
     },
+
+
     turn:'none',
     over:false
   };

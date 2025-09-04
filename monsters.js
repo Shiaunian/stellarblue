@@ -149,11 +149,11 @@ const DB = {
   },
 
   // 金：高命中・中高防禦
-  brass_beetle:{
-    id:'brass_beetle', name:'黃銅甲蟲', level:2, element:'gold',
-    img:'https://picsum.photos/seed/brassbeetle/500/500', imgMirror:false,
+  Fire_Spirit:{
+    id:'Fire_Spirit', name:'火之靈', level:2, element:'fire',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756962118/%E7%81%AB%E4%B9%8B%E9%9D%88_fzypz6.png', imgMirror:false,
     scales:{ '物理防禦':1.10, '命中率':1.10, '行動條速度':0.95 },
-    stats:{ hp:165, mp:24, atk:15, matk:8, def:16, mdef:10, acc:88, eva:4, crit:4, aspd:1.00 },
+    stats:{ hp:165, mp:24, atk:15, matk:8, def:16, mdef:10, acc:88, eva:4, crit:4, aspd:1.05 },
     drops:[
       {type:'currency', id:'stone', name:'靈石', min:9, max:18, chance:1.00},
       {type:'material', id:'hard_rock', name:'堅石', min:1, max:2, chance:0.55},

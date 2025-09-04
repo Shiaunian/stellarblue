@@ -20,6 +20,8 @@ const DB = {
   slime_young: {
     id:'slime_young', name:'萊姆幼體', level:1, element:'none',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756700521/%E8%90%8A%E5%A7%86%E5%B9%BC%E9%AB%94_vbpjcf.png', imgMirror:false,
+    // 六圍（依你的公式推回來，供 deriveAgainst 優先使用）
+    attributes:{ str:3, vit:7, dex:9, int:3, wis:1, luk:1 },
     scales:{ '氣血上限':0.85, '物理攻擊':0.80, '行動條速度':0.90 },
     stats:{ hp:105, mp:26, atk:8,  matk:7,  def:4,  mdef:4,  acc:79, eva:4, crit:2, aspd:1.00 },
     drops:[
@@ -27,28 +29,34 @@ const DB = {
       {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},
     ]
   },
+
   slime: {
     id:'slime', name:'萊姆成體', level:2, element:'none',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756701712/%E8%90%8A%E5%A7%86%E6%88%90%E9%AB%94_gog4wl.png', imgMirror:false,
+    attributes:{ str:3, vit:11, dex:10, int:4, wis:2, luk:1 },
     scales:{ '氣血上限':0.85, '物理攻擊':0.80, '行動條速度':0.90 },
-    stats:{ hp:145, mp:31, atk:8,  matk:10, def:5,  mdef:6,  acc:79, eva:5, crit:3, aspd:1.05 },
+    stats:{ hp:145, mp:31, atk:8,  matk:10, def:5,  mdef:6,  acc:79, eva:5,  crit:3, aspd:1.05 },
     drops:[
       {type:'currency',  id:'stone',       name:'靈石',       min:10, max:14, chance:1.00},
       {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:2,  chance:0.60},
       {type:'consumable',id:'hp_small',    name:'氣血丹',     min:1,  max:1,  chance:0.25},
     ]
   },
+
+
   slime_king: {
     id:'slime_king', name:'史萊姆', level:3, element:'none',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756701968/%E5%8F%B2%E8%90%8A%E5%A7%86_llcjhj.png', imgMirror:false,
+    attributes:{ str:4, vit:16, dex:10, int:5, wis:3, luk:1 },
     scales:{ '氣血上限':0.90, '物理攻擊':0.85, '行動條速度':0.95 },
-    stats:{ hp:195, mp:38, atk:12, matk:14, def:7,  mdef:8,  acc:82, eva:6, crit:4, aspd:1.10 },
+    stats:{ hp:195, mp:38, atk:12, matk:14, def:7,  mdef:8,  acc:82, eva:6,  crit:4, aspd:1.10 },
     drops:[
       {type:'currency',  id:'stone',       name:'靈石',       min:15, max:22, chance:1.00},
       {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:2,  max:3,  chance:0.75},
       {type:'consumable',id:'hp_small',    name:'氣血丹',     min:1,  max:2,  chance:0.35},
     ]
   },
+
 
   // ★ 原有 BOSS（保留原圖）
   slime_boss: {
@@ -369,15 +377,65 @@ if (DB.stone_golem && !DB.stone_golem_boss && DB.thunder_beetle){
 
 
 // === 正規化（把缺的能力補齊，特別是 acc / eva / crit / aspd）===
-(function normalizeDB(){
-  const DEF = { hp:100, mp:30, atk:10, matk:10, def:8, mdef:8, acc:75, eva:5, crit:3, aspd:1.00 };
-  Object.values(DB).forEach(m=>{
-    m.stats = m.stats || {};
-    for (const k in DEF) {
-      if (typeof m.stats[k] !== 'number') m.stats[k] = DEF[k];
-    }
-  });
-})();
+ // === 正規化 + 回填六圍（attributes）===
+ (function normalizeAndBackfill(){
+   var DEF = { hp:100, mp:30, atk:10, matk:10, def:8, mdef:8, acc:75, eva:5, crit:3, aspd:1.00 };
+
+   function clamp(v,min,max){ if(v<min) return min; if(v>max) return max; return v; }
+   function round(n){ return Math.round(n); }
+
+   function backfillAttributes(m){
+     if (m.attributes && typeof m.attributes.str==='number') return; // 已有就不動
+     var s = m.stats||{}, L = m.level||1;
+
+     // 反推六圍（以你公式的近似反解）
+     // 1) 力道：atk ≈ str*2 + L → str ≈ (atk - L)/2
+     var str = round(((s.atk||DEF.atk) - L)/2);
+
+     // 2) 體魄：hp ≈ 80 + vit*12 + L*6 → vit ≈ (hp - 80 - 6L)/12
+     var vit = round(((s.hp||DEF.hp) - 80 - 6*L)/12);
+
+     // 3) 身法：由 acc 與 速度 共同估，acc≈60+dex*2；speed≈100+dex*2.2
+     var dexFromAcc   = ((s.acc||DEF.acc) - 60)/2;
+     var dexFromSpeed = (( (typeof s.aspd==='number'?s.aspd:1.00)*100 ) - 100)/2.2;
+     var dex = round(( (isFinite(dexFromAcc)?dexFromAcc:0) + (isFinite(dexFromSpeed)?dexFromSpeed:0) )/2);
+
+     // 4) 悟性/心神：由 mp 與 matk/法防估
+     // mp ≈ 40 + wis*10 + floor(int*6/5)；先用 matk≈int*2 估 int，再回推 wis
+     var int0 = ((s.matk||DEF.matk) / 2);
+     var wisFromMP = ((s.mp||DEF.mp) - 40 - Math.floor((isFinite(int0)?int0:0)*6/5)) / 10;
+     // 另由法防與心神關係微調：mdef ≈ floor(wis*1.3) + floor(int*0.5)
+     var wisFromMdef = ((s.mdef||DEF.mdef) - Math.floor((isFinite(int0)?int0:0)*0.5)) / 1.3;
+     var wis = round( ( (isFinite(wisFromMP)?wisFromMP:0) + (isFinite(wisFromMdef)?wisFromMdef:0) ) / 2 );
+     var Int = round(isFinite(int0)?int0:10);
+
+     // 5) 氣運：crit ≈ 3 + floor(luk*0.8)，critdmg ≈ 50 + floor(luk*1.5)
+     var lukFromCrit   = ((s.crit||DEF.crit) - 3) / 0.8;
+     var lukFromCrtDmg = (( (typeof s.critdmg==='number')?s.critdmg:150 ) - 50) / 1.5;
+     var luk = round( ( (isFinite(lukFromCrit)?lukFromCrit:0) + (isFinite(lukFromCrtDmg)?lukFromCrtDmg:lukFromCrit) ) / 2 );
+
+     // 夾限（避免負數/爆表）
+     str = clamp(str,  1, 200);
+     vit = clamp(vit,  1, 200);
+     dex = clamp(dex,  1, 200);
+     Int = clamp(Int,  1, 200);
+     wis = clamp(wis,  1, 200);
+     luk = clamp(luk,  1, 200);
+
+     m.attributes = { str:str, vit:vit, dex:dex, int:Int, wis:wis, luk:luk };
+   }
+
+   Object.keys(DB).forEach(function(key){
+     var m = DB[key];
+     if(!m) return;
+     // 先補齊缺的 stats
+     m.stats = m.stats || {};
+     for (var k in DEF){ if (typeof m.stats[k] !== 'number') m.stats[k] = DEF[k]; }
+     // 再嘗試反推 attributes
+     backfillAttributes(m);
+   });
+ })();
+
 
 
 // === 工具 ===
@@ -440,33 +498,78 @@ function applyDrops(player, drops){
     return { url: (m && m.img) ? m.img : DEFAULT_IMG, mirror: !!(m && m.imgMirror) };
   }
 
-  // 依玩家衍生值 × 怪物倍率 → 生成怪物實際數值
-  function deriveAgainst(dp, monsterId){
+  // 怪物「自有六圍」→ 你的衍生鍵名 → 再套 scales
+  // 規則：
+  // 1) 若 m.attributes 存在，使用你的公式計算（與主城一致）
+  // 2) 否則退回用 m.stats 對應成你的鍵名
+  // 3) 最後一律乘上 defaultScales 與 m.scales
+  function deriveAgainst(_dp_ignored, monsterId){
     var m = get(monsterId); if(!m) return null;
     var sc = Object.assign({}, defaultScales, m.scales||{});
-    function pick(k, round){
-      if(round===void 0) round=true;
-      var v = (dp && dp[k] ? dp[k] : 0) * (sc[k]!==undefined ? sc[k] : 1.0);
-      return round ? Math.max(1, Math.round(v)) : v;
+
+    function derivedFromAttrs(mon){
+      var A = (mon && mon.attributes) ? mon.attributes : null;
+      if(!A) return null;
+      var L = mon.level || 1;
+      var out = {
+        '物理攻擊': A.str*2 + L,
+        '法術攻擊': A.int*2 + Math.floor(A.wis*0.5),
+        '氣血上限': 80 + A.vit*12 + L*6,
+        '真元上限': 40 + A.wis*10 + Math.floor(A.int*6/5),
+        '物理防禦': Math.floor(A.vit*1.2) + Math.floor(A.dex*0.6),
+        '法術防禦': Math.floor(A.wis*1.3) + Math.floor(A.int*0.5),
+        '命中率': 60 + A.dex*2,
+        '閃避': 5 + Math.floor(A.dex*1.2),
+        '暴擊率': Math.min(50, 3 + Math.floor(A.luk*0.8)),
+        '暴擊傷害': 50 + Math.floor(A.luk*1.5),
+        '行動條速度': 100 + Math.floor(A.dex*2.2),
+        '回氣/回合': 2 + Math.floor(A.wis*0.4),
+        '回血/回合': 1 + Math.floor(A.vit*0.5),
+        '破甲': Math.floor(A.str*0.6),
+        '法穿': Math.floor(A.int*0.6)
+      };
+      return out;
     }
-    return {
-      hp: pick('氣血上限'),
-      mp: pick('真元上限'),
-      atk: pick('物理攻擊'),
-      matk: pick('法術攻擊'),
-      def: pick('物理防禦'),
-      mdef: pick('法術防禦'),
-      acc: pick('命中率'),
-      eva: pick('閃避'),
-      crit: Math.min(100, pick('暴擊率')),
-      critdmg: Math.max(100, pick('暴擊傷害')),
-      speed: Math.max(40, pick('行動條速度')),
-      regen_mp: pick('回氣/回合'),
-      regen_hp: pick('回血/回合'),
-      pen: pick('破甲'),
-      mpen: pick('法穿')
-    };
+
+    function mappedFromStats(mon){
+      var s = mon.stats||{};
+      var out = {
+        '氣血上限':   (typeof s.hp==='number')?s.hp:100,
+        '真元上限':   (typeof s.mp==='number')?s.mp:40,
+        '物理攻擊':   (typeof s.atk==='number')?s.atk:10,
+        '法術攻擊':   (typeof s.matk==='number')?s.matk:10,
+        '物理防禦':   (typeof s.def==='number')?s.def:8,
+        '法術防禦':   (typeof s.mdef==='number')?s.mdef:8,
+        '命中率':     (typeof s.acc==='number')?s.acc:75,
+        '閃避':       (typeof s.eva==='number')?s.eva:5,
+        '暴擊率':     Math.min(100, (typeof s.crit==='number')?s.crit:3),
+        '暴擊傷害':   (typeof s.critdmg==='number')?Math.max(100,s.critdmg):150,
+        '行動條速度': Math.max(40, Math.round(((typeof s.aspd==='number'?s.aspd:1.00)*100))),
+        '回氣/回合':  (typeof s.regen_mp==='number')?s.regen_mp:2,
+        '回血/回合':  (typeof s.regen_hp==='number')?s.regen_hp:1,
+        '破甲':       (typeof s.pen==='number')?s.pen:0,
+        '法穿':       (typeof s.mpen==='number')?s.mpen:0
+      };
+      return out;
+    }
+
+    var sheet = derivedFromAttrs(m) || mappedFromStats(m);
+    var out = {};
+    for (var k in sheet){
+      var mul = (sc[k]!==undefined) ? sc[k] : 1.0;
+      var v = Math.round((sheet[k]||0) * mul);
+      if (k==='暴擊率') { if (v<0) v=0; if (v>100) v=100; }
+      else if (k==='暴擊傷害' || k==='行動條速度') { if (v<40 && k==='行動條速度') v=40; else if (v<1) v=1; }
+      else { if (v<1) v=1; }
+      out[k] = v;
+    }
+    return out;
   }
+
+  //（可選）供地圖直接取用
+  function getDerived(monId){ return deriveAgainst(null, monId); }
+
+
 
   /* === 怪物 Rank 與經驗規則（供 map.html 使用）=== */
   var EXP_RULE = {

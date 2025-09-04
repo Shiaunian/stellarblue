@@ -17,25 +17,23 @@
 
 const DB = {
   // === 原有普通怪（保留原圖） ===
-  slime_young: {
+  slime_young:{
     id:'slime_young', name:'萊姆幼體', level:1, element:'none',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756700521/%E8%90%8A%E5%A7%86%E5%B9%BC%E9%AB%94_vbpjcf.png', imgMirror:false,
-    // 六圍（依你的公式推回來，供 deriveAgainst 優先使用）
-    attributes:{ str:3, vit:7, dex:9, int:3, wis:1, luk:1 },
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756701371/%E8%90%8A%E5%A7%86%E5%B9%BC%E9%AB%94_ly4xgo.png', imgMirror:false,
     scales:{ '氣血上限':0.85, '物理攻擊':0.80, '行動條速度':0.90 },
-    stats:{ hp:105, mp:26, atk:8,  matk:7,  def:4,  mdef:4,  acc:79, eva:4, crit:2, aspd:1.00 },
+    stats:{ hp:70, mp:26, atk:9,  matk:7,  def:3,  mdef:4,  acc:79, eva:4, crit:2, aspd:1.00 },
     drops:[
-      {type:'currency',  id:'stone',       name:'靈石',       min:6,  max:14, chance:1.00},
-      {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},
+      {type:'currency',  id:'stone', name:'靈石', min:6, max:14, chance:1.00},
+      {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1, max:1, chance:0.60},
     ]
   },
 
-  slime: {
+
+  slime:{
     id:'slime', name:'萊姆成體', level:2, element:'none',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756701712/%E8%90%8A%E5%A7%86%E6%88%90%E9%AB%94_gog4wl.png', imgMirror:false,
-    attributes:{ str:3, vit:11, dex:10, int:4, wis:2, luk:1 },
     scales:{ '氣血上限':0.85, '物理攻擊':0.80, '行動條速度':0.90 },
-    stats:{ hp:145, mp:31, atk:8,  matk:10, def:5,  mdef:6,  acc:79, eva:5,  crit:3, aspd:1.05 },
+    stats:{ hp:90, mp:31, atk:10, matk:10, def:4,  mdef:6,  acc:79, eva:5, crit:3, aspd:1.05 },  
     drops:[
       {type:'currency',  id:'stone',       name:'靈石',       min:10, max:14, chance:1.00},
       {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:2,  chance:0.60},
@@ -44,12 +42,11 @@ const DB = {
   },
 
 
-  slime_king: {
+  slime_king:{
     id:'slime_king', name:'史萊姆', level:3, element:'none',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756701968/%E5%8F%B2%E8%90%8A%E5%A7%86_llcjhj.png', imgMirror:false,
-    attributes:{ str:4, vit:16, dex:10, int:5, wis:3, luk:1 },
     scales:{ '氣血上限':0.90, '物理攻擊':0.85, '行動條速度':0.95 },
-    stats:{ hp:195, mp:38, atk:12, matk:14, def:7,  mdef:8,  acc:82, eva:6,  crit:4, aspd:1.10 },
+    stats:{ hp:160, mp:38, atk:11, matk:14, def:6,  mdef:8,  acc:82, eva:6, crit:4, aspd:1.10 },
     drops:[
       {type:'currency',  id:'stone',       name:'靈石',       min:15, max:22, chance:1.00},
       {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:2,  max:3,  chance:0.75},
@@ -598,7 +595,6 @@ function applyDrops(player, drops){
     return fn(lvl);
   }
 
-  // 對外
   window.MonsterDB = {
     DB: DB,
     get: get,
@@ -606,10 +602,15 @@ function applyDrops(player, drops){
     rollDrops: rollDrops,
     applyDrops: applyDrops,
     getImage: getImage,
+    // 新增：直接取怪物「衍生能力表」（鍵名與主城一致）
+    getDerived: getDerived,
+    // 保留舊介面（若有其它地方還用得到）
     deriveAgainst: deriveAgainst,
     rankOf: rankOf,
     expFor: expFor
   };
+
+
 })();
 
 

@@ -212,13 +212,17 @@
     .e-frame{ border-radius:12px; }       /* 敵人方形，帶一點圓角 */
 
     /* 內部圖片：以 100×100 素材為主，保持完整顯示 */
+    /* 內部圖片：以 100×100 素材為主，保持完整顯示 */
     .portrait{
       width:100%; height:100%;
       object-fit:contain; display:block;
       image-rendering:auto;
       filter: drop-shadow(0 4px 6px rgba(0,0,0,.35));
+      transition: opacity 600ms ease, transform 600ms ease; /* ↓ 加入過場 */
     }
     .portrait.mirror{ transform: scaleX(-1); }
+    .portrait.fade-out{ opacity:0; transform: scale(0.96); } /* ↓ 淡出用 */
+
 
     .who{display:flex; align-items:center; justify-content:space-between; gap:8px;}
     .name{font-weight:900;}
@@ -237,12 +241,13 @@
       height:110px;
       overflow:auto;
       padding:10px 12px;
-      font-size:13px;
-      line-height:1.4;
+      font-size:12px;         /* ↓ 小一點 */
+      line-height:1.35;
       background:rgba(6,10,26,0.8);
       border:1px solid rgba(255,255,255,.3);
       border-radius:10px;
     }
+
     /* 每條訊息底下留一點間距 */
     .log > div{ margin-bottom:4px; }
     /* 日誌分類顏色：呼應全域變數 ok/warn/hp 等 */
@@ -547,11 +552,14 @@ function elemMult(dmgElem='none', defElem='none'){
 }
 // 將元素對應關係轉成易讀的片語（固定顯示，×1.00 也會寫出來）
 function elemRelationText(atkElem, defElem, elemMul, stabMul){
-  const name = (k)=> (ELEMENT_LABEL?.[k] || k || '無');
-  const parts = [`相性：${name(atkElem)}→${name(defElem)} ×${(elemMul||1).toFixed(2)}`];
-  if ((stabMul||1) > 1) parts.push(`同屬 +${Math.round((stabMul-1)*100)}%`);
-  return '（' + parts.join('；') + '）';
+  // 只有克制/受克才顯示；相同或中性不顯示
+  var m = (typeof elemMul === 'number') ? elemMul : 1;
+  if (m === 1) return '';
+  var label = (m > 1) ? '克制' : '受克';
+  var pct   = Math.round(Math.abs(m - 1) * 100);
+  return '（' + label + ' ' + (m>1?'+':'-') + pct + '%）';
 }
+
 
 // 玩家預設立繪（若沒有 avatar 才用這張）
 const PLAYER_IMG_URL = 'https://picsum.photos/seed/xian-hero/400/600';
@@ -1463,45 +1471,84 @@ async function endCheck(){
 
   if(battle.e.hp<=0){
     log('你打倒了 ' + (battle.e.name||'敵人') + '！','ok');
+
+    // 1) 先結束戰鬥循環（ATB 停住）
     finishBattle();
 
-    // 1) 經驗獎勵（優先使用 MonsterDB.expFor）
+    // 2) 敵人立繪淡出
+    var eImg = qs('#eImg');
+    if (eImg) { eImg.classList.add('fade-out'); }
+
+    // 3) 經驗結算（保留溢出）
     var expGain = 10 + (battle.e.level||1)*4;
     try{
       if (window.MonsterDB && typeof MonsterDB.expFor === 'function'){
         expGain = MonsterDB.expFor(battle.e);
       }
     }catch(_){}
-
-    // 2) 確保 exp 結構健全
     if (!P.exp) P.exp = { cur:0, max:100 };
     if (typeof P.exp.cur !== 'number') P.exp.cur = 0;
     if (typeof P.exp.max !== 'number' || P.exp.max <= 0) P.exp.max = 100;
 
-    // 3) 加總並處理溢出升級
     P.exp.cur = (P.exp.cur|0) + (expGain|0);
-
     var leveled = 0;
     while (P.exp.cur >= P.exp.max){
-      P.exp.cur = P.exp.cur - P.exp.max;                           // 保留溢出
-      P.level   = (P.level|0) + 1;                                  // 升級
-      P.exp.max = Math.max(50, Math.round((P.exp.max||100) * 1.25));// 新上限
+      P.exp.cur = P.exp.cur - P.exp.max;
+      P.level   = (P.level|0) + 1;
+      P.exp.max = Math.max(50, Math.round((P.exp.max||100) * 1.25));
       leveled   = leveled + 1;
     }
-
     if (leveled > 0){
       log('升到 ' + P.level + ' 級！（溢出經驗 ' + P.exp.cur + '/' + P.exp.max + '）','ok');
       refreshLive();
       renderHeader();
     }
 
-    renderBars();
+    // 4) 掉落結算（currency/material/consumable）
+    (function resolveDrops(mon){
+      var list = (mon && mon.drops) ? mon.drops : [];
+      if (!list || !list.length) return log('戰利品：—');
 
-    // 4) 先本地快取再雲端，避免跨頁讀到舊資料
-    try{ if (window.Auth && Auth.saveCharacter) await Auth.saveCharacter(P); }catch(_){}
-    try{ await savePlayer(); }catch(_){}
+      var parts = [];
+      for (var i=0;i<list.length;i++){
+        var d = list[i]||{};
+        var chance = (typeof d.chance==='number') ? d.chance : 0;
+        if (Math.random() >= chance) continue;
 
-    // 5) 區域進度（萊姆洞窟）
+        var min = (d.qty && typeof d.qty.min==='number') ? d.qty.min : 1;
+        var max = (d.qty && typeof d.qty.max==='number') ? d.qty.max : min;
+        if (max < min) max = min;
+        var cnt = min + Math.floor(Math.random() * (max - min + 1));
+
+        var type = d.type || '';
+        var id   = d.id   || '';
+        var shownName = d.name || id;
+
+        if (type === 'currency'){
+          P.currencies = P.currencies || {};
+          var cur = (typeof P.currencies[id]==='number') ? P.currencies[id] : 0;
+          P.currencies[id] = cur + cnt;
+          if (id==='stone') shownName = '靈石';
+          if (id==='diamond') shownName = '鑽石';
+          parts.push(shownName + ' ×' + cnt);
+        }else if(type === 'material'){
+          if (window.ItemDB && typeof ItemDB.addMaterialToBag==='function'){
+            ItemDB.addMaterialToBag(P.bag, id, cnt);
+          }
+          var mdef = (window.ItemDB && ItemDB.getDef) ? ItemDB.getDef('materials', id) : null;
+          parts.push( (mdef && mdef.name ? mdef.name : shownName) + ' ×' + cnt );
+        }else if(type === 'consumable'){
+          if (window.ItemDB && typeof ItemDB.addConsumableToBag==='function'){
+            ItemDB.addConsumableToBag(P.bag, id, cnt);
+          }
+          var cdef = (window.ItemDB && ItemDB.getDef) ? ItemDB.getDef('consumables', id) : null;
+          parts.push( (cdef && cdef.name ? cdef.name : shownName) + ' ×' + cnt );
+        }
+      }
+      log('戰利品：' + (parts.length ? parts.join('；') : '—'), parts.length?'ok':undefined);
+    })(battle.enemy);
+
+    // 5) 萊姆洞窟進度（保留你原本的邏輯）
     try{
       var s = (typeof getCurrentSmall==='function') ? getCurrentSmall() : null;
       if (s && s.id === 'slime_cave'){
@@ -1513,7 +1560,13 @@ async function endCheck(){
       }
     }catch(_){}
 
-    setTimeout(function(){ leaveBattle(); }, 1200);
+    // 6) 更新條與儲存
+    renderBars();
+    try{ if (window.Auth && Auth.saveCharacter) await Auth.saveCharacter(P); }catch(_){}
+    try{ await savePlayer(); }catch(_){}
+
+    // 7) 等淡出完成再離場
+    setTimeout(function(){ leaveBattle(); }, 1400);
 
   }else if(battle.p.hp<=0){
     log('你被擊倒了…（保留 1 點氣血）', 'warn');
@@ -1528,7 +1581,6 @@ async function endCheck(){
     setTimeout(function(){ leaveBattle(); }, 1200);
   }
 }
-
 
 
 function finishBattle(){

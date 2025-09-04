@@ -1126,9 +1126,39 @@ function startBattle(){
 
   var pSrc = (P && P.avatar && typeof P.avatar==='string' && P.avatar.trim()) ? P.avatar : PLAYER_IMG_URL;
   var pic = (window.MonsterDB && MonsterDB.getImage) ? MonsterDB.getImage(enemy.id) : {url:'',mirror:false};
-  var pImg = qs('#pImg'); var eImg = qs('#eImg');
-  if(pImg) pImg.src = pSrc;
-  if(eImg){ eImg.src = pic.url || ''; eImg.classList.toggle('mirror', !!pic.mirror); }
+  var pImg = qs('#pImg'); 
+  var eImg = qs('#eImg');
+
+  if (pImg) { pImg.src = pSrc; }
+
+  if (eImg){
+    // ★ 開戰先完整重置敵人立繪狀態（避免上一場的 0 透明度/動畫殘留）
+    eImg.style.opacity = '1';
+    eImg.style.transition = '';
+    eImg.classList.remove('fade-out');
+    // 清掉上一場特效殘留
+    var eFx = qs('#eFx'); if (eFx) eFx.innerHTML = '';
+    var pFx = qs('#pFx'); if (pFx) pFx.innerHTML = '';
+
+    // 設置圖片與鏡像
+    var finalUrl = (pic && typeof pic.url==='string' && pic.url.trim()) ? pic.url : 'https://picsum.photos/seed/monster/500/500';
+    eImg.classList.toggle('mirror', !!(pic && pic.mirror));
+
+    // 安全預載：失敗時回退預設圖，避免空黑畫面
+    var test = new Image();
+    test.onload = function(){
+      if (test.naturalWidth > 0 && test.naturalHeight > 0){
+        eImg.src = finalUrl;
+      }else{
+        eImg.src = 'https://picsum.photos/seed/monster/500/500';
+      }
+    };
+    test.onerror = function(){
+      eImg.src = 'https://picsum.photos/seed/monster/500/500';
+    };
+    test.src = finalUrl;
+  }
+
 
   updateBattleBars();
   updateCmdEnabled();
@@ -1477,7 +1507,34 @@ async function endCheck(){
     var eImg = document.getElementById('eImg');
     if(eImg){ eImg.classList.add('fade-out'); }
 
-    // 2) 掉落：改用 MonsterDB 的 rollDrops/applyDrops（與 monsters.js 結構一致）
+    // 1.5) 若在萊姆洞窟，累積擊殺數，達 10/10 顯示 BOSS
+    try{
+      // 找當前的小地圖
+      var big=null, area=null, i,j;
+      for(i=0;i<MAPS.length;i++){ if(MAPS[i].id===curBig){ big=MAPS[i]; break; } }
+      if(big && big.small){
+        for(j=0;j<big.small.length;j++){ if(big.small[j].id===curSmall){ area=big.small[j]; break; } }
+      }
+      if(area && area.id==='slime_cave'){
+        P.mapProg = P.mapProg || {};
+        var prog = P.mapProg.slime_cave || { kills:0, bossReady:false };
+        // 只有未出現 BOSS 前才累積
+        if(!prog.bossReady){
+          prog.kills = (prog.kills|0) + 1;
+          if(prog.kills >= 10){
+            prog.kills = 10;    // 封頂
+            prog.bossReady = true;
+            log('萊姆洞窟 BOSS 已出現！','ok');
+          }else{
+            log('萊姆洞窟討伐進度：' + prog.kills + '/10');
+          }
+          P.mapProg.slime_cave = prog;
+          updateBossUI();
+        }
+      }
+    }catch(_){}
+
+    // 2) 掉落（MonsterDB）
     (function resolveDrops(monId){
       try{
         var loots = (window.MonsterDB && typeof MonsterDB.rollDrops==='function') ? MonsterDB.rollDrops(monId) : [];

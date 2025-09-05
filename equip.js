@@ -234,28 +234,129 @@ function onClick(e){
 
 
   function equipMedal(m){
-    const P=api.getPlayer&&api.getPlayer(); if(!P) return false;
+    const P = api.getPlayer && api.getPlayer(); if(!P) return false;
+    P.equip = P.equip || {};
     const arr = P.equip.medals || (P.equip.medals=[null,null,null,null,null]);
-    if (arr.some(x=>x?.id===m.id)) { api.log('不可裝備相同勳章'); return false; }
-    const pos = arr.findIndex(x=>!x); if(pos===-1){ api.log('勳章已達上限'); return false; }
-    arr[pos] = {...m}; api.save(); render(); api.recalc(); return true;
+    if (!m) return false;
+    for (var i=0;i<arr.length;i++){ if(arr[i] && arr[i].id===m.id){ api.log('不可裝備相同勳章'); return false; } }
+    var pos = -1; for (var j=0;j<arr.length;j++){ if(!arr[j]){ pos=j; break; } }
+    if (pos===-1){ api.log('勳章已達上限'); return false; }
+    arr[pos] = JSON.parse(JSON.stringify(m));
+    api.save(); render(); api.recalc(); return true;
   }
 
-  /* 對外：回傳所有裝備帶來的加成（讓主程式加到能力值） */
-  function getBonuses(){
-    const P = api.getPlayer && api.getPlayer(); if(!P) return {};
-    const sum={}; const add=(m)=>{ if(!m) return; for(const[k,v]of Object.entries(m)) sum[k]=(sum[k]||0)+(v||0); };
-    const norm=(it, kind)=>{ if(!it) return null; if(typeof it==='string'){ const g=kind==='weapon'?'weapons':(kind==='medal'?'medals':kind); const d=window.ItemDB&&ItemDB.getDef(g,it); return d?{...d}:null; } return it; };
+  // ★新增：飾品（戒指/耳飾/披風/護甲/鞋）裝備
+  function equipOrnament(o){
+    const P = api.getPlayer && api.getPlayer(); if(!P || !o) return false;
+    P.equip = P.equip || {};
 
-    const w = norm(P.equip?.weapon,'weapon');
-    if(w){ if(w.bonus) add(w.bonus); else if(Array.isArray(w.dmg)){ const avg = Math.round(((w.dmg[0]||0)+(w.dmg[1]||0))/2) + (w.plus||0)*2; add({'物理攻擊':avg}); } }
-    ['cloak','armor','shoes'].forEach(k=> add(norm(P.equip?.[k],k)?.bonus));
-    (P.equip?.earrings||[]).forEach(x=> add(norm(x,'earrings')?.bonus));
-    (P.equip?.rings||[]).forEach(x=> add(norm(x,'rings')?.bonus));
-    (P.equip?.medals||[]).forEach(x=> add(norm(x,'medal')?.bonus));
+    // 判斷種類（依 id 從各類別資料表查）
+    var kind = null;
+    if (window.ItemDB && ItemDB.getDef){
+      if (ItemDB.getDef('ornaments', o.id)) kind = 'rings'; // ornaments 視為「戒指」分類
+      else if (ItemDB.getDef('rings',    o.id)) kind = 'rings';
+      else if (ItemDB.getDef('earrings', o.id)) kind = 'earrings';
+      else if (ItemDB.getDef('cloaks',   o.id)) kind = 'cloak';
+      else if (ItemDB.getDef('armors',   o.id)) kind = 'armor';
+      else if (ItemDB.getDef('boots',    o.id)) kind = 'shoes';
+      else if (ItemDB.getDef('medals',   o.id)) return equipMedal(o); // 勳章沿用上面
+    }
+    if (!kind){ api.log('無法辨識飾品種類'); return false; }
+
+    var copy = JSON.parse(JSON.stringify(o));
+
+    if (kind==='rings' || kind==='earrings'){
+      var arr = P.equip[kind] || (P.equip[kind]=[null,null]);
+      // 不允許同 ID 重複裝備
+      for (var i=0;i<arr.length;i++){ if(arr[i] && arr[i].id===copy.id){ api.log('不可重複裝備相同飾品'); return false; } }
+      // 找空位，沒有就覆蓋第 1 格
+      var pos=-1; for (var j=0;j<arr.length;j++){ if(!arr[j]){ pos=j; break; } }
+      if (pos===-1){ arr[0] = copy; } else { arr[pos] = copy; }
+    }else{ // cloak / armor / shoes 單格
+      P.equip[kind] = copy;
+    }
+
+    api.save(); render(); api.recalc();
+    return true;
+  }
+
+
+/* 對外：回傳所有裝備帶來的加成（讓主程式加到能力值） */
+  function getBonuses(){
+    var P = api.getPlayer && api.getPlayer(); if(!P) return {};
+    var sum = {};
+
+    // 將 item 的鍵轉成衍生屬性用的名稱：hp→氣血上限、mp→真元上限，其餘照原名
+    function convert(raw){
+      if(!raw) return null;
+      var out = {};
+      for (var k in raw){
+        if(!Object.prototype.hasOwnProperty.call(raw,k)) continue;
+        var v = raw[k] || 0;
+        if (k === 'hp')       { out['氣血上限'] = (out['氣血上限']||0) + v; }
+        else if (k === 'mp')  { out['真元上限'] = (out['真元上限']||0) + v; }
+        else if (k === 'def') { out['物理防禦'] = (out['物理防禦']||0) + v; }
+        else if (k === 'mdef'){ out['法術防禦'] = (out['法術防禦']||0) + v; }
+        else { out[k] = (out[k]||0) + v; }
+      }
+      return out;
+    }
+
+    function addMap(m){
+      if(!m) return;
+      for (var k in m){
+        if(!Object.prototype.hasOwnProperty.call(m,k)) continue;
+        var v = m[k] || 0;
+        sum[k] = (sum[k]||0) + v;
+      }
+    }
+
+    function norm(it, kind){
+      if(!it) return null;
+      if(typeof it === 'string'){
+        var g = (kind==='weapon') ? 'weapons' : (kind==='medal' ? 'medals' : kind);
+        var d = window.ItemDB && ItemDB.getDef(g, it);
+        if (d) return d;
+        return null;
+      }
+      return it;
+    }
+
+    // 武器：bonus / effect 皆可；否則用傷害估物攻
+    var w = norm(P.equip && P.equip.weapon, 'weapon');
+    if (w){
+      if (w.bonus) addMap(convert(w.bonus));
+      else if (w.effect) addMap(convert(w.effect));
+      else if (Array.isArray(w.dmg)){
+        var avg = Math.round(((w.dmg[0]||0)+(w.dmg[1]||0))/2) + (w.plus||0)*2;
+        addMap({'物理攻擊': avg});
+      }
+    }
+
+    // 披風/護甲/鞋子（單格）
+    var single = ['cloak','armor','shoes'];
+    for (var i=0;i<single.length;i++){
+      var k = single[i];
+      var it = norm(P.equip && P.equip[k], k);
+      if (it) addMap(convert(it.bonus || it.effect));
+    }
+
+    // 耳環/戒指/勳章（陣列）
+    var arr, i2, it2;
+
+    arr = (P.equip && P.equip.earrings) || [];
+    for (i2=0;i2<arr.length;i2++){ it2 = norm(arr[i2],'earrings'); addMap(convert(it2 && (it2.bonus || it2.effect))); }
+
+    arr = (P.equip && P.equip.rings) || [];
+    for (i2=0;i2<arr.length;i2++){ it2 = norm(arr[i2],'rings'); addMap(convert(it2 && (it2.bonus || it2.effect))); }
+
+    arr = (P.equip && P.equip.medals) || [];
+    for (i2=0;i2<arr.length;i2++){ it2 = norm(arr[i2],'medal');  addMap(convert(it2 && (it2.bonus || it2.effect))); }
 
     return sum;
   }
 
-  window.Equip = { mount, open, close, render, getBonuses, equipWeapon, equipMedal };
+
+  window.Equip = { mount, open, close, render, getBonuses, equipWeapon, equipMedal, equipOrnament };
 })();
+

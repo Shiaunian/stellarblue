@@ -31,9 +31,9 @@
     ],
     // ---- 飾品（Ornaments）----
     ornaments: [
-      { id: "ring_green", name: "翠玉戒指", rarity: "普", level: 1, effect: { mp: 30 }, price: 180, icon: "https://i.ibb.co/0q0ZBvX/ring-green.png", desc: "微弱靈氣的翠綠戒指，可微量增加真元。" },
-      { id: "ring_blood", name: "血玉戒指", rarity: "普", level: 4, effect: { hp: 80, vit: 3 }, price: 360, icon: "https://i.ibb.co/VJSZrgq/ring-blood.png", desc: "注入氣血的紅玉戒指，增加生命與體魄。" },
-      { id: "ring_spirit", name: "魂晶戒指", rarity: "普", level: 6, effect: { mp: 100, int: 4 }, price: 600, icon: "https://i.ibb.co/gTQmz0z/ring-spirit.png", desc: "封存靈魂之力的戒指，大幅提升真元與悟性。" },
+      { id: "jade_ring",   name: "翠玉戒指", rarity: "普", level: 1, effect: { mp: 30 }, price: 180, icon: "https://i.ibb.co/0q0ZBvX/ring-green.png", desc: "微弱靈氣的翠綠戒指，可微量增加真元。" },
+      { id: "ring_blood",  name: "血玉戒指", rarity: "普", level: 4, effect: { hp: 80, vit: 3 }, price: 360, icon: "https://i.ibb.co/VJSZrgq/ring-blood.png", desc: "注入氣血的紅玉戒指，增加生命與體魄。" },
+      { id: "ring_spirit", name: "魂晶戒指", rarity: "普", level: 6, effect: { mp: 100, int: 4 }, price: 600, icon: "https://i.ibb.co/gTQmz0z/ring-spirit.png", desc: "封存靈魂之力的戒指，大幅提升真元與悟性。" }
     ],
 
     // ---- 耳環（Earrings）----
@@ -74,20 +74,24 @@
 
     // ---- 素材（Materials）----
     materials: [
-      { id:"wood_shard",    name:"木靈碎片",   rarity:"普", icon:"https://i.ibb.co/sv81h190/image.png", desc:"木屬初階靈材，常見於靈木林。" },
-      { id:"slime_jelly",   name:"史萊姆凝膠", rarity:"普", icon:"https://i.ibb.co/vvwVxHx9/image.png", desc:"黏稠凝膠，可作為煉製材料。" },
-      { id:"fox_tail",      name:"靈狐尾",     rarity:"普", icon:"https://i.ibb.co/HspkbYT/image.png", desc:"狐狸的尾毛，富含靈性。" },
-      { id:"thorn_shard",   name:"荊棘碎片",   rarity:"普", icon:"https://i.ibb.co/XxTZ7syL/image.png", desc:"鋒利的荊棘殘片。" },
-      { id:"stone_core",    name:"石像核心",   rarity:"精", icon:"https://i.ibb.co/WWnBT1G8/image.png", desc:"石像守衛身上的能量核心。" },
-      { id:"hard_rock",     name:"堅石",       rarity:"普", icon:"https://i.ibb.co/gFF3RCwp/image.png", desc:"堅硬岩石，可作為鍛造基材。" },
-      { id:"ghost_essence", name:"幽魂精華",   rarity:"稀", icon:"https://i.ibb.co/mC3TS1WJ/image.png", desc:"自亡靈身上凝成的精華物質。" },
-      { id:"wolf_fur",      name:"狼毛",       rarity:"普", icon:"https://i.ibb.co/GQkwt32B/image.png", desc:"雪原狼的毛皮。" },
-      { id:"wolf_fang",     name:"狼牙",       rarity:"普", icon:"https://i.ibb.co/tM8yQrvR/image.png", desc:"鋒利的狼牙，可作材料。" },
-      { id:"ice_crystal",   name:"冰晶",       rarity:"普", icon:"https://i.ibb.co/LdQQVq0X/image.png", desc:"寒氣凝結成的晶體。" },
-      { id:"frozen_thorn",  name:"凍結荊棘",   rarity:"精", icon:"https://i.ibb.co/wFDyjfXn/image.png", desc:"被寒霜封存的荊棘，帶寒性。" },
-      { id:"bear_claw",     name:"熊爪",       rarity:"精", icon:"https://i.ibb.co/dsRzmc7s/image.png", desc:"巨熊的爪子，沉重而堅硬。" },
-      { id:"bear_fur",      name:"熊皮",       rarity:"普", icon:"https://i.ibb.co/1ttsV4N6/image.png", desc:"厚實保暖的皮張。" },
+      { id:"wood_shard",    name:"木靈碎片",   rarity:"普", price:14, icon:"https://i.ibb.co/sv81h190/image.png", desc:"木屬初階靈材，常見於靈木林。" },
+      { id:"slime_jelly",   name:"史萊姆凝膠", rarity:"普", price:12, icon:"https://i.ibb.co/vvwVxHx9/image.png", desc:"黏稠凝膠，可作為煉製材料。" },
+      { id:"fox_tail",      name:"靈狐尾",     rarity:"普", price:18, icon:"https://i.ibb.co/HspkbYT/image.png", desc:"狐狸的尾毛，富含靈性。" },
+      { id:"thorn_shard",   name:"荊棘碎片",   rarity:"普", price:10, icon:"https://i.ibb.co/XxTZ7syL/image.png", desc:"鋒利的荊棘殘片。" },
+      { id:"stone_core",    name:"石像核心",   rarity:"精", price:45, icon:"https://i.ibb.co/WWnBT1G8/image.png", desc:"石像守衛身上的能量核心。" },
+      { id:"hard_rock",     name:"堅石",       rarity:"普", price:15, icon:"https://i.ibb.co/gFF3RCwp/image.png", desc:"堅硬岩石，可作為鍛造基材。" },
+      { id:"ghost_essence", name:"幽魂精華",   rarity:"稀", price:60, icon:"https://i.ibb.co/mC3TS1WJ/image.png", desc:"自亡靈身上凝成的精華物質。" },
+      { id:"wolf_fur",      name:"狼毛",       rarity:"普", price:16, icon:"https://i.ibb.co/GQkwt32B/image.png", desc:"雪原狼的毛皮。" },
+      { id:"wolf_fang",     name:"狼牙",       rarity:"普", price:14, icon:"https://i.ibb.co/tM8yQrvR/image.png", desc:"鋒利的狼牙，可作材料。" },
+      { id:"ice_crystal",   name:"冰晶",       rarity:"普", price:20, icon:"https://i.ibb.co/LdQQVq0X/image.png", desc:"寒氣凝結成的晶體。" },
+      { id:"frozen_thorn",  name:"凍結荊棘",   rarity:"精", price:28, icon:"https://i.ibb.co/wFDyjfXn/image.png", desc:"被寒霜封存的荊棘，帶寒性。" },
+      { id:"bear_claw",     name:"熊爪",       rarity:"精", price:32, icon:"https://i.ibb.co/dsRzmc7s/image.png", desc:"巨熊的爪子，沉重而堅硬。" },
+      { id:"bear_fur",      name:"熊皮",       rarity:"普", price:26, icon:"https://i.ibb.co/1ttsV4N6/image.png", desc:"厚實保暖的皮張。" },
+
+      { id:"charcoal",      name:"木炭",       rarity:"普", price:10, icon:"", desc:"以木材燒製的炭塊，可作為鍛造或煉藥燃料。" },
+      { id:"fire_seed",     name:"火種",       rarity:"普", price:16, icon:"", desc:"蘊含微弱火靈力的種子，煉器常用。" }
     ],
+
   };
 
 
@@ -176,15 +180,58 @@
     }
   }
 
-  // === 對外 ===
-  window.ItemDB = {
-    RARITY,
-    STACK_MAX,
-    DB,
-    normalizeRarity,
-    getDef,
-    getDefaultBag,
-    addConsumableToBag,
-    addMaterialToBag,
-  };
+// === 對外 ===
+window.ItemDB = {
+  RARITY,
+  STACK_MAX,
+  DB,
+  normalizeRarity,
+  getDef,
+  getDefaultBag,
+
+  // === 堆疊型 ===
+  addConsumableToBag: addConsumableToBag,
+  addMaterialToBag:   addMaterialToBag,
+
+  // === 武器：逐把加入，帶耐久 ===
+  addWeaponToBag: function(bag, id, qty){
+    if(!bag || !qty || qty<=0) return;
+    var def = getDef('weapons', id);
+    if(!def) return;
+    bag.weapons = bag.weapons || [];
+    for(var i=0;i<qty;i++){
+      var w = weaponWithDur(def);
+      if(w) bag.weapons.push(w);
+    }
+  },
+
+  // === 飾品：戒指/耳飾/披風/護甲/鞋/勳章都以「單件不堆疊」加入 ornaments ===
+  addOrnamentToBag: function(bag, id, qty){
+    if(!bag || !qty || qty<=0) return;
+    var kinds = ['ornaments','earrings','cloaks','armors','boots','medals'];
+    var def = null;
+    for(var i=0;i<kinds.length;i++){
+      var d = getDef(kinds[i], id);
+      if(d){ def = d; break; }
+    }
+    if(!def) return;
+    bag.ornaments = bag.ornaments || [];
+    for(var j=0;j<qty;j++){
+      bag.ornaments.push(deepCopy(def));
+    }
+  },
+
+  // === 勳章：若未另外做面板，也暫放 ornaments ===
+  addMedalToBag: function(bag, id, qty){
+    if(!bag || !qty || qty<=0) return;
+    var def = getDef('medals', id);
+    if(!def) return;
+    bag.ornaments = bag.ornaments || [];
+    for(var i=0;i<qty;i++){
+      bag.ornaments.push(deepCopy(def));
+    }
+  }
+};
+
+
 })();

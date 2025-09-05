@@ -517,10 +517,13 @@
 </script>
 
 <!-- 資料庫/帳號 -->
+<!-- 資料庫/帳號 -->
 <script src="stats.js"></script>
 <script src="items.js"></script>
 <script src="monsters.js"></script>
+<script src="equip.js"></script><!-- ★新增：裝備模組，確保 getBonuses 一致 -->
 <script src="auth.js"></script>
+
 
 
 <script>
@@ -647,72 +650,16 @@ function loadPlayer(){
 
 async function savePlayer(){
   try{
-    var user = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
-    if(!user || !window.DB) return;
-    var path = '/characters/' + user.username;
-
-    var payload = {
-      name:   (P && P.name) ? P.name : '無名散修',
-      avatar: (P && P.avatar) ? P.avatar : '',
-      element: (P && (P.element || P.elem)) ? (P.element || P.elem) : 'none',
-      level: (P && typeof P.level === 'number') ? P.level : 1,
-
-      exp:  (P && P.exp) ? { cur: (P.exp.cur|0),  max: (P.exp.max|0) } : { cur:0, max:100 },
-      sta:  (P && P.sta) ? { cur: (P.sta.cur|0),  max: (P.sta.max|0) } : { cur:100, max:100 },
-      hp:   (P && P.hp ) ? { cur: (P.hp.cur|0),   max: (P.hp.max|0)  } : { cur:80,  max:80  },
-      mp:   (P && P.mp ) ? { cur: (P.mp.cur|0),   max: (P.mp.max|0)  } : { cur:40,  max:40  },
-
-      attributes: (P && P.attributes) ? {
-        str: (P.attributes.str|0), vit: (P.attributes.vit|0), dex: (P.attributes.dex|0),
-        int: (P.attributes.int|0), wis: (P.attributes.wis|0), luk: (P.attributes.luk|0)
-      } : {str:10, vit:10, dex:10, int:10, wis:10, luk:10},
-
-      currencies: (P && P.currencies) ? {
-        stone: (P.currencies.stone|0), diamond: (P.currencies.diamond|0)
-      } : {stone:0, diamond:0},
-
-      unspentPoints: (P && typeof P.unspentPoints === 'number') ? P.unspentPoints : 0,
-      medals: (P && Array.isArray(P.medals)) ? P.medals : [],
-
-      equip: (P && P.equip) ? P.equip : {},
-      bag:   (P && P.bag) ? P.bag : { consumables:[], weapons:[], ornaments:[], materials:[], hidden:[] },
-      mapProg: (P && P.mapProg) ? P.mapProg : {},
-
-      _updatedAt: Date.now()
-    };
-
-    var clean = JSON.parse(JSON.stringify(payload));
-    await window.DB.ref(path).set(clean);
-  }catch(err){
-    try{ console.warn('savePlayer() 失敗：', err); }catch(_){}
-  }
+    if (window.Auth && Auth.saveCharacter && typeof P !== 'undefined' && P){
+      await Auth.saveCharacter(P);
+    }
+  }catch(e){}
 }
 
 
 
 
-/* ===== 衍生能力（與主城公式一致） ===== */
-function derivedFrom(player){
-  const A = player.attributes || {str:0, vit:0, dex:0, int:0, wis:0, luk:0};
-  const level = player.level ?? 1;
-  return {
-    '物理攻擊': 10 + A.str*2 + level,
-    '法術攻擊': 10 + A.int*2 + Math.floor(A.wis*0.5),
-    '氣血上限': 100 + A.vit*12 + level*6,
-    '真元上限': 50 + A.wis*10 + Math.floor(A.int*6/5),
-    '物理防禦': 6 + Math.floor(A.vit*1.2) + Math.floor(A.dex*0.6),
-    '法術防禦': 6 + Math.floor(A.wis*1.3) + Math.floor(A.int*0.5),
-    '命中率': 70 + A.dex*2,
-    '閃避': 5 + Math.floor(A.dex*1.2),
-    '暴擊率': Math.min(50, 3 + Math.floor(A.luk*0.8)),
-    '暴擊傷害': 50 + Math.floor(A.luk*1.5),
-    '行動條速度': 100 + Math.floor(A.dex*2.2),
-    '回氣/回合': 2 + Math.floor(A.wis*0.4),
-    '回血/回合': 1 + Math.floor(A.vit*0.5),
-    '破甲': Math.floor(A.str*0.5),
-    '法穿': Math.floor(A.int*0.5),
-  };
-}
+// （已移除：使用 stats.js 的 global.derivedFrom，避免數值不一致）
 
 
 
@@ -760,42 +707,62 @@ function renderHeader(){
  // 玩家進入後連動的能量條
 
 function renderBars(){
-  if (!P) return;                      // ← 用全域 P（在 start() 由 loadPlayer() 載入）
+  if (!P) return;
   if (!P._live) refreshLive();
-  const d = P._live;
 
-
-  // 體力 / 經驗：保留原值，若不存在才給預設，並做夾限
-  if (!P.exp) P.exp = { cur:0, max:100 };
-  if (typeof P.exp.max!=='number' || P.exp.max<=0) P.exp.max = 100;
-  if (typeof P.exp.cur!=='number') P.exp.cur = 0;
-  P.exp.cur = Math.max(0, Math.min(P.exp.cur, P.exp.max));
-
-  // 氣血（基礎 + 裝備加成，上限與主城一致）
-  var base  = derivedFrom(P);
-  var bonus = (window.Equip && typeof Equip.getBonuses==='function') ? (Equip.getBonuses() || {}) : {};
-  var hpMax = (base['氣血上限'] || 0) + (bonus['氣血上限'] || 0);
-  if (!P.hp){ P.hp = { cur:hpMax, max:hpMax }; } else { P.hp.max = hpMax; P.hp.cur = Math.max(0, Math.min(P.hp.cur==null?hpMax:P.hp.cur, hpMax)); }
-
-  // 真元（基礎 + 裝備加成）
-  var mpMax = (base['真元上限'] || 0) + (bonus['真元上限'] || 0);
-  if (!P.mp){ P.mp = { cur:mpMax, max:mpMax }; } else { P.mp.max = mpMax; P.mp.cur = Math.max(0, Math.min(P.mp.cur==null?mpMax:P.mp.cur, mpMax)); }
-
-  // 畫面更新
-  qs('#barSta').style.width = (P.sta.cur / P.sta.max * 100) + '%';
-  qs('#txtSta').textContent = `${P.sta.cur}/${P.sta.max}`;
-
-  qs('#barExp').style.width = (P.exp.cur / P.exp.max * 100) + '%';
-  qs('#txtExp').textContent = `${P.exp.cur}/${P.exp.max}`;
-
-  qs('#barHp').style.width  = (P.hp.cur / P.hp.max * 100) + '%';
-  qs('#txtHp').textContent  = `${P.hp.cur}/${P.hp.max}`;
-
-  if (qs('#barMp')) {
-    qs('#barMp').style.width = (P.mp.cur / P.mp.max * 100) + '%';
-    qs('#txtMp').textContent = `${P.mp.cur}/${P.mp.max}`;
+  // —— 以 API 狀態為主：僅補預設、限制範圍，不自行回滿 —— //
+  if (!P.sta){ P.sta = { cur:100, max:100 }; }
+  else{
+    if (typeof P.sta.max !== 'number' || P.sta.max <= 0) P.sta.max = 100;
+    if (typeof P.sta.cur !== 'number') P.sta.cur = P.sta.max;
+    if (P.sta.cur > P.sta.max) P.sta.cur = P.sta.max;
+    if (P.sta.cur < 0) P.sta.cur = 0;
   }
+
+  if (!P.exp){ P.exp = { cur:0, max:100 }; }
+  else{
+    if (typeof P.exp.max !== 'number' || P.exp.max <= 0) P.exp.max = 100;
+    if (typeof P.exp.cur !== 'number') P.exp.cur = 0;
+    if (P.exp.cur > P.exp.max) P.exp.cur = P.exp.max;
+    if (P.exp.cur < 0) P.exp.cur = 0;
+  }
+
+  // 上限統一：基礎 + 裝備加成（與主城相同計算）
+  var base  = derivedFrom(P);
+  var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
+  var hpMax = (base['氣血上限'] || 0) + (bonus['氣血上限'] || 0);
+  var mpMax = (base['真元上限'] || 0) + (bonus['真元上限'] || 0);
+
+  if (!P.hp){ P.hp = { cur: hpMax, max: hpMax }; }
+  else{
+    P.hp.max = hpMax;
+    if (typeof P.hp.cur !== 'number') P.hp.cur = hpMax;
+    if (P.hp.cur > P.hp.max) P.hp.cur = P.hp.max;
+    if (P.hp.cur < 0) P.hp.cur = 0;
+  }
+
+  if (!P.mp){ P.mp = { cur: mpMax, max: mpMax }; }
+  else{
+    P.mp.max = mpMax;
+    if (typeof P.mp.cur !== 'number') P.mp.cur = mpMax;
+    if (P.mp.cur > P.mp.max) P.mp.cur = P.mp.max;
+    if (P.mp.cur < 0) P.mp.cur = 0;
+  }
+
+  // —— 畫面更新（純讀 P） —— //
+  var staBar = qs('#barSta'); if (staBar){ staBar.style.width = (P.sta.cur / P.sta.max * 100) + '%'; }
+  var staTxt = qs('#txtSta'); if (staTxt){ staTxt.textContent = P.sta.cur + '/' + P.sta.max; }
+
+  var expBar = qs('#barExp'); if (expBar){ expBar.style.width = (P.exp.cur / P.exp.max * 100) + '%'; }
+  var expTxt = qs('#txtExp'); if (expTxt){ expTxt.textContent = P.exp.cur + '/' + P.exp.max; }
+
+  var hpBar = qs('#barHp'); if (hpBar){ hpBar.style.width = (P.hp.cur / P.hp.max * 100) + '%'; }
+  var hpTxt = qs('#txtHp'); if (hpTxt){ hpTxt.textContent = P.hp.cur + '/' + P.hp.max; }
+
+  var mpBar = qs('#barMp'); if (mpBar){ mpBar.style.width = (P.mp.cur / P.mp.max * 100) + '%'; }
+  var mpTxt = qs('#txtMp'); if (mpTxt){ mpTxt.textContent = P.mp.cur + '/' + P.mp.max; }
 }
+
 
 
 function buildMapUI(){
@@ -1015,9 +982,7 @@ async function doExplore(){
 
   renderHeader();
   renderBars();
-  if (window.Auth && Auth.saveCharacter) {
-    try { await Auth.saveCharacter(P); } catch(e) {}
-  }
+  
   try { await savePlayer(); } catch(e) {}
 }
 
@@ -1637,7 +1602,7 @@ async function endCheck(){
     }
 
     renderBars();
-    if (window.Auth && Auth.saveCharacter) { try{ await Auth.saveCharacter(P); }catch(_){ } }
+    
     try{ await savePlayer(); }catch(_){}
     setTimeout(function(){ leaveBattle(); }, 1200);
 
@@ -1649,7 +1614,7 @@ async function endCheck(){
       P.hp.max = battle.p.hpMax || P.hp.max;
     }
     renderBars();
-    if (window.Auth && Auth.saveCharacter) { try{ await Auth.saveCharacter(P); }catch(_){} }
+    
     try{ await savePlayer(); }catch(_){}
     setTimeout(function(){ leaveBattle(); }, 1200);
   }
@@ -1739,23 +1704,39 @@ qs('#btnBoss').onclick = function(){
   qs('#btnLeaveBattle').onclick = leaveBattle;
 
 
-/* ===== 啟動（改為等雲端載入）===== */
+/* ===== 啟動（以 API 為主，必要時用本地較新快取）===== */
 window.addEventListener('DOMContentLoaded', async function(){
-  // 登入檢查
+  // 1) 登入檢查
   var user = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
   if(!user){ location.href = 'index.html'; return; }
 
-  // 載入角色（以雲端為準）
+  // 2) 讀雲端角色
   var char = null;
-  try{ char = (window.Auth && Auth.loadCharacter) ? (await Auth.loadCharacter()) : null; }
-  catch(_){ char = null; }
+  try{
+    char = (window.Auth && Auth.loadCharacter) ? (await Auth.loadCharacter()) : null;
+  }catch(e){
+    char = null;
+  }
+
+  // 3) 若本地快取較新 → 優先用本地（避免剛在主城存檔尚未同步）
+  var cached = (window.Auth && Auth.getCharacter) ? Auth.getCharacter() : null;
+  if (cached){
+    var useCached = false;
+    if (!char){ useCached = true; }
+    else{
+      var t1 = (cached && cached._updatedAt) ? cached._updatedAt : 0;
+      var t2 = (char   && char._updatedAt)   ? char._updatedAt   : 0;
+      if (t1 > t2){ useCached = true; }
+    }
+    if (useCached){ char = cached; }
+  }
+
   if(!char){ location.href = 'index.html#create'; return; }
 
+  // 4) 以 API 為主：把資料寫入全域 P，地圖上所有顯示都讀 P
   P = char;
 
-  P = char;
-
-  // 掛上裝備模組（讓 getBonuses 能讀到 P）
+  // 5) 掛裝備模組（此時 P 已可用）
   if (window.Equip && Equip.mount) {
     Equip.mount({
       getPlayer: function(){ return P; },
@@ -1765,41 +1746,15 @@ window.addEventListener('DOMContentLoaded', async function(){
     });
   }
 
-  // 正規化欄位
-  if(!P.bag) P.bag = { consumables:[], weapons:[], ornaments:[], materials:[], hidden:[] };
-  if(!Array.isArray(P.bag.consumables)) P.bag.consumables = [];
-  if(!Array.isArray(P.bag.weapons))     P.bag.weapons     = [];
-  if(!Array.isArray(P.bag.ornaments))   P.bag.ornaments   = [];
-  if(!Array.isArray(P.bag.materials))   P.bag.materials   = [];
-  if(!Array.isArray(P.bag.hidden))      P.bag.hidden      = [];
-
-  if(!P.attributes) P.attributes = {str:10, vit:10, dex:10, int:10, wis:10, luk:10};
-  if(typeof P.level !== 'number') P.level = 1;
-
-  // 以「基礎 + 裝備加成」決定上限
-  var base  = derivedFrom(P);
-  var extra = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
-  var hpMax = (base['氣血上限'] || 0) + (extra['氣血上限'] || 0);
-  var mpMax = (base['真元上限'] || 0) + (extra['真元上限'] || 0);
-
-  if(!P.hp) { P.hp = { cur: hpMax, max: hpMax }; } else { P.hp.max = hpMax; P.hp.cur = Math.max(0, Math.min(P.hp.cur == null ? hpMax : P.hp.cur, hpMax)); }
-  if(!P.mp) { P.mp = { cur: mpMax, max: mpMax }; } else { P.mp.max = mpMax; P.mp.cur = Math.max(0, Math.min(P.mp.cur == null ? mpMax : P.mp.cur, mpMax)); }
-  if(!P.sta) P.sta = { cur:100, max:100 };
-  if(!P.exp) P.exp = { cur:0,   max:100 };
-
-
-  P.mapProg = P.mapProg || {};
-  if(!P.mapProg.slime_cave) P.mapProg.slime_cave = { kills:0, bossReady:false };
-
+  // 6) 啟動後第一次渲染
   renderHeader();
+  refreshLive();
   renderBars();
   buildMapUI();
-  updateBossUI(); // 初始同步一次（避免提示沒出現）
-
-  window.addEventListener('beforeunload', function(){
-    try{ if (P) savePlayer(); }catch(_){}
-  });
+  setLocBadge();
+  updateActionPanel();
 });
+
 
 
 </script>

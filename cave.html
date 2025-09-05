@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>修仙RPG｜洞府（手機優先）</title>
+  <style>
+    :root{
+      --bg:#0b1024; --bg2:#0e1536; --panel:#131a3f; --panel-2:#0f1534; --muted:#9aa3b2; --text:#eaf2ff;
+      --accent:#8b5cf6; --accent2:#22d3ee; --hp:#ef4444; --mp:#3b82f6; --bar:#334155; --ok:#22c55e; --warn:#f59e0b;
+      --gold:#b98c4b; --gold-2:#7a5b31; --radius:16px; --gap:12px; --shadow:0 10px 28px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%; margin:0; font-family:"Microsoft JhengHei",system-ui,Segoe UI,Roboto,sans-serif; color:var(--text); background:var(--bg);}  
+
+    /* 舞台：統一手機寬度 */
+    .stage{ position:fixed; inset:0; display:grid; justify-items:center; align-items:start; overflow:auto; padding-top:max(6px, env(safe-area-inset-top)); }
+    .app{ width:min(420px, 100svw); max-height:100svh; background:linear-gradient(180deg, var(--bg2), var(--panel)); border-radius:var(--radius); box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; }
+
+    header{ position:relative; padding:8px 10px 6px; background:rgba(255,255,255,.06); border-bottom:1px solid rgba(255,255,255,.08); }
+    .topbar{ display:flex; align-items:center; justify-content:center; }
+    .back{ position:absolute; left:10px; top:8px; padding:6px 12px; border-radius:8px; font-weight:900; letter-spacing:2px; background:#b91c1c; color:#fff; border:1px solid rgba(255,255,255,.25); cursor:pointer; }
+    .title{ font-weight:900; letter-spacing:6px; color:#c7d2fe; }
+
+    .pbox{ display:grid; grid-template-columns:40px 1fr; gap:8px; align-items:center; margin-top:6px; }
+    .avatar{ width:40px; height:40px; border-radius:50%; object-fit:cover; background:#222; border:2px solid rgba(255,255,255,.15); }
+    .pinfo{ display:grid; gap:4px; }
+    .prow{ display:flex; align-items:center; gap:6px; }
+    .pname{ font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .plv{ font-size:12px; opacity:.9; }
+
+    .bars{ display:grid; gap:6px; padding:8px 10px 0; }
+    .stat-row{ display:grid; grid-template-columns:54px 1fr 64px; align-items:center; gap:8px; }
+    .label{ font-size:12px; opacity:.9; text-align:right; }
+    .num{ font-size:12px; text-align:right; }
+    .prog{ height:14px; background:#1f273a; border-radius:999px; position:relative; overflow:hidden; box-shadow: inset 0 2px 0 rgba(255,255,255,.06), inset 0 -2px 0 rgba(0,0,0,.25); }
+    .fill{ height:100%; width:0%; }
+    .fill.hp{ background:linear-gradient(90deg,#ef4444,#b91c1c); }
+    .fill.mp{ background:linear-gradient(90deg,#3b82f6,#1d4ed8); }
+
+    .grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; padding:12px; }
+    .cell{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:12px; display:grid; gap:8px; align-items:center; min-height:86px; cursor:pointer; }
+    .cell .name{ font-weight:900; letter-spacing:2px; }
+    .cell .sub{ font-size:12px; color:var(--muted); }
+    .cell.disabled{ opacity:.6; filter:saturate(.7); }
+
+    footer{ padding:8px 10px 12px; text-align:center; color:#94a3b8; font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="app">
+      <header>
+        <div class="topbar">
+          <button id="btnBackCity" class="back" title="回主城">回主城</button>
+          <div class="title">洞 府</div>
+        </div>
+        <div class="pbox">
+          <img id="uiAvatar" class="avatar" alt="avatar" />
+          <div class="pinfo">
+            <div class="prow">
+              <div id="uiName" class="pname">—</div>
+              <div class="plv">LV.<span id="uiLv">1</span></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="bars">
+        <div class="stat-row">
+          <div class="label">氣血：</div>
+          <div class="prog"><div class="fill hp" id="barHp"></div></div>
+          <div class="num" id="txtHp">--/--</div>
+        </div>
+        <div class="stat-row">
+          <div class="label">真元：</div>
+          <div class="prog"><div class="fill mp" id="barMp"></div></div>
+          <div class="num" id="txtMp">--/--</div>
+        </div>
+      </div>
+
+      <div class="grid" id="zone">
+        <div class="cell" data-act="compose">
+          <div class="name">合成</div>
+          <div class="sub">材料合成、符篆、丹藥…（施工中）</div>
+        </div>
+        <div class="cell" data-act="enhance">
+          <div class="name">強化</div>
+          <div class="sub">武器/飾品強化（施工中）</div>
+        </div>
+        <div class="cell" data-act="pet">
+          <div class="name">靈寵</div>
+          <div class="sub">孵化、培養、出戰（施工中）</div>
+        </div>
+        <div class="cell" data-act="farm">
+          <div class="name">菜園</div>
+          <div class="sub">播種、澆灌、採收（施工中）</div>
+        </div>
+        <div class="cell disabled" data-act="reserved">
+          <div class="name">—</div>
+          <div class="sub">預留空位（未來擴充）</div>
+        </div>
+      </div>
+
+      <footer>※ 本頁已與主城共用角色資料與雲端 API。進出會即時同步。</footer>
+    </div>
+  </div>
+
+  <!-- Firebase（compat）—為了可獨立開頁，也補上初始化；若已在上一頁初始化，會直接重用。 -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <!-- 專案共用腳本（與主城一致） -->
+  <script src="stats.js"></script>
+  <script src="items.js"></script>
+  <script src="equip.js"></script>
+  <script src="auth.js"></script>
+
+  <script>
+  (function(){
+    // ===== Firebase 初始化（重用或初始化第一個 app） =====
+    try{
+      var _cfg = { apiKey: "AIzaSyBvKmn0jCTS_jIgEYOuQjc8vyYU40Q5F3I", authDomain: "stellarblue-system.firebaseapp.com", databaseURL: "https://stellarblue-system-default-rtdb.firebaseio.com", projectId: "stellarblue-system", storageBucket: "stellarblue-system.firebasestorage.app", messagingSenderId: "803212433649", appId: "1:803212433649:web:887080d10a51d533b23150", measurementId: "G-YY94484DV9" };
+      if (!firebase.apps || firebase.apps.length === 0) { firebase.initializeApp(_cfg); }
+      window.DB = firebase.database();
+    }catch(e){}
+
+
+    var state = { player: null };
+    function q(id){ return document.getElementById(id); }
+
+    function render(p){
+      if(!p) return;
+      var avatarUrl = (p.avatar && p.avatar.url) ? p.avatar.url : (window.Auth && Auth.defaultAvatar ? Auth.defaultAvatar(p.element || 'none') : '');
+      var av = q('uiAvatar'); if(av) av.src = avatarUrl;
+      var nm = q('uiName'); if(nm) nm.textContent = p.name || '';
+      var lv = q('uiLv'); if(lv) lv.textContent = p.level || 1;
+
+      // 重新計算上限（含裝備加成）
+      var base  = (typeof derivedFrom === 'function') ? derivedFrom(p) : {};
+      var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
+      var hpMax = (base['氣血上限'] || 0) + (bonus['氣血上限'] || 0);
+      var mpMax = (base['真元上限'] || 0) + (bonus['真元上限'] || 0);
+
+      if (!p.hp) { p.hp = { cur: hpMax, max: hpMax }; } else { p.hp.max = hpMax; p.hp.cur = Math.max(0, Math.min(p.hp.cur == null ? hpMax : p.hp.cur, hpMax)); }
+      if (!p.mp) { p.mp = { cur: mpMax, max: mpMax }; } else { p.mp.max = mpMax; p.mp.cur = Math.max(0, Math.min(p.mp.cur == null ? mpMax : p.mp.cur, mpMax)); }
+
+      var bhp = q('barHp'); if(bhp) bhp.style.width = (p.hp.max ? ((p.hp.cur / p.hp.max) * 100).toFixed(1) : 0) + '%';
+      var bmp = q('barMp'); if(bmp) bmp.style.width = (p.mp.max ? ((p.mp.cur / p.mp.max) * 100).toFixed(1) : 0) + '%';
+      var thp = q('txtHp'); if(thp) thp.textContent = (p.hp.cur || 0) + '/' + (p.hp.max || 0);
+      var tmp = q('txtMp'); if(tmp) tmp.textContent = (p.mp.cur || 0) + '/' + (p.mp.max || 0);
+    }
+
+    function saveNow(){ if (window.Auth && Auth.saveCharacter && state.player) { try{ Auth.saveCharacter(state.player); }catch(e){} } }
+
+    // 進洞府：寫一筆活動紀錄（便於後續統計）
+    function logEnter(){
+      try{
+        var u = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
+        if (u && u.username && window.DB && DB.ref) {
+          DB.ref('activity/cave/' + u.username + '/lastEnter').set(Date.now());
+        }
+      }catch(e){}
+
+      // 同步到角色資料（logs.lastEnterCave）
+      try{
+        var p = state.player; if(!p) return;
+        p.logs = p.logs || {}; p.logs.lastEnterCave = Date.now();
+        saveNow();
+      }catch(e){}
+    }
+
+   function wire(){
+      var back = q('btnBackCity');
+      if(back){
+        back.addEventListener('click', function(){
+          try{ if (state.player && window.Auth && Auth.saveCharacter) { Auth.saveCharacter(state.player); } }catch(e){}
+          location.href = 'game.html';
+        });
+      }
+
+      // 功能按鈕（先顯示提示 + 記錄一筆動作）
+      var zone = document.getElementById('zone');
+      if(zone){
+        zone.addEventListener('click', function(e){
+          var cell = e.target.closest ? e.target.closest('.cell') : null;
+          if(!cell) return;
+          var act = cell.getAttribute('data-act') || '';
+          try{
+            var u = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
+            if (u && u.username && window.DB && DB.ref) {
+              DB.ref('activity/cave/' + u.username + '/clicks').push({ act: act, ts: Date.now() });
+            }
+          }catch(err){}
+          alert('「' + (cell.querySelector('.name') ? cell.querySelector('.name').textContent : act) + '」功能施工中');
+        });
+      }
+    }
+
+    // ===== 啟動：帶入玩家資料並渲染（對齊野外地圖） =====
+    window.addEventListener('DOMContentLoaded', function(){
+      var u = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
+      if (!u) { location.href = 'index.html'; return; }
+
+      // 取本機快取與雲端資料，選更新的
+      var fromCache = (window.Auth && Auth.getCharacter) ? Auth.getCharacter() : null;
+      function afterLoaded(fromCloud){
+        var a = (fromCache && fromCache._updatedAt) ? fromCache._updatedAt : 0;
+        var b = (fromCloud && fromCloud._updatedAt) ? fromCloud._updatedAt : 0;
+        var p = (b >= a ? fromCloud : fromCache) || fromCache || fromCloud || null;
+        if (!p) { location.href = 'index.html'; return; }
+        state.player = p;
+
+        // 掛上裝備模組（供 getBonuses 使用）
+        if (window.Equip && Equip.mount) {
+          Equip.mount({
+            getPlayer: function(){ return state.player; },
+            save:      function(){ try{ if (window.Auth && Auth.saveCharacter && state.player){ Auth.saveCharacter(state.player); } }catch(_){ } },
+            recalc:    function(){ render(state.player); },
+            log:       function(t){ try{ console.log(t); }catch(_){ } }
+          });
+        }
+
+        render(p);
+        logEnter();
+        wire();
+
+        // 掛上裝備模組，讓洞府能讀到玩家、計算加成、觸發存檔/重算
+        try{
+          if (window.Equip && Equip.mount) {
+            Equip.mount({
+              getPlayer: function(){ return state.player; },
+              save:      function(){ try{ if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(state.player); }catch(_){ } },
+              recalc:    function(){ render(state.player); },
+              log:       function(t){ if(window.console) console.log(t); }
+            });
+          }
+        }catch(_){}
+
+        // 離開頁面時自動存檔
+        try{
+          window.addEventListener('beforeunload', function(){
+            try{ if (state.player && window.Auth && Auth.saveCharacter) { Auth.saveCharacter(state.player); } }catch(_){}
+          });
+        }catch(_){}
+      }
+
+      if (window.Auth && Auth.loadCharacter) {
+        try{
+          Auth.loadCharacter().then(function(ch){ afterLoaded(ch); }).catch(function(){ afterLoaded(fromCache); });
+        }catch(e){ afterLoaded(fromCache); }
+      } else {
+        afterLoaded(fromCache);
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

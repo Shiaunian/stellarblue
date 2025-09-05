@@ -5,39 +5,47 @@
 
     // 平衡版：普遍血量/防禦下降、攻擊/破甲上升、速度略慢
   const defaultScales = {
-    '氣血上限': 0.75, '真元上限': 0.90,
-    '物理攻擊': 1.35, '法術攻擊': 1.35,
-    '物理防禦': 0.60, '法術防禦': 0.70,
-    '命中率': 1.00,  '閃避': 0.95,
+    '氣血上限': 1.00, '真元上限': 1.00,
+    '物理攻擊': 1.00, '法術攻擊': 1.00,
+    '物理防禦': 1.00, '法術防禦': 1.00,
+    '命中率': 1.00,  '閃避': 1.00,
     '暴擊率': 1.00,  '暴擊傷害': 1.00,
-    '行動條速度': 0.95,
+    '行動條速度': 1.00,
     '回氣/回合': 1.00, '回血/回合': 1.00,
     '破甲': 1.10, '法穿': 1.10,
   };
 
+
 const DB = {
-  // === 原有普通怪（保留原圖） ===
-  slime_young:{
-    id:'slime_young', name:'萊姆幼體', level:1, element:'none',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756700521/%E8%90%8A%E5%A7%86%E5%B9%BC%E9%AB%94_vbpjcf.png', imgMirror:false,
-    scales:{ '氣血上限':0.85, '物理攻擊':0.80, '行動條速度':0.90 },
-    stats:{ hp:70, mp:26, atk:10,  matk:7,  def:3,  mdef:4,  acc:79, eva:4, crit:2, aspd:1.00 },
-    drops:[
-      {type:'currency',  id:'stone', name:'靈石', min:6, max:14, chance:1.00},
-      {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1, max:1, chance:0.60},
-    ]
-  },
+// === 原有普通怪（保留原圖） ===
+slime_young:{        
+  id:'slime_young', name:'萊姆幼體', level:1, element:'none',   // 怪物ID/怪物名稱/等級/屬性（無屬性）
+  img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756700521/%E8%90%8A%E5%A7%86%E5%B9%BC%E9%AB%94_vbpjcf.png', imgMirror:false,   // 是否水平翻轉圖片
+  // 新版能力值（主用 stats；extra 裝你新增的細項，保持相容不報錯）
+  stats:{ hp:92, mp:41, atk:10,  matk:2,  def:0,  mdef:0,  acc:60, eva:5, crit:3, aspd:1.00 },  // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
+  extra:{ critDmg:50, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },         // 額外屬性：暴擊傷害/速度/回復魔力/回復生命/物理穿透/魔法穿透
+  skills:[], // 無技能
+  drops:[
+    {type:'currency',  id:'stone',       name:'靈石',       min:6,  max:14, chance:1.00},      // 掉落貨幣：靈石，數量6-14，機率100%
+    {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},      // 掉落素材：史萊姆凝膠，數量1，機率60%
+    {type:'consumable',id:'hp_small',    name:'小氣血丹',   min:1,  max:1,  chance:0.60},      // 掉落消耗品：小氣血丹，數量1，機率60%
+    {type:'accessory', id:'jade_ring',   name:'翠玉戒指',   min:1,  max:1,  chance:0.05}       // 掉落飾品：翠玉戒指，數量1，機率5%
+  ]
+},
 
 
   slime:{
     id:'slime', name:'萊姆成體', level:2, element:'none',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756701712/%E8%90%8A%E5%A7%86%E6%88%90%E9%AB%94_gog4wl.png', imgMirror:false,
-    scales:{ '氣血上限':0.85, '物理攻擊':0.80, '行動條速度':0.90 },
-    stats:{ hp:90, mp:31, atk:12, matk:10, def:4,  mdef:6,  acc:79, eva:5, crit:3, aspd:1.05 },  
+    appear:{ minPlayerLevel:2 }, // 出現條件：角色達到 2 等
+    stats:{ hp:98, mp:41, atk:12,  matk:2,  def:1,  mdef:1,  acc:61, eva:5, crit:3, aspd:1.00 },
+    extra:{ critDmg:51, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },
+    skills:[], // 無
     drops:[
-      {type:'currency',  id:'stone',       name:'靈石',       min:10, max:14, chance:1.00},
-      {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:2,  chance:0.60},
-      {type:'consumable',id:'hp_small',    name:'氣血丹',     min:1,  max:1,  chance:0.25},
+      {type:'currency',  id:'stone',       name:'靈石',       min:10, max:15, chance:1.00},
+      {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},
+      {type:'consumable',id:'hp_small',    name:'小氣血丹',   min:1,  max:1,  chance:0.60},
+      {type:'accessory', id:'jade_ring',   name:'翠玉戒指',   min:1,  max:1,  chance:0.10}
     ]
   },
 
@@ -45,12 +53,109 @@ const DB = {
   slime_king:{
     id:'slime_king', name:'史萊姆', level:3, element:'none',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756701968/%E5%8F%B2%E8%90%8A%E5%A7%86_llcjhj.png', imgMirror:false,
-    scales:{ '氣血上限':0.90, '物理攻擊':0.85, '行動條速度':0.95 },
-    stats:{ hp:100, mp:38, atk:14, matk:14, def:6,  mdef:8,  acc:82, eva:6, crit:4, aspd:1.10 },
+    appear:{ minPlayerLevel:4 }, // 出現條件：角色達到 4 等
+    stats:{ hp:105, mp:41, atk:14,  matk:2,  def:2,  mdef:1,  acc:62, eva:6, crit:3, aspd:1.00 },
+    extra:{ critDmg:52, recover_mp:2, recover_hp:1, armorPen:1, magicPen:0 },
+    skills:[
+      { id:'dash', name:'高速衝撞', elem:'none', kind:'physical', power:120, mp:6, desc:'造成120%無屬性物理傷害' }
+    ],
+    // 額外經驗：+5；若玩家等級超過10等則不給（僅註記，不影響相容）
+    xpBonus:{ extra:5, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
-      {type:'currency',  id:'stone',       name:'靈石',       min:15, max:22, chance:1.00},
-      {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:2,  max:3,  chance:0.75},
-      {type:'consumable',id:'hp_small',    name:'氣血丹',     min:1,  max:2,  chance:0.35},
+      {type:'currency',  id:'stone',       name:'靈石',       min:15, max:20, chance:1.00},
+      {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},
+      {type:'consumable',id:'hp_small',    name:'小氣血丹',   min:1,  max:1,  chance:0.60},
+      {type:'accessory', id:'jade_ring',   name:'翠玉戒指',   min:1,  max:1,  chance:0.10}
+    ]
+  },
+
+  /* === 新增：木幽火（wood_wisp） === */
+  wood_wisp:{
+    id:'wood_wisp', name:'木幽火', level:4, element:'fire',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756917890/%E6%9C%A8%E5%B9%BD%E7%81%AB_c2r0th.png', imgMirror:false,
+    appear:{ minPlayerLevel:4 }, // 角色達到 4 等出現
+    stats:{ hp:120, mp:50, atk:11,  matk:5,  def:2,  mdef:3,  acc:62, eva:6, crit:3, aspd:1.00 },
+    extra:{ critDmg:52, recover_mp:3, recover_hp:1, armorPen:0, magicPen:1 },
+    skills:[
+      {
+        id:'ember', name:'火苗', elem:'fire', kind:'magic', power:110, mp:12,
+        desc:'造成110%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
+        // 狀態與例外條件（先存資料，實作可在戰鬥流程讀取）
+        onHit:{
+          burn:{ seconds:10, perSecondHP:-2,
+            chanceBase:0.10,   // 一般 10%
+            vsHigher5:0.05,    // 對手等級高 5 等 → 5%
+            vsFire:0.00,       // 被攻擊方是火 → 0%
+            vsGrass:0.15       // 被攻擊方是草 → 15%
+          }
+        }
+      }
+    ],
+    
+    // 額外經驗 +5；若玩家等級 > 10 不給
+    xpBonus:{ extra:5, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',     name:'靈石',   min:18, max:22, chance:1.00},
+      {type:'material',  id:'charcoal',  name:'木炭',   min:1,  max:1,  chance:0.60},
+      {type:'consumable',id:'hp_small',  name:'小氣血丹', min:1, max:1, chance:0.60},
+      {type:'accessory', id:'jade_ring', name:'翠玉戒指', min:1, max:1, chance:0.80}
+    ]
+  },
+
+  /* === 新增：火之靈（Fire_Spirit）=== */
+  Fire_Spirit:{
+    id:'Fire_Spirit', name:'火之靈', level:4, element:'fire',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756962118/%E7%81%AB%E4%B9%8B%E9%9D%88_fzypz6.png', imgMirror:false,
+    appear:{ minPlayerLevel:4 }, // 角色達到 4 等出現
+    stats:{ hp:130, mp:40, atk:10,  matk:8,  def:2,  mdef:4,  acc:63, eva:8, crit:3, aspd:1.10 },
+    extra:{ critDmg:53, recover_mp:3, recover_hp:1, armorPen:0, magicPen:1 },
+    ai:{ pattern:'smart', note:'先 1~2 次普攻，之後只要有 MP 優先用技能' },
+    skills:[
+      {
+        id:'fire_kiss', name:'火吻', elem:'fire', kind:'magic', power:120, mp:15,
+        desc:'造成120%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
+        onHit:{
+          burn:{ seconds:10, perSecondHP:-2,
+            chanceBase:0.10, vsHigher5:0.05, vsFire:0.00, vsGrass:0.15
+          }
+        }
+      }
+    ],
+    // 額外經驗 +7；若玩家等級 > 10 不給
+    xpBonus:{ extra:7, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',     name:'靈石',   min:20, max:23, chance:1.00},
+      {type:'material',  id:'fire_seed', name:'火種',   min:1,  max:1,  chance:0.60},
+      {type:'consumable',id:'hp_small',  name:'小氣血丹', min:1, max:1, chance:0.60},
+      {type:'accessory', id:'jade_ring', name:'翠玉戒指', min:1, max:1, chance:0.80}
+    ]
+  },
+
+  /* === 新增：萊利（laily）=== */
+  laily:{
+    id:'laily', name:'萊利', level:5, element:'fire',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757000187/%E8%90%8A%E5%88%A9_fvefjw.png', imgMirror:false,
+    appear:{ minPlayerLevel:5 }, // 角色達到 5 等出現
+    stats:{ hp:140, mp:45, atk:13,  matk:6,  def:3,  mdef:4,  acc:65, eva:8, crit:4, aspd:1.10 },
+    extra:{ critDmg:55, recover_mp:3, recover_hp:1, armorPen:1, magicPen:1 },
+    skills:[
+      {
+        id:'fire_kiss', name:'火吻', elem:'fire', kind:'magic', power:120, mp:15,
+        desc:'造成120%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
+        onHit:{
+          burn:{ seconds:10, perSecondHP:-2,
+            chanceBase:0.10, vsHigher5:0.05, vsFire:0.00, vsGrass:0.15
+          }
+        }
+      }
+    ],
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:8, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',     name:'靈石',   min:25, max:28, chance:1.00},
+      {type:'material',  id:'fire_seed', name:'火種',   min:1,  max:2,  chance:0.60},
+      {type:'consumable',id:'hp_small',  name:'小氣血丹', min:1, max:1, chance:0.60},
+      {type:'accessory', id:'jade_ring', name:'翠玉戒指', min:1, max:1, chance:0.80}
     ]
   },
 
@@ -70,17 +175,6 @@ const DB = {
     ]
   },
 
-  wood_wisp:{
-    id:'wood_wisp', name:'木幽火', level:2, element:'fire',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756917890/%E6%9C%A8%E5%B9%BD%E7%81%AB_c2r0th.png', imgMirror:false,
-    scales:{ '法術攻擊':1.05, '法術防禦':1.05, '行動條速度':0.95 },
-    stats:{ hp:142, mp:50, atk:8,  matk:12, def:6, mdef:8, acc:81, eva:7, crit:3, aspd:1.05 },
-    drops:[
-      {type:'currency',  id:'stone',      name:'靈石',      min:8,  max:18, chance:1.00},
-      {type:'material',  id:'wood_shard', name:'木靈碎片',  min:1,  max:3,  chance:0.75},
-      {type:'consumable',id:'hp_small',   name:'氣血丹',    min:1,  max:1,  chance:0.20},
-    ]
-  },
   thorn_fox:{
     id:'thorn_fox', name:'荊棘毒狐', level:3, element:'wood',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756830089/%E8%8D%8A%E6%A3%98%E6%AF%92%E7%8B%90_ibbaqp.png', imgMirror:false,
@@ -479,7 +573,7 @@ function applyDrops(player, drops){
     else if(d.type==='weapon'){
       if(window.ItemDB && ItemDB.addWeaponToBag)    ItemDB.addWeaponToBag(player.bag, d.id, qty);
     }
-    else if(d.type==='ornament'){
+    else if(d.type==='ornament' || d.type==='accessory'){
       if(window.ItemDB && ItemDB.addOrnamentToBag)  ItemDB.addOrnamentToBag(player.bag, d.id, qty);
     }
     else if(d.type==='medal'){
@@ -488,6 +582,8 @@ function applyDrops(player, drops){
   }
   if(window.Auth && Auth.saveCharacter) Auth.saveCharacter(player);
 }
+
+
 
 
   function getImage(id){
@@ -528,7 +624,7 @@ function applyDrops(player, drops){
       return out;
     }
 
-    function mappedFromStats(mon){
+function mappedFromStats(mon){
       var s = mon.stats||{};
       var out = {
         '氣血上限':   (typeof s.hp==='number')?s.hp:100,
@@ -541,7 +637,8 @@ function applyDrops(player, drops){
         '閃避':       (typeof s.eva==='number')?s.eva:5,
         '暴擊率':     Math.min(100, (typeof s.crit==='number')?s.crit:3),
         '暴擊傷害':   (typeof s.critdmg==='number')?Math.max(100,s.critdmg):150,
-        '行動條速度': Math.max(40, Math.round(((typeof s.aspd==='number'?s.aspd:1.00)*100))),
+        // 行動條速度 = aspd × 100（不再做 40 保底；由戰鬥端做人性化保底/比例）
+        '行動條速度': Math.round(((typeof s.aspd==='number'?s.aspd:1.00)*100)),
         '回氣/回合':  (typeof s.regen_mp==='number')?s.regen_mp:2,
         '回血/回合':  (typeof s.regen_hp==='number')?s.regen_hp:1,
         '破甲':       (typeof s.pen==='number')?s.pen:0,
@@ -550,13 +647,15 @@ function applyDrops(player, drops){
       return out;
     }
 
+
+
     var sheet = derivedFromAttrs(m) || mappedFromStats(m);
     var out = {};
     for (var k in sheet){
       var mul = (sc[k]!==undefined) ? sc[k] : 1.0;
       var v = Math.round((sheet[k]||0) * mul);
       if (k==='暴擊率') { if (v<0) v=0; if (v>100) v=100; }
-      else if (k==='暴擊傷害' || k==='行動條速度') { if (v<40 && k==='行動條速度') v=40; else if (v<1) v=1; }
+      else if (k==='暴擊傷害') { if (v<1) v=1; }
       else { if (v<1) v=1; }
       out[k] = v;
     }

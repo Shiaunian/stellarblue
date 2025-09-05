@@ -212,16 +212,26 @@
     .e-frame{ border-radius:12px; }       /* 敵人方形，帶一點圓角 */
 
     /* 內部圖片：以 100×100 素材為主，保持完整顯示 */
-    /* 內部圖片：以 100×100 素材為主，保持完整顯示 */
     .portrait{
       width:100%; height:100%;
       object-fit:contain; display:block;
       image-rendering:auto;
       filter: drop-shadow(0 4px 6px rgba(0,0,0,.35));
-      transition: opacity 600ms ease, transform 600ms ease; /* ↓ 加入過場 */
+      transition: opacity 600ms ease, transform 600ms ease;
     }
     .portrait.mirror{ transform: scaleX(-1); }
-    .portrait.fade-out{ opacity:0; transform: scale(0.96); } /* ↓ 淡出用 */
+    .portrait.fade-out{ opacity:0; transform: scale(0.96); }
+
+    /* ★ 新增：每次遭遇怪物的翻轉進場動畫（掛在敵人框 .e-frame 上，不影響 .mirror） */
+    @keyframes flipIn {
+      0%   { transform: perspective(600px) rotateY(90deg) scale(0.95); opacity:0; }
+      50%  { transform: perspective(600px) rotateY(10deg) scale(1.02); opacity:1; }
+      100% { transform: perspective(600px) rotateY(0deg)  scale(1.00); opacity:1; }
+    }
+    .e-frame.flip-in{
+      animation: flipIn 520ms ease;
+    }
+
 
 
     .who{display:flex; align-items:center; justify-content:space-between; gap:8px;}
@@ -507,6 +517,7 @@
 </script>
 
 <!-- 資料庫/帳號 -->
+<script src="stats.js"></script>
 <script src="items.js"></script>
 <script src="monsters.js"></script>
 <script src="auth.js"></script>
@@ -571,8 +582,8 @@ const MAPS = [
   { id:'forest', name:'青木山脈', lv:'1-4', small:[
     { id:'slime_cave',  name:'萊姆洞窟', lv:'1-3',
       monsters:['slime_young','slime','slime_king'], boss:'slime_boss' },
-    { id:'woodland',    name:'靈木林',   lv:'2-3',
-      monsters:['thorn_fox','wood_wisp','brass_beetle'] },
+    { id:'woodland',    name:'火林洞',   lv:'2-4',
+      monsters:['wood_wisp','Fire_Spirit','laily'] },
     { id:'moss_vale',   name:'苔石谷',   lv:'2-4',
       monsters:['slime','stone_golem'],  boss:'stone_golem_boss' },
   ]},
@@ -755,25 +766,20 @@ function renderBars(){
 
 
   // 體力 / 經驗：保留原值，若不存在才給預設，並做夾限
-  if (!P.sta) P.sta = { cur:100, max:100 };
-  P.sta.max = P.sta.max ?? 100;
-  P.sta.cur = Math.max(0, Math.min(P.sta.cur ?? P.sta.max, P.sta.max));
-
   if (!P.exp) P.exp = { cur:0, max:100 };
-  P.exp.max = P.exp.max ?? 100;
-  P.exp.cur = Math.max(0, Math.min(P.exp.cur ?? 0, P.exp.max));
+  if (typeof P.exp.max!=='number' || P.exp.max<=0) P.exp.max = 100;
+  if (typeof P.exp.cur!=='number') P.exp.cur = 0;
+  P.exp.cur = Math.max(0, Math.min(P.exp.cur, P.exp.max));
 
-  // 氣血（由屬性推上限，再夾限目前值）
-  const hpMax = d['氣血上限'];
-  if (!P.hp) P.hp = { cur:hpMax, max:hpMax };
-  P.hp.max = hpMax;
-  P.hp.cur = Math.max(0, Math.min(P.hp.cur ?? hpMax, hpMax));
+  // 氣血（基礎 + 裝備加成，上限與主城一致）
+  var base  = derivedFrom(P);
+  var bonus = (window.Equip && typeof Equip.getBonuses==='function') ? (Equip.getBonuses() || {}) : {};
+  var hpMax = (base['氣血上限'] || 0) + (bonus['氣血上限'] || 0);
+  if (!P.hp){ P.hp = { cur:hpMax, max:hpMax }; } else { P.hp.max = hpMax; P.hp.cur = Math.max(0, Math.min(P.hp.cur==null?hpMax:P.hp.cur, hpMax)); }
 
-  // 真元（同理）
-  const mpMax = d['真元上限'];
-  if (!P.mp) P.mp = { cur:mpMax, max:mpMax };
-  P.mp.max = mpMax;
-  P.mp.cur = Math.max(0, Math.min(P.mp.cur ?? mpMax, mpMax));
+  // 真元（基礎 + 裝備加成）
+  var mpMax = (base['真元上限'] || 0) + (bonus['真元上限'] || 0);
+  if (!P.mp){ P.mp = { cur:mpMax, max:mpMax }; } else { P.mp.max = mpMax; P.mp.cur = Math.max(0, Math.min(P.mp.cur==null?mpMax:P.mp.cur, mpMax)); }
 
   // 畫面更新
   qs('#barSta').style.width = (P.sta.cur / P.sta.max * 100) + '%';
@@ -790,6 +796,7 @@ function renderBars(){
     qs('#txtMp').textContent = `${P.mp.cur}/${P.mp.max}`;
   }
 }
+
 
 function buildMapUI(){
   const bigCol   = qs('#bigMapCol');
@@ -1089,7 +1096,7 @@ function startBattle(){
     pen  : pickD('破甲',        0)
   };
 
-  battle = {
+battle = {
     enemy: enemy,
     enemyStats: eStats,
     p:{
@@ -1098,17 +1105,21 @@ function startBattle(){
       mp   : (P && P.mp && typeof P.mp.cur==='number') ? P.mp.cur : 0,
       mpMax: (P && P.mp && typeof P.mp.max==='number') ? P.mp.max : 0,
       atb  : 0,
-      speed: Math.max(50, d['行動條速度'] || 100)
+      // 直接吃行動條速度（0~任意），不要保底；比例化步幅會在人性化演算法中處理
+      speed: (d && typeof d['行動條速度']==='number') ? d['行動條速度'] : 100
     },
     e:{
       hp   : pickD('氣血上限', 100),
       hpMax: pickD('氣血上限', 100),
       atb  : 0,
-      speed: Math.max(50, pickD('行動條速度', 100))
+      // 直接吃行動條速度（0~任意）
+      speed: pickD('行動條速度', 100)
     },
     turn:'none',
     over:false
   };
+
+
 
   qs('#eName').textContent = enemy.name;
   qs('#eLv').textContent = enemy.level;
@@ -1157,8 +1168,16 @@ function startBattle(){
       eImg.src = 'https://picsum.photos/seed/monster/500/500';
     };
     test.src = finalUrl;
-  }
 
+    /* ★★★ 這裡關鍵：每一場戰鬥都重新觸發翻轉動畫 ★★★ */
+    var eFrame = document.querySelector('.e-frame');
+    if (eFrame){
+      // 移除舊動畫 → 強制回流 → 再加回去，確保每次都會播放
+      eFrame.classList.remove('flip-in');
+      void eFrame.offsetWidth;  // 強制回流（不要刪）
+      eFrame.classList.add('flip-in');
+    }
+  }
 
   updateBattleBars();
   updateCmdEnabled();
@@ -1174,18 +1193,42 @@ function tickATB(){
     updateBattleBars();
     return;
   }
-  var pStep = Math.max(3, Math.floor(battle.p.speed/5));
-  var eStep = Math.max(3, Math.floor(battle.e.speed/5));
+
+  // —— 人性化比例：以雙方最大速度當基準做映射（確保差距可見但不離譜）
+  var spP = (typeof battle.p.speed==='number') ? battle.p.speed : 100;
+  var spE = (typeof battle.e.speed==='number') ? battle.e.speed : 100;
+  if (spP < 0) spP = 0;
+  if (spE < 0) spE = 0;
+  var spMax = Math.max(spP, spE, 1);  // 避免除 0
+
+  // 可微調的人性化步幅區間
+  var MIN_STEP = 2;   // 每 tick 最少+2（讓非常慢的一方還是能動）
+  var MAX_STEP = 24;  // 每 tick 最多+24（非常快的一方）
+
+  function mapStep(sp){
+    var ratio = sp / spMax;                   // 0~1
+    var step  = Math.round(MIN_STEP + ratio * (MAX_STEP - MIN_STEP));
+    if (step < 1) step = 1;                   // 再保一層不會 0
+    return step;
+  }
+
+  var pStep = mapStep(spP);
+  var eStep = mapStep(spE);
+
   battle.p.atb = clamp(battle.p.atb + pStep, 0, ATB_MAX);
   battle.e.atb = clamp(battle.e.atb + eStep, 0, ATB_MAX);
+
   updateBattleBars();
   updateCmdEnabled();
+
   if (battle.e.atb >= ATB_MAX){
     enemyAttack();
     battle.e.atb = 0;
     updateBattleBars();
   }
 }
+
+
 
 function updateBattleBars(){
   qs('#pHp').style.width  = pct(battle.p.hp, battle.p.hpMax) + '%';
@@ -1575,6 +1618,8 @@ async function endCheck(){
     if (typeof P.exp.cur!=='number') P.exp.cur = 0;
     if (typeof P.exp.max!=='number' || P.exp.max<=0) P.exp.max = 100;
     P.exp.cur = (P.exp.cur|0) + (expGain|0);
+    // ★新增：戰鬥訊息顯示經驗獲得
+    log('獲得經驗：' + expGain, 'ok');
 
     // ★ 每升一級 +2 基礎屬性點（unspentPoints）
     var leveled = 0;
@@ -1708,6 +1753,18 @@ window.addEventListener('DOMContentLoaded', async function(){
 
   P = char;
 
+  P = char;
+
+  // 掛上裝備模組（讓 getBonuses 能讀到 P）
+  if (window.Equip && Equip.mount) {
+    Equip.mount({
+      getPlayer: function(){ return P; },
+      save:      function(){ try{ if (window.Auth && Auth.saveCharacter && P){ Auth.saveCharacter(P); } }catch(_){ } },
+      recalc:    function(){ try{ renderHeader(); renderBars(); }catch(_){} },
+      log:       function(t){ try{ console.log(t); }catch(_){} }
+    });
+  }
+
   // 正規化欄位
   if(!P.bag) P.bag = { consumables:[], weapons:[], ornaments:[], materials:[], hidden:[] };
   if(!Array.isArray(P.bag.consumables)) P.bag.consumables = [];
@@ -1719,11 +1776,17 @@ window.addEventListener('DOMContentLoaded', async function(){
   if(!P.attributes) P.attributes = {str:10, vit:10, dex:10, int:10, wis:10, luk:10};
   if(typeof P.level !== 'number') P.level = 1;
 
-  var d0 = derivedFrom(P);
-  if(!P.hp) P.hp = { cur: d0['氣血上限'], max: d0['氣血上限'] };
-  if(!P.mp) P.mp = { cur: d0['真元上限'], max: d0['真元上限'] };
+  // 以「基礎 + 裝備加成」決定上限
+  var base  = derivedFrom(P);
+  var extra = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
+  var hpMax = (base['氣血上限'] || 0) + (extra['氣血上限'] || 0);
+  var mpMax = (base['真元上限'] || 0) + (extra['真元上限'] || 0);
+
+  if(!P.hp) { P.hp = { cur: hpMax, max: hpMax }; } else { P.hp.max = hpMax; P.hp.cur = Math.max(0, Math.min(P.hp.cur == null ? hpMax : P.hp.cur, hpMax)); }
+  if(!P.mp) { P.mp = { cur: mpMax, max: mpMax }; } else { P.mp.max = mpMax; P.mp.cur = Math.max(0, Math.min(P.mp.cur == null ? mpMax : P.mp.cur, mpMax)); }
   if(!P.sta) P.sta = { cur:100, max:100 };
   if(!P.exp) P.exp = { cur:0,   max:100 };
+
 
   P.mapProg = P.mapProg || {};
   if(!P.mapProg.slime_cave) P.mapProg.slime_cave = { kills:0, bossReady:false };

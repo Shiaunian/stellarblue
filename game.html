@@ -286,8 +286,8 @@
       <div class="bag-tabs">
         <span class="bag-tab active" data-bag-tab="consumable">消耗品</span>
         <span class="bag-tab" data-bag-tab="weapon">裝備</span>
-        <div class="bag-tab" data-bag-tab="ornament" title="尚未開放">飾品</div>
-        <div class="bag-tab" data-bag-tab="hidden"   title="尚未開放">暗器</div>
+          <span class="bag-tab" data-bag-tab="ornament">飾品</span>
+          <span class="bag-tab" data-bag-tab="hidden">暗器</span>
         <span class="bag-tab" data-bag-tab="material">材料</span>
       </div>
       <div id="bagList" class="bag-list"></div>
@@ -482,6 +482,7 @@
 })();
 </script>
 
+<script src="stats.js"></script>
 <script src="items.js"></script>
 <script src="auth.js"></script>
 <script src="equip.js"></script>
@@ -515,28 +516,6 @@ const BASE_ATTRS = [
   {key:'wis', name:'心神'},
   {key:'luk', name:'氣運'},
 ];
-
-function derivedFrom(player){
-  const A = player.attributes || {str:0, vit:0, dex:0, int:0, wis:0, luk:0};
-  const level = player.level ?? 1;
-  return {
-    '物理攻擊': 10 + A.str*2 + level,
-    '法術攻擊': 10 + A.int*2 + Math.floor(A.wis*0.5),
-    '氣血上限': 100 + A.vit*12 + level*6,
-    '真元上限': 50 + A.wis*10 + Math.floor(A.int*6/5),
-    '物理防禦': 6 + Math.floor(A.vit*1.2) + Math.floor(A.dex*0.6),
-    '法術防禦': 6 + Math.floor(A.wis*1.3) + Math.floor(A.int*0.5),
-    '命中率': 70 + A.dex*2,
-    '閃避': 5 + Math.floor(A.dex*1.2),
-    '暴擊率': Math.min(50, 3 + Math.floor(A.luk*0.8)),
-    '暴擊傷害': 50 + Math.floor(A.luk*1.5),
-    '行動條速度': 100 + Math.floor(A.dex*2.2),
-    '回氣/回合': 2 + Math.floor(A.wis*0.4),
-    '回血/回合': 1 + Math.floor(A.vit*0.5),
-    '破甲': Math.floor(A.str*0.5),
-    '法穿': Math.floor(A.int*0.5),
-  };
-}
 
 
 /* ===== 主程式 API ===== */
@@ -576,18 +555,27 @@ window.Game = (()=>{
     const S = p.sta || { cur: 100, max: 100 };
     const E = p.exp || { cur: 0,   max: 100 };
 
-    const hpMaxNow = derivedFrom(p)['氣血上限'];
-    const H = { cur: Math.min(p.hp?.cur ?? hpMaxNow, hpMaxNow), max: hpMaxNow };
+    // ★計入裝備加成
+    var base  = derivedFrom(p);
+    var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
+    var hpMaxNow = (base['氣血上限'] || 0) + (bonus['氣血上限'] || 0);
+    var mpMaxNow = (base['真元上限'] || 0) + (bonus['真元上限'] || 0);
 
-    const mpMaxNow = derivedFrom(p)['真元上限'];
+    // 同步到玩家狀態並夾在 0~max
+    if (!p.hp) { p.hp = { cur: hpMaxNow, max: hpMaxNow }; }
+    else { p.hp.max = hpMaxNow; p.hp.cur = Math.max(0, Math.min(p.hp.cur ?? hpMaxNow, hpMaxNow)); }
     if (!p.mp) { p.mp = { cur: mpMaxNow, max: mpMaxNow }; }
     else { p.mp.max = mpMaxNow; p.mp.cur = Math.max(0, Math.min(p.mp.cur ?? mpMaxNow, mpMaxNow)); }
+
+    const H = { cur: p.hp.cur, max: p.hp.max };
     const M = { cur: p.mp.cur, max: p.mp.max };
 
     if(qs('#barSta')){ qs('#barSta').style.width = pct(S.cur,S.max) + '%'; qs('#txtSta').textContent = `${S.cur}/${S.max}`; }
     if(qs('#barExp')){ qs('#barExp').style.width = pct(E.cur,E.max) + '%'; qs('#txtExp').textContent = `${E.cur}/${E.max}`; }
     if(qs('#barHp')) { qs('#barHp').style.width  = pct(H.cur,H.max) + '%';  qs('#txtHp').textContent  = `${H.cur}/${H.max}`; }
     if(qs('#barMp')) { qs('#barMp').style.width  = pct(M.cur,M.max) + '%';  qs('#txtMp').textContent  = `${M.cur}/${M.max}`; }
+
+
   }
 
   /* ===== 屬性面板 ===== */
@@ -644,6 +632,7 @@ window.Game = (()=>{
   }
 
 function wire(){
+  // 左上四顆主要按鈕：儲物袋、裝備欄、商店
   document.querySelectorAll('.gbtn').forEach(b=>{
     b.addEventListener('click', ()=>{
       const txt = b.textContent?.trim();
@@ -654,107 +643,232 @@ function wire(){
     });
   });
 
-  document.querySelectorAll('.card').forEach(c => 
-    c.addEventListener('click', () => {
-      const mod = c.dataset.mod;
-      if (mod === 'map') {
-        location.href = 'map.html';
-        return;
-      }
-      log(`進入模組：${c.querySelector('.ctitle').textContent}`, 'warn');
-    })
-  );
+  // 主畫面卡片（進入地圖或其他模組）
+document.querySelectorAll('.card').forEach(c=>{
+  c.addEventListener('click', ()=>{
+    const mod = c.dataset.mod;
+    if (mod === 'map') {
+      location.href = 'map.html';
+      return;
+    } else if (mod === 'cave') {
+      location.href = 'cave.html';
+      return;
+    }
+    log(`進入模組：${c.querySelector('.ctitle').textContent}`,'warn');
+  });
+});
 
+
+  // 聊天：送出按鈕與 Enter 送出
   qs('#btnSend')?.addEventListener('click', sendChat);
   qs('#chatInput')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendChat(); });
 
+  // 打開／關閉角色屬性面板
   qs('#uiAvatar')?.addEventListener('click', openAttr);
   document.querySelectorAll('[data-close="attr"]').forEach(el=> el.addEventListener('click', closeAttr));
-  addEventListener('keydown', e=>{ if(e.key==='Escape') { closeAttr(); closeBag(); closeBagAction(); } });
 
-  document.querySelectorAll('[data-close="bag"]').forEach(el=> el.addEventListener('click', closeBag));
-
-  document.addEventListener('click', (e)=>{
-    const el = e.target.closest?.('[data-close="bagAction"]');
-    if(el) closeBagAction();
+  // 按 Escape 關閉面板
+  addEventListener('keydown', e=>{
+    if(e.key==='Escape'){
+      closeAttr();
+      closeBag();
+      closeBagAction();
+    }
   });
 
-  // 其餘原本 wire() 內的監聽、商店/背包等邏輯照舊
+  // 關閉背包
+  document.querySelectorAll('[data-close="bag"]').forEach(function(el){ el.addEventListener('click', closeBag); });
+  document.querySelectorAll('[data-close="bagAction"]').forEach(function(el){ el.addEventListener('click', closeBagAction); });
 
-    document.addEventListener('click', (e)=>{
-      const plus = e.target.closest?.('.attr-plus');
-      if (!plus) return;
-      const key = plus.dataset.key;
-      const P = state.player;
-      if(!key || !P || (P.unspentPoints ?? 0) <= 0) return;
 
-      P.attributes[key] = (P.attributes[key] ?? 10) + 1;
-      P.unspentPoints -= 1;
+  /**
+   * 單一 click 監聽器整合所有常用點擊事件（移除 ?. / ?? / 箭頭函式）
+   */
+  document.addEventListener('click', function(e){
+    var target = e.target;
 
-      qs('#val_' + key).textContent = P.attributes[key];
-      const bar = qs('#bar_' + key);
-      if (bar) bar.style.width = Math.min(100, P.attributes[key]) + '%';
+    // 加屬性點
+    var plus = target.closest ? target.closest('.attr-plus') : null;
+    if (plus) {
+      var key = plus.dataset.key;
+      var P = state.player;
+      if(!key || !P || ((P.unspentPoints == null ? 0 : P.unspentPoints)) <= 0) return;
+
+      P.attributes[key] = (P.attributes[key] == null ? 10 : P.attributes[key]) + 1;
+      P.unspentPoints = (P.unspentPoints == null ? 0 : P.unspentPoints) - 1;
+
+      var elv = qs('#val_' + key); if (elv) elv.textContent = P.attributes[key];
+      var bar = qs('#bar_' + key); if (bar) bar.style.width = Math.min(100, P.attributes[key]) + '%';
 
       updatePlusButtons();
       renderDerived();
 
-      const d2 = derivedFrom(P);
-      const newHpMax = d2['氣血上限'];
+      // 更新血量上限
+      var d2 = derivedFrom(P);
+      var newHpMax = d2['氣血上限'];
       P.hp = P.hp || { cur: newHpMax, max: newHpMax };
       P.hp.max = newHpMax;
       P.hp.cur = Math.min(P.hp.cur, newHpMax);
-      if (qs('#barHp')) {
-        qs('#barHp').style.width = ((P.hp.cur / P.hp.max) * 100).toFixed(1) + '%';
-        qs('#txtHp').textContent = `${P.hp.cur}/${P.hp.max}`;
-      }
+      var hpBar = qs('#barHp'); if (hpBar) { hpBar.style.width = ((P.hp.cur / P.hp.max) * 100).toFixed(1) + '%'; }
+      var hpTxt = qs('#txtHp'); if (hpTxt) { hpTxt.textContent = P.hp.cur + '/' + P.hp.max; }
 
       if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
-    });
+      return;
+    }
 
-    document.addEventListener('click', (e)=>{
-      const tab = e.target.closest?.('.bag-tab');
-      if (!tab) return;
-      const k = tab.dataset.bagTab;
+    // 切換背包分頁
+    var tab = target.closest ? target.closest('.bag-tab') : null;
+    if (tab) {
+      var k = tab.dataset.bagTab;
       if (!k) return;
       switchBagTab(k);
-    });
+      return;
+    }
 
-    document.addEventListener('click', (e)=>{
-      const row = e.target.closest?.('.item-row');
-      if(!row || !row.dataset.type) return;
+    // 點擊背包物品列，開啟操作面板
+    var row = target.closest ? target.closest('.item-row') : null;
+    if (row && row.dataset.type) {
       openBagAction(row.dataset.type, +row.dataset.idx);
-    });
+      return;
+    }
 
-    document.addEventListener('click', (e)=>{
-      const btn = e.target.closest?.('.opx'); if(!btn) return;
-      const type = btn.dataset.type, op = btn.dataset.op, idx = +btn.dataset.idx;
+    // 點擊操作面板按鈕（使用／裝備／販賣／丟棄）
+    var btn = target.closest ? target.closest('.opx') : null;
+    if (btn) {
+      var type = btn.dataset.type;
+      var op   = btn.dataset.op;
+      var idx  = +(btn.dataset.idx || 0);
+      var P2   = state.player;
 
-      if(type==='consumable'){
-        if(op==='use')  bagUseConsumable(idx);
-        if(op==='sell') bagSellConsumable(idx);
-        if(op==='throw')bagThrowConsumable(idx);
-        renderBag('consumable');
-      }else if(type==='weapon'){
-        if(op==='equip') bagEquipWeapon(idx);
-        if(op==='sell')  bagSellWeapon(idx);
-        if(op==='throw') bagThrowWeapon(idx);
-        renderBag('weapon');
-      }else if(type==='material'){
-        if(op==='sell')  bagSellMaterial(idx);
-        if(op==='throw') bagThrowMaterial(idx);
-        renderBag('material');
+      if (type === 'consumable') {
+        if (op === 'use') bagUseConsumable(idx);
+        else if (op === 'sell') bagSellConsumable(idx);
+        else if (op === 'throw') bagThrowConsumable(idx);
+
+      } else if (type === 'weapon') {
+        if (op === 'equip') bagEquipWeapon(idx);
+        else if (op === 'repair') bagRepairWeapon(idx);
+        else if (op === 'sell') bagSellWeapon(idx);
+        else if (op === 'throw') bagThrowWeapon(idx);
+
+      } else if (type === 'ornament') {
+        if (op === 'equip') {
+          if (typeof bagEquipOrnament === 'function') {
+            // 你專用的流程（含回收被頂替者）
+            bagEquipOrnament(idx);
+          } else {
+            // 直連 Equip（若回傳失敗就做手動後備裝備邏輯）
+            var o = (P2 && P2.bag && P2.bag.ornaments) ? P2.bag.ornaments[idx] : null;
+            if (!o) { closeBagAction(); return; }
+
+            // 舊存檔相容：如果是字串 id，補成完整物件
+            if (typeof o === 'string') {
+              var kindsL = ['ornaments','rings','earrings','cloaks','armors','boots','medals'];
+              var defL = null, iL;
+              for (iL=0;iL<kindsL.length;iL++) {
+                var tmp = (window.ItemDB && ItemDB.getDef) ? ItemDB.getDef(kindsL[iL], o) : null;
+                if (tmp) { defL = tmp; break; }
+              }
+              o = defL ? { id: o, name: (defL.name || o), icon: (defL.icon || '') } : { id: o };
+              // 寫回背包裡這一格，避免之後再打開還是字串
+              if (P2 && P2.bag && P2.bag.ornaments) P2.bag.ornaments[idx] = o;
+            }
+
+            var equippedOk = false;
+            if (window.Equip && Equip.equipOrnament) {
+              // 若 equip.js 被修好會直接成功
+              equippedOk = !!Equip.equipOrnament(o);
+            }
+
+            if (!equippedOk) {
+              // —— 後備：在這裡直接完成裝備 —— //
+              P2.equip = P2.equip || { weapon:null, earrings:[null,null], rings:[null,null], cloak:null, armor:null, shoes:null, medals:[null,null,null,null,null] };
+
+              // 判斷種類（含 ornaments → 當作 rings）
+              var kind = '';
+              if (window.ItemDB && ItemDB.getDef) {
+                if (ItemDB.getDef('ornaments', o.id)) kind = 'rings';
+                else if (ItemDB.getDef('rings', o.id)) kind = 'rings';
+                else if (ItemDB.getDef('earrings', o.id)) kind = 'earrings';
+                else if (ItemDB.getDef('cloaks', o.id)) kind = 'cloak';
+                else if (ItemDB.getDef('armors', o.id)) kind = 'armor';
+                else if (ItemDB.getDef('boots', o.id)) kind = 'shoes';
+                else if (ItemDB.getDef('medals', o.id)) kind = 'medals';
+              }
+              if (!kind) { if (window.Game && Game.log) Game.log('無法辨識飾品種類','warn'); closeBagAction(); return; }
+
+              var back = null, j;
+
+              if (kind === 'rings' || kind === 'earrings' || kind === 'medals') {
+                var cap = (kind === 'medals') ? 5 : 2;
+                var arr = (P2.equip[kind] && P2.equip[kind].slice) ? P2.equip[kind] : new Array(cap);
+                for (j=0;j<cap;j++) if (typeof arr[j] === 'undefined') arr[j] = null;
+
+                // 禁止相同 id 重複裝備
+                for (j=0;j<arr.length;j++){ if (arr[j] && arr[j].id === o.id) { if(window.Game&&Game.log)Game.log('不可重複裝備相同飾品','warn'); closeBagAction(); return; } }
+
+                // 塞空位；無空位則覆蓋第 1 格並回收
+                var pos = -1; for (j=0;j<arr.length;j++){ if(!arr[j]){ pos=j; break; } }
+                if (pos === -1) { back = arr[0]; arr[0] = JSON.parse(JSON.stringify(o)); }
+                else { arr[pos] = JSON.parse(JSON.stringify(o)); }
+                P2.equip[kind] = arr;
+
+              } else {
+                // cloak / armor / shoes 單格位
+                back = P2.equip[kind] || null;
+                P2.equip[kind] = JSON.parse(JSON.stringify(o));
+              }
+
+              // 從背包移除本件
+              if (P2 && P2.bag && P2.bag.ornaments) {
+                P2.bag.ornaments.splice(idx, 1);
+              }
+
+              // 回收被頂替者
+              if (back){
+                P2.bag = P2.bag || {};
+                P2.bag.ornaments = Array.isArray(P2.bag.ornaments) ? P2.bag.ornaments : [];
+                try { P2.bag.ornaments.unshift(JSON.parse(JSON.stringify(back))); }
+                catch(_){ P2.bag.ornaments.unshift(back); }
+              }
+
+              equippedOk = true;
+            }
+
+            if (equippedOk) {
+              if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P2);
+              render(P2); renderBag('ornament');
+            }
+          }
+        } else if (op === 'sell') {
+          if (window.Game && Game.log) Game.log('飾品販售尚未實作。','warn');
+        } else if (op === 'throw') {
+          if (window.Game && Game.log) Game.log('飾品丟棄尚未實作。','warn');
+        }
+
+      } else if (type === 'hidden') {
+        if (op === 'use')  { if (window.Game && Game.log) Game.log('暗器僅能在戰鬥中使用。','info'); }
+        else if (op === 'sell') { if (window.Game && Game.log) Game.log('暗器販售尚未實作。','warn'); }
+        else if (op === 'throw'){ if (window.Game && Game.log) Game.log('暗器丟棄尚未實作。','warn'); }
+
+      } else if (type === 'material') {
+        if (op === 'sell')  bagSellMaterial(idx);
+        else if (op === 'throw') bagThrowMaterial(idx);
       }
+
       closeBagAction();
-    });
+      return;
+    }    
+  });
 
-    // 登出
-    document.getElementById('btnLogout')?.addEventListener('click', ()=>{
-      if (confirm('要登出嗎？')) {
-        if (window.Auth && Auth.logout) Auth.logout();
-        location.href = 'index.html';
-      }
-    });
-  }
+  // 登出按鈕
+  document.getElementById('btnLogout')?.addEventListener('click', ()=>{
+    if (confirm('要登出嗎？')) {
+      if (window.Auth && Auth.logout) Auth.logout();
+      location.href = 'index.html';
+    }
+  });
+}
 
 /* ===== Shop (NPC → Items) ===== */
 function openShop(){
@@ -942,11 +1056,114 @@ function renderBag(k){
     renderConsumables(box, P);
   } else if (k === 'weapon') {
     renderWeapons(box, P);
+  } else if (k === 'ornament') {
+    renderOrnaments(box, P);
+  } else if (k === 'hidden') {
+    renderHidden(box, P);
   } else if (k === 'material') {
     renderMaterials(box, P);
   } else {
     const tip = document.createElement('div'); tip.className='item-sub';
-    tip.textContent = '此分頁尚未開放';
+    tip.textContent = '尚無內容';
+    box.appendChild(tip);
+  }
+}
+
+
+/* === 新增：飾品清單渲染 === */
+function renderOrnaments(box, P){
+  const items = (P.bag && P.bag.ornaments) ? P.bag.ornaments : [];
+  const url = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
+
+  items.forEach((o,i)=>{
+    // 依次在不同表格找定義，避免因分類不同取不到
+    let def = ItemDB.getDef('ornaments', o.id) ||
+              ItemDB.getDef('rings',     o.id) ||
+              ItemDB.getDef('earrings',  o.id) ||
+              ItemDB.getDef('cloaks',    o.id) ||
+              ItemDB.getDef('armors',    o.id) ||
+              ItemDB.getDef('boots',     o.id) ||
+              ItemDB.getDef('medals',    o.id) || {};
+    const iconUrl = url(o.icon) ? o.icon : (url(def.icon) ? def.icon : null);
+    const name = o.name || def.name || o.id;
+    // 清單列只顯示「真元／氣血」兩個主要數值
+    const bonus = o.bonus || def.bonus || {};
+    const effect = o.effect || def.effect || {};
+    let mp = 0, hp = 0;
+    if (effect.mp) mp += effect.mp;
+    if (effect.hp) hp += effect.hp;
+    if (bonus['真元上限']) mp += bonus['真元上限'];
+    if (bonus['氣血上限']) hp += bonus['氣血上限'];
+    let primary = [];
+    if (mp) primary.push('真元+'+mp);
+    if (hp) primary.push('氣血+'+hp);
+    const subLeft  = primary.join(' ');
+    const subRight = '販售價格 ' + (o.price ?? def.price ?? 0);
+
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.type = 'ornament';
+    row.dataset.idx  = String(i);
+    row.innerHTML = `
+      <div class="item-thumb">${iconUrl?`<img src="${iconUrl}" alt="${name}">`:''}</div>
+      <div class="item-main">
+        <div class="item-title equip">
+          <span class="item-name">${name}</span>
+        </div>
+        <div class="item-sub">
+          <span class="sub-left">${subLeft}</span>
+          <span class="sub-right">${subRight}</span>
+        </div>
+      </div>
+    `;
+    box.appendChild(row);
+  });
+  if (!items.length){
+    const tip = document.createElement('div'); tip.className='item-sub';
+    tip.textContent = '尚無飾品';
+    box.appendChild(tip);
+  }
+}
+
+
+/* === 新增：暗器清單渲染 === */
+function renderHidden(box, P){
+  const items = (P.bag && P.bag.hidden) ? P.bag.hidden : [];
+  const url = function(s){ return typeof s==='string' && /^https?:\/\//.test(s); };
+
+  items.forEach(function(h, i){
+    const def = (ItemDB.getDef && ItemDB.getDef('hidden', h.id)) || {};
+    const iconUrl = url(h.icon) ? h.icon : (url(def.icon) ? def.icon : null);
+    const name = (h.name!=null ? h.name : (def.name!=null ? def.name : h.id));
+    const cnt = Math.max(0, h.count || 0);
+    var dmg = (h.effect && typeof h.effect.dmg==='number') ? h.effect.dmg
+            : (def.effect && typeof def.effect.dmg==='number') ? def.effect.dmg : 0;
+    var subLeft  = dmg ? ('傷害 ' + dmg) : (def.desc ? def.desc : '戰鬥中可使用以造成傷害');
+    var subRight = '販售價格 ' + String(h.price!=null ? h.price : (def.price || 0));
+
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.type = 'hidden';
+    row.dataset.idx = String(i);
+    row.innerHTML = `
+      <div class="item-thumb">${iconUrl?`<img src="${iconUrl}" alt="${name}">`:''}</div>
+      <div class="item-main">
+        <div class="item-title cons">
+          <span class="item-name">${name}</span>
+          <span class="count-slot">×${cnt}</span>
+        </div>
+        <div class="item-sub">
+          <span class="sub-left">${subLeft}</span>
+          <span class="sub-right">${subRight}</span>
+        </div>
+      </div>
+    `;
+    box.appendChild(row);
+  });
+
+  if (!items.length){
+    const tip = document.createElement('div'); tip.className='item-sub';
+    tip.textContent = '尚無暗器';
     box.appendChild(tip);
   }
 }
@@ -955,99 +1172,226 @@ function openBagAction(type, idx){
   const P = state.player; if(!P) return;
   const m = qs('#bagAction'); if(!m) return;
 
-  const isUrl = s => typeof s === 'string' && /^https?:\/\//.test(s);
-  const clampInt = (n, lo, hi)=> Math.max(lo, Math.min(hi, (n|0)));
+  // 工具
+  const isUrl = function(s){ return typeof s === 'string' && /^https?:\/\//.test(s); };
+  const clampInt = function(n, lo, hi){ n = n|0; if(n<lo) n=lo; if(n>hi) n=hi; return n; };
+  const esc = function(s){ s=String(s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); };
 
-  let name='', subLeft='', subRight='', iconUrl=null, btnsHtml='';
+  // 把 bonus / effect 做成細節 HTML（所有物品共用）
+  function buildDetailHTML(kind, it, def){
+    var lines = [];
+
+    function addPlus(label, v){
+      if (typeof v !== 'number') return;
+      if (!v) return;
+      lines.push(label + (v>0 ? ('+'+v) : v));
+    }
+    function addRaw(label, v){
+      if (typeof v !== 'number') return;
+      if (!v && v!==0) return;
+      lines.push(label + ' ' + v);
+    }
+
+    // 1) bonus（裝備/飾品用）
+    var b = (it && it.bonus) ? it.bonus : (def && def.bonus ? def.bonus : null);
+    if (b){
+      for (var k in b){
+        if(!Object.prototype.hasOwnProperty.call(b,k)) continue;
+        var v = b[k];
+        if (v===0 || v===null || v===undefined) continue;
+        if (k==='真元上限') addPlus('真元上限', v);
+        else if (k==='氣血上限') addPlus('氣血上限', v);
+        else if (k==='物理攻擊') addPlus('物理攻擊', v);
+        else if (k==='法術攻擊') addPlus('法術攻擊', v);
+        else if (k==='物理防禦') addPlus('物理防禦', v);
+        else if (k==='法術防禦') addPlus('法術防禦', v);
+        else if (k==='命中') addPlus('命中', v);
+        else if (k==='閃避') addPlus('閃避', v);
+        else if (k==='暴擊') addPlus('暴擊', v);
+        else if (k==='攻速') addPlus('攻速', v);
+        else addPlus(k, v);
+      }
+    }
+
+    // 2) effect（消耗品/暗器/部分飾品）
+    var e = (it && it.effect) ? it.effect : (def && def.effect ? def.effect : null);
+    if (e){
+      addPlus('氣血', e.hp);
+      addPlus('真元', e.mp);
+      addPlus('攻擊', e.atk);
+      addPlus('法攻', e.matk);
+      addPlus('防禦', e.def);
+      addPlus('法防', e.mdef);
+      addPlus('命中', (e.acc!=null?e.acc:e.hit));
+      addPlus('閃避', (e.eva!=null?e.eva:e.evd));
+      addPlus('暴擊', (e.crit!=null?e.crit:e.cri));
+      addPlus('攻速', (e.aspd!=null?e.aspd:e.spd));
+      addPlus('力', e.str);
+      addPlus('體', e.vit);
+      addPlus('悟', e.int);
+      addPlus('敏', e.agi);
+      addRaw('傷害', e.dmg);
+    }
+
+    // 3) 武器專屬資訊
+    if (kind==='weapon'){
+      var dmg = (it && it.dmg) ? it.dmg : (def && def.dmg ? def.dmg : null);
+      var plus = (it && typeof it.plus==='number') ? it.plus : (def && def.plus ? def.plus : 0);
+      if (dmg && typeof dmg.length==='number'){
+        var dmin = dmg[0]||0, dmax = dmg[1]||0;
+        lines.push('攻擊 ' + dmin + '~' + dmax + (plus?(' +' + plus):''));
+      }
+      var durCur = (it && it.dur && typeof it.dur.cur==='number') ? it.dur.cur : (def && typeof def.durCur==='number' ? def.durCur : null);
+      var durMax = (it && it.dur && typeof it.dur.max==='number') ? it.dur.max : (def && typeof def.durMax==='number' ? def.durMax : null);
+      if (durMax!==null && durMax!==undefined){
+        lines.push('耐久 ' + (durCur!==null && durCur!==undefined ? (durCur + '/' + durMax) : durMax));
+      }
+    }
+
+    // 4) 材料描述
+    if (kind==='material' && def && def.desc){
+      lines.push('用途：' + def.desc);
+    }
+
+    // 5) 暗器描述
+    if (kind==='hidden' && def && def.desc){
+      lines.push('說明：' + def.desc);
+    }
+
+    if (!lines.length) lines.push('無額外屬性');
+    var html = '';
+    for (var i=0;i<lines.length;i++){
+      html += '<div class="line">' + esc(lines[i]) + '</div>';
+    }
+    return html;
+  }
+
+  let name='', subRight='', iconUrl=null, btnsHtml='';
 
   if (type === 'consumable') {
     const it  = (P.bag.consumables || [])[idx]; if (!it) return;
     const def = ItemDB.getDef('consumables', it.id) || {};
     name     = it.name || def.name || it.id;
-    const effHp  = it.effect?.hp ?? def.effect?.hp;
-    const effTxt = effHp ? `氣血+${effHp}` : '';
-    subRight = `販售價格 ${it.price ?? def.price ?? 0}`;
+
+    const effHp  = (it.effect && typeof it.effect.hp==='number') ? it.effect.hp
+                   : (def.effect && typeof def.effect.hp==='number') ? def.effect.hp : 0;
+    const effTxt = effHp ? ('<span class="badge hp">氣血+' + effHp + '</span>') : '';
+    subRight = '販售價格 ' + String( (it.price!=null?it.price:(def.price||0)) );
     iconUrl  = isUrl(it.icon) ? it.icon : (isUrl(def.icon) ? def.icon : null);
     const cnt = clampInt(it.count ?? 0, 0, 9999);
 
-qs('#actTop').className = 'item-title cons';
-qs('#actTop').innerHTML = ''
-  + '<span class="item-name">' + String(name) + '</span>'
-  + '<span class="meta-effect">' + (effTxt ? ('<span class="badge hp">'+ effTxt +'</span>') : '') + '</span>'
-  + '<span class="count-slot">×' + cnt + '</span>';
+    qs('#actTop').className = 'item-title cons';
+    qs('#actTop').innerHTML = ''
+      + '<span class="item-name">' + esc(name) + '</span>'
+      + '<span class="meta-effect">' + effTxt + '</span>'
+      + '<span class="count-slot">×' + cnt + '</span>';
 
-    qs('#actLeft').textContent  = '';
+    qs('#actLeft').innerHTML   = buildDetailHTML('consumable', it, def);
     qs('#actRight').textContent = subRight;
 
-    btnsHtml = `
-      <button class="opx primary" data-op="use"  data-type="consumable" data-idx="${idx}">使用</button>
-      <button class="opx"         data-op="sell" data-type="consumable" data-idx="${idx}">販賣</button>
-      <button class="opx"         data-op="throw"data-type="consumable" data-idx="${idx}">丟棄</button>
-    `;
+    btnsHtml = ''
+      + '<button class="opx primary" data-op="use"  data-type="consumable" data-idx="'+idx+'">使用</button>'
+      + '<button class="opx"         data-op="sell" data-type="consumable" data-idx="'+idx+'">販賣</button>'
+      + '<button class="opx"         data-op="throw"data-type="consumable" data-idx="'+idx+'">丟棄</button>';
 
   } else if (type === 'material') {
-  const mat = (P.bag.materials || [])[idx]; if (!mat) return;
-  const def = ItemDB.getDef('materials', mat.id) || {};
-  name     = mat.name || def.name || mat.id;
-  iconUrl  = isUrl(mat.icon) ? mat.icon : (isUrl(def.icon) ? def.icon : null);
-  const cnt = clampInt(mat.count ?? 0, 0, 9999);
-  const r   = (mat.rarity || def.rarity || '').trim();             // ★ 稀有度
-  const rCls = r ? `rarity-${r}` : '';
-  const rBadge = r ? `<span class="rb rb-${r}" title="稀有度">${r}</span>` : '';
-  subLeft  = def.desc ? def.desc : (r ? `稀有度 ${r}` : '');
-  subRight = `販售價格 ${def.price ?? 0}`;
+    const mat = (P.bag.materials || [])[idx]; if (!mat) return;
+    const def = ItemDB.getDef('materials', mat.id) || {};
+    name     = mat.name || def.name || mat.id;
+    iconUrl  = isUrl(mat.icon) ? mat.icon : (isUrl(def.icon) ? def.icon : null);
+    const cnt = clampInt(mat.count ?? 0, 0, 9999);
+    subRight = def.price ? ('販售價格 ' + def.price) : '';
 
-  qs('#actTop').className = 'item-title';
-  qs('#actTop').innerHTML = `
-    <span class="item-name ${rCls}">${rBadge}${name}</span>
-    <span class="count-slot">×${cnt}</span>
-  `;
-  qs('#actLeft').textContent  = subLeft;
-  qs('#actRight').textContent = subRight;
+    qs('#actTop').className = 'item-title';
+    qs('#actTop').innerHTML = ''
+      + '<span class="item-name">' + esc(name) + '</span>'
+      + '<span class="count-slot">×' + cnt + '</span>';
 
-  btnsHtml = `
-    <button class="opx" data-op="sell"  data-type="material" data-idx="${idx}">販賣</button>
-    <button class="opx" data-op="throw" data-type="material" data-idx="${idx}">丟棄</button>
-  `;
+    qs('#actLeft').innerHTML   = buildDetailHTML('material', mat, def);
+    qs('#actRight').textContent = subRight;
 
+    btnsHtml = ''
+      + '<button class="opx" data-op="sell"  data-type="material" data-idx="'+idx+'">販賣</button>'
+      + '<button class="opx" data-op="throw" data-type="material" data-idx="'+idx+'">丟棄</button>';
 
   } else if (type === 'weapon') {
-  const w   = (P.bag.weapons || [])[idx]; if (!w) return;
-  const def = ItemDB.getDef('weapons', w.id) || {};
-  const d0  = Array.isArray(w.dmg) ? w.dmg : (def.dmg || [0,0]);
-  name     = w.name || def.name || w.id;
-  iconUrl  = isUrl(w.icon) ? w.icon : (isUrl(def.icon) ? def.icon : null);
-   // ★ 稀有度（長字→單字＋對應 class）
-  const r0 = (w.rarity || def.rarity || '').trim();                 // 可能是「普通/精良/稀有/史詩/傳說」
-  const rS = ({'普':'普','精':'精','稀':'稀','史':'史','傳':'傳'})[r0] || (r0 ? r0[0] : '');
-  const rCls = rS ? `rarity-${rS}` : '';
-  const rBadge = rS ? `<span class="rb rb-${rS}" title="稀有度">${rS}</span>` : '';
+    const w   = (P.bag.weapons || [])[idx]; if (!w) return;
+    const def = ItemDB.getDef('weapons', w.id) || {};
+    name     = w.name || def.name || w.id;
+    const dmg = Array.isArray(w.dmg) ? w.dmg : (def.dmg || [0,0]);
+    const dmin = dmg[0]||0, dmax = dmg[1]||0;
+    const plus = (typeof w.plus==='number') ? w.plus : (def.plus||0);
+    const durCur = (w.dur && typeof w.dur.cur==='number') ? w.dur.cur : (def.durCur||0);
+    const durMax = (w.dur && typeof w.dur.max==='number') ? w.dur.max : (def.durMax||0);
+    iconUrl  = isUrl(w.icon) ? w.icon : (isUrl(def.icon) ? def.icon : null);
+    subRight = '販售價格 ' + String(w.price ?? def.price ?? 0);
 
-  subLeft  = `物理攻擊 ${d0[0]}-${d0[1]}`;
-  subRight = `販售價格 ${w.price ?? def.price ?? 0}`;
+    qs('#actTop').className = 'item-title wep';
+    qs('#actTop').innerHTML = ''
+      + '<span class="item-name">' + esc(String(name).replace(/^(普|精|稀|史|傳)的?/,'') ) + '</span>'
+      + '<span class="meta-effect">' + (dmin||dmax ? ('<span class="badge atk">' + dmin + '~' + dmax + (plus?(' +' + plus):'') + '</span>') : '') + '</span>'
+      + '<span class="dur-chip">' + (durMax ? (durCur + '/' + durMax) : '') + '</span>';
 
-  qs('#actTop').className = 'item-title wep';
-  qs('#actTop').innerHTML = `
-    <span class="badge-lv">LV.${w.level ?? def.level ?? 1}</span>
-    <span class="item-name ${rCls}">${rBadge}${String(name).replace(/^(普|精|稀|史|傳)的?/, '')}</span>
-    <span class="right-meta">
-      <span>+${w.plus || 0}</span>
-      <span class="dur-chip">耐久 ${(w.dur?.cur ?? def.durMax ?? 0)}/${(w.dur?.max ?? def.durMax ?? 0)}</span>
-    </span>
-  `;
-  qs('#actLeft').textContent  = subLeft;
-  qs('#actRight').textContent = subRight;
+    qs('#actLeft').innerHTML   = buildDetailHTML('weapon', w, def);
+    qs('#actRight').textContent = subRight;
 
-  btnsHtml = `
-    <button class="opx primary" data-op="equip" data-type="weapon" data-idx="${idx}">裝備</button>
-    <button class="opx"         data-op="sell"  data-type="weapon" data-idx="${idx}">販賣</button>
-    <button class="opx"         data-op="throw" data-type="weapon" data-idx="${idx}">丟棄</button>
-  `;
+    btnsHtml = ''
+      + '<button class="opx primary" data-op="equip" data-type="weapon" data-idx="'+idx+'">裝備</button>'
+      + '<button class="opx"         data-op="sell"  data-type="weapon"  data-idx="'+idx+'">販賣</button>'
+      + '<button class="opx"         data-op="throw" data-type="weapon"  data-idx="'+idx+'">丟棄</button>';
+
+  } else if (type === 'ornament') {
+    const o = (P.bag.ornaments || [])[idx]; if(!o) return;
+    // 依你的清單渲染邏輯一樣走多類別找定義，避免因分類不同取不到 def
+    const def = ItemDB.getDef('ornaments', o.id)
+            || ItemDB.getDef('earrings', o.id)
+            || ItemDB.getDef('cloaks',   o.id)
+            || ItemDB.getDef('armors',   o.id)
+            || ItemDB.getDef('boots',    o.id)
+            || ItemDB.getDef('medals',   o.id)
+            || {};
+    name    = o.name || def.name || o.id;
+    iconUrl = isUrl(o.icon) ? o.icon : (isUrl(def.icon) ? def.icon : null);
+    subRight = '販售價格 ' + String(o.price != null ? o.price : (def.price || 0));
+
+    qs('#actTop').className = 'item-title equip';
+    qs('#actTop').innerHTML = ''
+      + '<span class="item-name">' + esc(name) + '</span>';
+
+    // 顯示完整屬性
+    qs('#actLeft').innerHTML   = buildDetailHTML('ornament', o, def);
+    qs('#actRight').textContent = subRight;
+
+    btnsHtml = ''
+      + '<button class="opx primary" data-op="equip" data-type="ornament" data-idx="'+idx+'">裝備</button>'
+      + '<button class="opx"         data-op="sell"  data-type="ornament" data-idx="'+idx+'">販賣</button>'
+      + '<button class="opx"         data-op="throw" data-type="ornament" data-idx="'+idx+'">丟棄</button>';
+
+  } else if (type === 'hidden') {
+    const h  = (P.bag.hidden || [])[idx]; if (!h) return;
+    const def = ItemDB.getDef('hidden', h.id) || {};
+    name     = h.name || def.name || h.id;
+    const cnt = clampInt(h.count ?? 0, 0, 9999);
+    iconUrl  = isUrl(h.icon) ? h.icon : (isUrl(def.icon) ? def.icon : null);
+    subRight = def.price ? ('販售價格 ' + def.price) : '';
+
+    qs('#actTop').className = 'item-title cons';
+    qs('#actTop').innerHTML = ''
+      + '<span class="item-name">' + esc(name) + '</span>'
+      + '<span class="count-slot">×' + cnt + '</span>';
+
+    qs('#actLeft').innerHTML   = buildDetailHTML('hidden', h, def);
+    qs('#actRight').textContent = subRight;
+
+    btnsHtml = ''
+      + '<button class="opx" data-op="sell"  data-type="hidden" data-idx="'+idx+'">販賣</button>'
+      + '<button class="opx" data-op="throw" data-type="hidden" data-idx="'+idx+'">丟棄</button>';
+
   } else {
     return;
   }
 
-  qs('#actIcon').innerHTML = iconUrl ? `<img src="${iconUrl}" alt="">` : '';
+  qs('#actIcon').innerHTML = iconUrl ? ('<img src="'+esc(iconUrl)+'" alt="">') : '';
   qs('#actBtns').innerHTML = btnsHtml;
 
   m.classList.add('show');
@@ -1102,7 +1446,6 @@ qs('#actTop').innerHTML = ''
     box.appendChild(row);
   });
 }
-
 
 function renderWeapons(box, P){
   const items = P.bag.weapons || [];
@@ -1183,7 +1526,6 @@ function renderMaterials(box, P){
     box.appendChild(tip);
   }
 }
-
 
   function bagUseConsumable(i){
     const P = state.player; const it = P.bag.consumables[i]; if(!it) return;
@@ -1282,7 +1624,65 @@ function bagEquipWeapon(i){
     render(P); renderBag('weapon');
   }
 
+  // === 飾品：裝備（含回收被頂替者） ===
+  function bagEquipOrnament(i){
+    var P = state.player; if(!P) return;
+    P.bag = P.bag || {};
+    var list = P.bag.ornaments || [];
+    var o = list[i]; if(!o) return;
+
+// 判定飾品種類
+var kind = '';
+if (window.ItemDB && ItemDB.getDef){
+  if (ItemDB.getDef('ornaments', o.id)) kind = 'rings'; // ornaments 視為「戒指」
+  else if (ItemDB.getDef('rings',    o.id)) kind = 'rings';
+  else if (ItemDB.getDef('earrings', o.id)) kind = 'earrings';
+  else if (ItemDB.getDef('cloaks',   o.id)) kind = 'cloak';
+  else if (ItemDB.getDef('armors',   o.id)) kind = 'armor';
+  else if (ItemDB.getDef('boots',    o.id)) kind = 'shoes';
+  else if (ItemDB.getDef('medals',   o.id)) kind = 'medals';
+}
+if (!kind) { log('無法辨識飾品種類'); return; }
+
+
+    // 裝備欄保底初始化
+    P.equip = P.equip || { weapon:null, earrings:[null,null], rings:[null,null], cloak:null, armor:null, shoes:null, medals:[null,null,null,null,null] };
+
+    var copy = JSON.parse(JSON.stringify(o));
+    var back = null;
+
+    if (kind==='rings' || kind==='earrings' || kind==='medals'){
+      var cap = (kind==='medals') ? 5 : 2;
+      var arr = Array.isArray(P.equip[kind]) ? P.equip[kind] : (P.equip[kind] = new Array(cap).fill(null));
+
+      // 不允許同 ID 重複裝備
+      for (var t=0;t<arr.length;t++){ if(arr[t] && arr[t].id===copy.id){ log('不可重複裝備相同飾品'); return; } }
+
+      // 找空位；沒有就覆蓋第 1 格並回收被覆蓋者
+      var pos = -1; for (var j=0;j<arr.length;j++){ if(!arr[j]){ pos=j; break; } }
+      if (pos===-1){ back = arr[0]; arr[0] = copy; } else { arr[pos] = copy; }
+    } else {
+      back = P.equip[kind] || null;
+      P.equip[kind] = copy;
+    }
+
+    // 從背包移除本件
+    list.splice(i,1);
+
+    // 將被頂替者回收回儲物袋（回到 ornaments）
+    if (back){
+      P.bag.ornaments = Array.isArray(P.bag.ornaments) ? P.bag.ornaments : [];
+      try { P.bag.ornaments.unshift(JSON.parse(JSON.stringify(back))); }
+      catch(_){ P.bag.ornaments.unshift(back); }
+    }
+
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('ornament');
+  }
+
   // === 材料：販賣 / 丟棄 ===
+
+
   function bagSellMaterial(i){
     const P = state.player; const it = P.bag.materials?.[i]; if(!it) return;
     const def = ItemDB.getDef('materials', it.id);
@@ -1338,26 +1738,30 @@ function bagEquipWeapon(i){
       // ★ 關鍵：把玩家寫回 state，後面所有功能才能正常讀到
       state.player = p;
 
-      const hpMax = derivedFrom(p)['氣血上限'];
+      // ★計入裝備加成的上限（初始化用）
+      var base  = derivedFrom(p);
+      var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
+      var hpMax = (base['氣血上限'] || 0) + (bonus['氣血上限'] || 0);
 
       // HP：若沒有就建立；若已有就只更新上限並夾在 0 ~ max 之間，不回滿
       if (!p.hp) {
         p.hp = { cur: hpMax, max: hpMax };
       } else {
         p.hp.max = hpMax;
-        const cur = (p.hp.cur ?? hpMax);
+        var cur = (p.hp.cur ?? hpMax);
         p.hp.cur = Math.max(0, Math.min(cur, hpMax));
       }
 
-      // MP（真元）：同樣處理
-      const mpMax = derivedFrom(p)['真元上限'];
+      // MP（真元）：同樣處理（計入裝備加成）
+      var mpMax = (base['真元上限'] || 0) + (bonus['真元上限'] || 0);
       if (!p.mp) {
         p.mp = { cur: mpMax, max: mpMax };
       } else {
         p.mp.max = mpMax;
-        const curM = (p.mp.cur ?? mpMax);
+        var curM = (p.mp.cur ?? mpMax);
         p.mp.cur = Math.max(0, Math.min(curM, mpMax));
       }
+
 
       // 體力：同理，不強制回滿；沒有才給預設
       if (!p.sta) {
@@ -1416,10 +1820,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   // 沒有角色 → 回登入頁的創角頁
   if (!char){ window.location.href = 'index.html#create'; return; }
 
-  // 有角色 → 啟動遊戲
-  if (window.Game && Game.start) { Game.start(char); }
-
-  // 掛上裝備模組
+  // 先掛上裝備模組（讓初始化就能正確拿到裝備加成）
   if (window.Equip && Equip.mount) {
     Equip.mount({
       getPlayer: function(){ return Game.getPlayer(); },
@@ -1428,6 +1829,11 @@ window.addEventListener('DOMContentLoaded', async () => {
       log:       function(t){ return Game.log ? Game.log(t) : console.log(t); }
     });
   }
+
+  // 再啟動遊戲
+  if (window.Game && Game.start) { Game.start(char); }
+
+  
 });
 </script>
 </body>

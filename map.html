@@ -650,12 +650,23 @@ function loadPlayer(){
 
 async function savePlayer(){
   try{
-    if (window.Auth && Auth.saveCharacter && typeof P !== 'undefined' && P){
-      await Auth.saveCharacter(P);
+    if (typeof P !== 'undefined' && P){
+      // 標記本地時間戳，主城/其他頁比對快取與雲端時會選用較新版本
+      P._updatedAt = Date.now();
+
+      if (window.Auth){
+        // 先更新本地快取（若有提供）
+        if (Auth.setCharacter) {
+          try{ Auth.setCharacter(P); }catch(_e){}
+        }
+        // 再寫雲端
+        if (Auth.saveCharacter) {
+          await Auth.saveCharacter(P);
+        }
+      }
     }
   }catch(e){}
 }
-
 
 
 

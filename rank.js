@@ -53,21 +53,33 @@
   }
 
 
-  // ===== 戰力估算：沿用你現有 stats + 裝備加成 =====
+  // ===== 戰力估算：所有能力值合成（含裝備加成；HP/5、MP/10）=====
   function computePower(p){
     try{
       var base  = (typeof derivedFrom === 'function') ? derivedFrom(p) : {};
       var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
-      function get(name){ return safe(base[name],0) + safe(bonus[name],0); }
-      // 簡單綜合：物攻+法攻+物防+法防 + (HP上限/5) + (MP上限/10)
-      var atk  = get('物理攻擊') + get('法術攻擊');
-      var def  = get('物理防禦') + get('法術防禦');
-      var hpm  = get('氣血上限');
-      var mpm  = get('真元上限');
-      var pwr  = (atk + def) + Math.floor(hpm/5) + Math.floor(mpm/10);
-      return pwr >= 0 ? pwr : 0;
+      var final = {};
+      var k;
+
+      // 合併 base + bonus（不用展開運算子）
+      for (k in base){ if (base.hasOwnProperty(k)){ final[k] = safe(base[k],0) + safe(bonus[k],0); } }
+      for (k in bonus){ if (bonus.hasOwnProperty(k) && !final.hasOwnProperty(k)){ final[k] = safe(bonus[k],0); } }
+
+      // 將所有能力值累加；HP/MP 依既定縮放避免淹沒其他能力
+      var score = 0;
+      for (k in final){
+        if (!final.hasOwnProperty(k)) continue;
+        var v = Number(final[k] || 0);
+        if (isNaN(v)) continue;
+        if (k.indexOf('氣血上限') !== -1){ score += Math.floor(v/5); }
+        else if (k.indexOf('真元上限') !== -1){ score += Math.floor(v/10); }
+        else { score += v; }
+      }
+      if (score < 0) score = 0;
+      return score;
     }catch(_){ return 0; }
   }
+
 
   // ===== 數據整形（補 avatar）=====
   function normalizePlayer(username, data){
@@ -259,23 +271,28 @@
         var p = snap && snap.exists() ? snap.val() : {};
         var row = normalizePlayer(uid, p);
 
-        // 重新算戰力（保證一致）
-        var pow = (function(){
-          try{
-            var base  = (typeof derivedFrom === 'function') ? derivedFrom(p) : {};
-            var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
-            var atk  = (base['物理攻擊']||0)+(bonus['物理攻擊']||0) + (base['法術攻擊']||0)+(bonus['法術攻擊']||0);
-            var def  = (base['物理防禦']||0)+(bonus['物理防禦']||0) + (base['法術防禦']||0)+(bonus['法術防禦']||0);
-            var hpm  = (base['氣血上限']||0)+(bonus['氣血上限']||0);
-            var mpm  = (base['真元上限']||0)+(bonus['真元上限']||0);
-            var x = (atk+def) + Math.floor(hpm/5) + Math.floor(mpm/10);
-            return x>=0?x:0;
-          }catch(_){ return row.power||0; }
-        })();
+        // 重新算戰力（全能力值版本）
+        var pow = computePower(p);
+
+        // 取裝備（純顯示，盡量容錯）
+        function eqName(x){
+          if(!x) return '-';
+          if (typeof x === 'string') return x;
+          if (x.name) return x.name;
+          if (x.title) return x.title;
+          if (x.id) return x.id;
+          if (x.key) return x.key;
+          return '-';
+        }
+        var eq = p.equip || p.equipment || {};
+        var wname = eqName(eq.weapon || eq['武器']);
+        var rname = eqName(eq.ring || eq['戒指']);
+        var nname = eqName(eq.necklace || eq['項鍊']);
+        var aname = eqName(eq.amulet || eq['護符'] || eq.accessory || eq['飾品']);
 
         var elemText = (typeof ELEMENT_LABEL!=='undefined' && ELEMENT_LABEL[row.element]) ? ELEMENT_LABEL[row.element] : (row.element||'none');
 
-        // 手機友善卡片
+        // 手機友善卡片 + 能力 + 裝備（純顯示）
         var html = ''
           + '<div style="display:grid; grid-template-columns:56px 1fr; gap:10px; align-items:center;">'
           +   '<img src="'+ (row.avatar||'https://picsum.photos/seed/xian/64') +'" style="width:56px;height:56px;border-radius:12px;object-fit:cover;border:1px solid rgba(255,255,255,.2)">'
@@ -292,7 +309,13 @@
           +   '<div class="kv item"><span class="k">戰力</span><span class="v">'+ fmt(pow) +'</span></div>'
           +   '<div class="kv item"><span class="k">氣血上限</span><span class="v">'+ fmt(row.hpMax) +'</span></div>'
           +   '<div class="kv item"><span class="k">真元上限</span><span class="v">'+ fmt(row.mpMax) +'</span></div>'
-          +   '<div class="kv item"><span class="k">最近活動</span><span class="v">'+ (row.updatedAt? new Date(row.updatedAt).toLocaleString('zh-TW') : '-') +'</span></div>'
+          + '</div>'
+          + '<div class="sec-title" style="margin-top:6px;">裝備</div>'
+          + '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">'
+          +   '<div class="kv item"><span class="k">武器</span><span class="v">'+ wname +'</span></div>'
+          +   '<div class="kv item"><span class="k">戒指</span><span class="v">'+ rname +'</span></div>'
+          +   '<div class="kv item"><span class="k">項鍊</span><span class="v">'+ nname +'</span></div>'
+          +   '<div class="kv item"><span class="k">飾品</span><span class="v">'+ aname +'</span></div>'
           + '</div>';
 
         var body = qs('#profBody');

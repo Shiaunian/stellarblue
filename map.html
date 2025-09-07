@@ -655,19 +655,41 @@ async function savePlayer(){
       P._updatedAt = Date.now();
 
       if (window.Auth){
-        // 先更新本地快取（若有提供）
+        // ★ Firebase 安全處理：移除 _live 避免特殊字符問題
+        var saveData = JSON.parse(JSON.stringify(P)); // 深拷貝
+        delete saveData._live; // 移除包含特殊字符的 _live 物件
+        
+        // ★ 強制同步：先更新本地快取
         if (Auth.setCharacter) {
-          try{ Auth.setCharacter(P); }catch(_e){}
+          try{ 
+            Auth.setCharacter(saveData); 
+            console.log('✅ 本地快取已更新:', saveData.level, saveData.exp, saveData.hp, saveData.sta);
+          }catch(_e){
+            console.error('❌ 本地快取更新失敗:', _e);
+          }
         }
-        // 再寫雲端
+        
+        // ★ 強制同步：再寫雲端（加重試機制）
         if (Auth.saveCharacter) {
-          await Auth.saveCharacter(P);
+          var retries = 3;
+          while(retries > 0){
+            try{
+              await Auth.saveCharacter(saveData);
+              console.log('✅ 雲端存檔成功:', saveData.level, saveData.exp);
+              break;
+            }catch(saveErr){
+              retries--;
+              console.warn('⚠️ 雲端存檔失敗，剩餘重試次數:', retries, saveErr);
+              if(retries > 0) await new Promise(r => setTimeout(r, 500)); // 等待 500ms 重試
+            }
+          }
         }
       }
     }
-  }catch(e){}
+  }catch(e){
+    console.error('❌ savePlayer 整體失敗:', e);
+  }
 }
-
 
 
 // （已移除：使用 stats.js 的 global.derivedFrom，避免數值不一致）
@@ -991,11 +1013,23 @@ async function doExplore(){
     log('探險獲得丹藥：' + cname + ' ×1', 'ok');
   }
 
+  refreshLive();
   renderHeader();
   renderBars();
   
-  try { await savePlayer(); } catch(e) {}
+  // ★ 探險後立即同步到 Auth 快取（加強版）
+  if (window.Auth && Auth.setCharacter) {
+    try { 
+      var cleanData = JSON.parse(JSON.stringify(P));
+      delete cleanData._live;
+      Auth.setCharacter(cleanData); 
+      console.log('🗺️ 探險後同步成功 - 體力:', P.sta.cur, '靈石:', P.currencies.stone);
+    } catch(_e) {
+      console.error('❌ 探險後同步失敗:', _e);
+    }
+  }
 }
+
 
 /* ===== 戰鬥（ATB） ===== */
 const ATB_MAX = 1000;      // 滿格門檻
@@ -1485,7 +1519,16 @@ function useItem(){
         log('使用 ' + it.name + ' 回復 ' + heal2 + ' 真元。');
       }
       battle.p.atb = 0;
-      renderBars(); savePlayer();
+      renderBars();
+    // ★ 使用道具後立即同步到 Auth 快取
+    if (window.Auth && Auth.setCharacter) {
+      try { 
+        var cleanData = JSON.parse(JSON.stringify(P));
+        delete cleanData._live;
+        Auth.setCharacter(cleanData); 
+      } catch(_) {}
+    }
+      savePlayer();
       updateBattleBars(); updateCmdEnabled();
       menu.remove();
     };
@@ -1583,19 +1626,35 @@ async function endCheck(){
     })((battle.enemy && battle.enemy.id) ? battle.enemy.id : battle.enemy);
 
     // 3) 經驗與升級（保留溢出）
-    var expGain = 10 + (battle.e.level||1)*4;
+    var baseExp = 10 + ((battle.enemy && battle.enemy.level) || 1) * 4;
+    var expGain = baseExp;
+    var bonusExp = 0;
+    
     try{
-      if (window.MonsterDB && typeof MonsterDB.expFor==='function') {
-        expGain = MonsterDB.expFor(battle.e);
+      if (window.MonsterDB && typeof MonsterDB.expFor === 'function') {
+        // 用真正的怪物（或其 id）來計算，才有正確等級/Rank/xpBonus
+        var monForExp = (battle.enemy && battle.enemy.id) ? battle.enemy.id : battle.enemy;
+        expGain = MonsterDB.expFor(monForExp, (P && typeof P.level==='number') ? P.level : null);
+        bonusExp = expGain - baseExp;
       }
     }catch(_){}
 
+
+    
     if (!P.exp) P.exp = {cur:0, max:100};
     if (typeof P.exp.cur!=='number') P.exp.cur = 0;
     if (typeof P.exp.max!=='number' || P.exp.max<=0) P.exp.max = 100;
     P.exp.cur = (P.exp.cur|0) + (expGain|0);
-    // ★新增：戰鬥訊息顯示經驗獲得
-    log('獲得經驗：' + expGain, 'ok');
+    
+    // ★分開顯示基礎經驗和額外經驗
+    if (bonusExp > 0) {
+      log('獲得經驗：' + baseExp + ' + ' + bonusExp + ' = ' + expGain + '（含額外加成）', 'ok');
+    } else if (bonusExp < 0) {
+      log('獲得經驗：' + baseExp + ' - ' + Math.abs(bonusExp) + ' = ' + expGain + '（等級差距減少）', 'ok');
+    } else {
+      log('獲得經驗：' + expGain, 'ok');
+    }
+
 
     // ★ 每升一級 +2 基礎屬性點（unspentPoints）
     var leveled = 0;
@@ -1609,15 +1668,55 @@ async function endCheck(){
       if (typeof P.unspentPoints!=='number') P.unspentPoints = 0;
       P.unspentPoints = P.unspentPoints + (leveled * 2);
       log('升到 ' + P.level + ' 級！獲得屬性點 +' + (leveled*2) + '（可到主城分配）','ok');
-      refreshLive(); renderHeader();
+      refreshLive();
+      renderHeader();
+      renderBars();
+      if(battle && !battle.over){
+        var newHpMax = P._live['氣血上限'] || P.hp.max;
+        var newMpMax = P._live['真元上限'] || P.mp.max;
+        battle.p.hpMax = newHpMax;
+        battle.p.mpMax = newMpMax;
+        P.hp.max = newHpMax;
+        P.mp.max = newMpMax;
+        updateBattleBars();
+      }
+      // ★ 關鍵：升級後立即同步到 Auth 快取（加強版）
+      if (window.Auth && Auth.setCharacter) {
+        try { 
+          var cleanData = JSON.parse(JSON.stringify(P));
+          delete cleanData._live;
+          Auth.setCharacter(cleanData); 
+          console.log('🎉 升級後同步成功 - 等級:', P.level, '經驗:', P.exp.cur + '/' + P.exp.max);
+        } catch(_e) {
+          console.error('❌ 升級後同步失敗:', _e);
+        }
+      }
     }
 
+
+    renderHeader();
     renderBars();
     
+    // ★ 戰鬥結束後立即同步到 Auth 快取（加強版）
+    if (window.Auth && Auth.setCharacter) {
+      try { 
+        var cleanData = JSON.parse(JSON.stringify(P));
+        delete cleanData._live;
+        Auth.setCharacter(cleanData); 
+        console.log('⚔️ 戰鬥結束後同步成功 - 等級:', P.level, '氣血:', P.hp.cur + '/' + P.hp.max);
+      } catch(_e) {
+        console.error('❌ 戰鬥結束後同步失敗:', _e);
+      }
+    }
+    // ★ 修正：戰鬥結束存檔前先清理 _live
+    var tempLive = P._live;  // 暫存 _live
+    delete P._live;          // 移除 _live
     try{ await savePlayer(); }catch(_){}
-    setTimeout(function(){ leaveBattle(); }, 1200);
+    P._live = tempLive;      // 恢復 _live（供後續使用）
 
-  }else if(battle.p.hp<=0){
+
+    setTimeout(function(){ leaveBattle(); }, 1200);
+    }else if(battle.p.hp<=0){
     log('你被擊倒了…（保留 1 點氣血）', 'warn');
     battle.p.hp = 1;
     if (P && P.hp) {
@@ -1626,11 +1725,28 @@ async function endCheck(){
     }
     renderBars();
     
+    // ★ 戰鬥結束後立即同步到 Auth 快取（加強版）
+    if (window.Auth && Auth.setCharacter) {
+      try { 
+        var cleanData = JSON.parse(JSON.stringify(P));
+        delete cleanData._live;
+        Auth.setCharacter(cleanData); 
+        console.log('⚔️ 戰鬥結束後同步成功 - 等級:', P.level, '氣血:', P.hp.cur + '/' + P.hp.max);
+      } catch(_e) {
+        console.error('❌ 戰鬥結束後同步失敗:', _e);
+      }
+    }
+
+    // ★ 修正：戰鬥結束存檔前先清理 _live
+    var tempLive2 = P._live;  // 暫存 _live
+    delete P._live;           // 移除 _live
     try{ await savePlayer(); }catch(_){}
+    P._live = tempLive2;      // 恢復 _live（供後續使用）
+
+
     setTimeout(function(){ leaveBattle(); }, 1200);
   }
 }
-
 
 
 function finishBattle(){
@@ -1668,13 +1784,32 @@ function log(t, cls){
 
 /* ===== 事件 ===== */
 qs('#btnBackHome').onclick = async function(){
-  try{ if(P){ await savePlayer(); } }catch(e){}
+  try{ if (P) { await savePlayer(); } }catch(e){}
   location.href = 'game.html';
 };
 
+/* ★ 新增：頁面離開/隱藏時也強制存檔，避免沒點到「回主城」導致沒存到 */
+addEventListener('pagehide', function(){
+  try { 
+    if (P && window.Auth && Auth.saveCharacter) { 
+      var cleanData = JSON.parse(JSON.stringify(P));
+      delete cleanData._live;
+      Auth.saveCharacter(cleanData); 
+    } 
+  } catch(_){}
+});
+addEventListener('visibilitychange', function(){
+  try { 
+    if (document.visibilityState === 'hidden' && P && window.Auth && Auth.saveCharacter) { 
+      var cleanData = JSON.parse(JSON.stringify(P));
+      delete cleanData._live;
+      Auth.saveCharacter(cleanData); 
+    } 
+  } catch(_){}
+});
 
-  
-  qs('#btnLogout').onclick = ()=>{ if(window.Auth && Auth.logout) Auth.logout(); location.href='index.html'; };
+
+qs('#btnLogout').onclick = ()=>{ if(window.Auth && Auth.logout) Auth.logout(); location.href='index.html'; };
 
   qs('#btnEnter').onclick = ()=>{
     if(!curSmall){ log('請先選擇副地圖。'); return; }
@@ -1751,19 +1886,28 @@ window.addEventListener('DOMContentLoaded', async function(){
   if (window.Equip && Equip.mount) {
     Equip.mount({
       getPlayer: function(){ return P; },
-      save:      function(){ try{ if (window.Auth && Auth.saveCharacter && P){ Auth.saveCharacter(P); } }catch(_){ } },
+      save:      function(){ try{ if (window.Auth && Auth.saveCharacter && P){ var cleanData = JSON.parse(JSON.stringify(P)); delete cleanData._live; Auth.saveCharacter(cleanData); } }catch(_){ } },
       recalc:    function(){ try{ renderHeader(); renderBars(); }catch(_){} },
       log:       function(t){ try{ console.log(t); }catch(_){} }
     });
   }
 
   // 6) 啟動後第一次渲染
+  console.log('🚀 頁面載入完成 - 角色狀態:', {
+    level: P.level,
+    exp: P.exp,
+    hp: P.hp,
+    sta: P.sta,
+    currencies: P.currencies
+  });
+  
   renderHeader();
   refreshLive();
   renderBars();
   buildMapUI();
   setLocBadge();
   updateActionPanel();
+
 });
 
 

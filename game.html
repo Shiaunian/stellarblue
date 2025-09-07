@@ -1,321 +1,333 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>修仙RPG｜野外地圖＆戰鬥</title>
-  <style>
-    :root{
-      --bg:#0b1024; --bg2:#0e1536; --panel:#131a3f; --panel-2:#0f1534; --muted:#9aa3b2; --text:#eaf2ff;
-      --accent:#8b5cf6; --accent2:#22d3ee; --hp:#ef4444; --mp:#3b82f6; --bar:#334155; --ok:#22c55e; --warn:#f59e0b;
-      --gold:#b98c4b; --gold-2:#7a5b31; --radius:16px; --gap:12px; --shadow:0 10px 28px rgba(0,0,0,.35);
-      --elem-none:#64748b; --elem-gold:#f59e0b; --elem-wood:#22c55e; --elem-water:#38bdf8;
-      --elem-fire:#f97316; --elem-earth:#a16207; --elem-spirit:#a78bfa; --elem-dark:#0f172a;
-    }
-    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-    html,body{height:100%; margin:0; font-family:"Microsoft JhengHei",system-ui,Segoe UI,Roboto,sans-serif; color:var(--text); background:var(--bg);}
+<meta charset="UTF-8" />
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>修仙RPG｜主城（手機專用 v5）</title>
+<style>
+  :root{
+    --bg:#0b1024; --bg2:#0e1536; --panel:#131a3f; --panel-2:#0f1534; --muted:#9aa3b2; --text:#eaf2ff;
+    --accent:#8b5cf6; --accent2:#22d3ee; --hp:#ef4444; --mp:#3b82f6; --bar:#334155; --ok:#22c55e; --warn:#f59e0b;
+    --gold:#b98c4b; --gold-2:#7a5b31; --radius:16px; --gap:12px; --shadow:0 10px 28px rgba(0,0,0,.35);
+    --elem-none:#64748b; --elem-water:#38bdf8; --elem-fire:#f97316;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%; margin:0; font-family:"Microsoft JhengHei",system-ui,Segoe UI,Roboto,sans-serif; color:var(--text); background:var(--bg);}
 
-    .stage{
-      position:fixed; inset:0;
-      display:grid;
-      align-items:start;            /* 讓畫面貼齊頂部*/
-      justify-items:center;
-      overflow:auto;
-      padding-top:env(safe-area-inset-top); /* 保留瀏海安全區 */
-    }
+  /* 舞台：所有裝置一律以「手機畫面」顯示 */
+  .stage{
+    position:fixed; inset:0; display:grid; justify-items:center; align-items:start; overflow:auto;
+    padding-top:max(6px, env(safe-area-inset-top));
+  }
+  /* 手機固定寬度（最大 420px），電腦/平板也使用同一寬度，避免版面跑掉 */
+  .app{
+    width:min(420px, 100svw);
+    max-height:100svh;
+    background:linear-gradient(180deg, var(--bg2), var(--panel));
+    border-radius:var(--radius); box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden;
+  }
 
-    .app{
-      aspect-ratio: 93/150;
-      width: min(100svw, calc(100svh * 93/150));
-      max-height: 100svh;
-      background: linear-gradient(180deg, var(--bg2), var(--panel));
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      display:flex; flex-direction:column; overflow:hidden;
-    }
-    /* 手機直立優化：讓 App 直接填滿視窗，去掉上下黑邊 */
-    @media (max-width: 480px){
-      .app{
-        width: 100svw;
-        height: 100svh;       /* 直接吃滿可視高度 */
-        max-height: none;
-        aspect-ratio: auto;   /* 取消固定比例 */
-        border-radius: 0;     /* 視覺貼齊螢幕邊緣（可移除） */
-      }
-    }
+  /* ===== Header（兩列） ===== */
+  header{
+    padding:10px 12px; background:rgba(255,255,255,.06);
+    border-bottom:1px solid rgba(255,255,255,.08);
+    display:grid;
+    grid-template-columns:1fr auto;
+    grid-template-areas:
+      "left right"
+      "medals right";
+    gap:8px 10px; align-items:center;
+  }
+  .h-left{grid-area:left; display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:center; min-width:0;}
+  .avatar{width:44px; height:44px; border-radius:50%; object-fit:cover; background:#222; border:2px solid rgba(255,255,255,.15);}
+  .pinfo{display:flex; flex-direction:column; min-width:0;}
+  .prow{display:flex; align-items:center; gap:6px; flex-wrap:nowrap; min-width:0;}
+  .pname{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .plv{font-size:12px; opacity:.9;}
+  .pill{display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px;
+        background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
+        white-space:nowrap;}
+  .elem{font-weight:700;}
+  .elem.none{background:var(--elem-none); color:#0b1024;}
+  .elem.water{background:var(--elem-water); color:#07223a;}
+  .elem.fire{background:var(--elem-fire); color:#2b0a00;}
 
-    /* Header */
-    header{
-      padding:10px 12px; background:rgba(255,255,255,.06);
-      border-bottom:1px solid rgba(255,255,255,.08);
-      display:grid; grid-template-columns:1fr auto; grid-template-areas: "left right" "medals right";
-      gap:8px 10px; align-items:center;
-    }
-    .h-left{grid-area:left; display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:center; min-width:0;}
-    .avatar{width:44px; height:44px; border-radius:50%; object-fit:cover; background:#222; border:2px solid rgba(255,255,255,.15);}
-    .pinfo{display:flex; flex-direction:column; min-width:0;}
-    .prow{display:flex; align-items:center; gap:6px; flex-wrap:nowrap; min-width:0;}
-    .pname{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-    .plv{font-size:12px; opacity:.9;}
-    .pill{
-      display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px;
-      background:rgba(255,255,255,0.08);
-    }
-    .pill.elem{ color:#fff; font-weight:600; }
-    .pill.elem.none{  background:var(--elem-none);  }
-    .pill.elem.gold{  background:var(--elem-gold);  }
-    .pill.elem.wood{  background:var(--elem-wood);  }
-    .pill.elem.water{ background:var(--elem-water); }
-    .pill.elem.fire{  background:var(--elem-fire);  }
-    .pill.elem.earth{ background:var(--elem-earth); }
-    .pill.elem.spirit{background:var(--elem-spirit);}
-    .pill.elem.dark{  background:var(--elem-dark);  }
+  /* 勳章：確保為完整圓形且不會被擠壓 */
+  .medals{grid-area:medals; display:flex; gap:6px; min-width:0;}
+  .medal-slot{
+    width:30px; aspect-ratio:1/1; border-radius:50%;
+    border:2px solid rgba(255,255,255,.25);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; color:#cbd5e1; background:rgba(255,255,255,.06);
+    overflow:hidden; flex:0 0 auto;
+  }
+  .medal-slot img{width:100%; height:100%; object-fit:cover; display:block;}
 
-    .medals{grid-area:medals; display:flex; gap:6px; min-width:0;}
-    .medal-slot{width:30px; aspect-ratio:1/1; border-radius:50%; border:2px solid rgba(255,255,255,.25);
-      display:flex; align-items:center; justify-content:center; font-size:12px; color:#cbd5e1; background:rgba(255,255,255,.06);
-      overflow:hidden; flex:0 0 auto;}
-    .h-right{grid-area:right; display:flex; flex-direction:column; align-items:flex-end; gap:8px; min-width:0;}
-    .coins{display:flex; gap:8px; white-space:nowrap; min-width:0; flex-wrap:nowrap;}
-    .coin{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); font-size:12px;}
-    .icon-box{ width:18px; height:18px; border-radius:4px; overflow:hidden; display:grid; place-items:center; }
-    .icon-box img{ width:100%; height:100%; object-fit:cover; display:block; }
-    .val{max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-    .back-btn{padding:5px 10px; min-width:76px; font-size:12px; border-radius:999px; border:1px solid rgba(255,255,255,.2); background:#111827; color:#fff; font-weight:800; cursor:pointer; letter-spacing:.5px;}
-    .logout-btn{padding:5px 10px; min-width:76px; font-size:12px; border-radius:999px; border:1px solid rgba(255,255,255,.2); background:#ef4444; color:#fff; font-weight:800; cursor:pointer; letter-spacing:.5px;}
+  /* 右側：貨幣 + 登出（改成直向排列，登出在貨幣下方） */
+  .h-right{grid-area:right; display:flex; flex-direction:column; align-items:flex-end; gap:8px; min-width:0;}
+  .coins{display:flex; gap:8px; white-space:nowrap; min-width:0; flex-wrap:nowrap;}
+  .coin{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); font-size:10px;}
+  .icon-box{ width:18px; height:18px; border-radius:4px; overflow:hidden; display:grid; place-items:center; }
+  .icon-box img{ width:100%; height:100%; object-fit:cover; display:block; }
+  /* 長數字支援（999,999+），仍保持單行 */
+  .val{max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 
-    .divider{height:1px; background:rgba(255,255,255,.08); margin:6px 0;}
-    .main{flex:1; display:flex; flex-direction:column; gap:10px; padding:8px 12px 10px; overflow:auto;}
+  /* ===== 登出按鈕框線調整 - 加大寬高 ===== */
+  .logout-btn{
+  padding: 12px 20px;  /* 原本 7px 14px，現在加大 */
+  min-width: 83px;    /* 原本 90px，現在加寬 */
+  height: 32px;        /* 新增固定高度 */
+  border-radius:999px; 
+  border:3px solid rgba(255,255,255,.4);  /* 框線加粗 + 增加透明度 */
+  background:#ef4444; color:#fff; font-weight:900; cursor:pointer; letter-spacing:1px;
+  display: flex;       /* 讓文字垂直置中 */
+  align-items: center;
+  justify-content: center;
+  }
+  .logout-btn:active{ transform: translateY(1px); }
 
-    /* Bars（縮小字級＋更細能量條） */
-    .bars{display:grid; gap:6px;}
-    .stat-row{display:grid; grid-template-columns:48px 1fr 56px; align-items:center; gap:6px;}
-    .label{font-size:12px; color:#e2e8f0; text-align:right;}
-    .num{font-size:11px; color:#e2e8f0; text-align:right;}
-    .prog{height:8px; background:#1f273a; border-radius:999px; position:relative; overflow:hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 -1px 0 rgba(0,0,0,.25);}
-    .fill{height:100%; width:0%;}
-      .fill.sta{background:linear-gradient(90deg,#eab308,#f59e0b);}
-      .fill.exp{background:linear-gradient(90deg,#16a34a,#4ade80);}
-      .fill.hp{background:linear-gradient(90deg,#ef4444,#b91c1c);}
-      .fill.mp{background:linear-gradient(90deg,#3b82f6,#1d4ed8);}
+  @media (max-width:420px){
+    .avatar{width:40px; height:40px}
+    .coin{padding:5px 8px}
+    .val{max-width:100px}
+    .medal-slot{width:28px}
+    header{gap:6px 8px; padding:8px 8px}
+  }
 
-    /* Map selection */
-    .map-wrap{display:grid; gap:10px;}
-    .title{text-align:center; color:#c7d2fe; font-weight:900; letter-spacing:4px; padding-top:2px; font-size:14px;}
+  .divider{height:1px; background:rgba(255,255,255,.08); margin:6px 0;}
+  .main{flex:1; display:flex; flex-direction:column; gap:10px; padding:8px 12px 0; overflow:auto;}
+  .bars{display:grid; gap:0px;}
+  .stat-row{display:grid; grid-template-columns:48px 1fr 56px; align-items:center; gap:8px;}
+  .label{font-size:14px; color:#e2e8f0; text-align:right;}
+  .num{font-size:10px; color:#e2e8f0; text-align:right;}
+    /* ===== 體力經驗真氣真元框線調整 - 加大高度 ===== */
+  .prog{
+  height: 13px;        /* 原本 14px，現在加高 */
+  background:#1f273a; border-radius:999px; position:relative; overflow:hidden; 
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.06), inset 0 -2px 0 rgba(0,0,0,.25);
+  border: 2px solid rgba(255,255,255,.25);  /* 新增外框線 */
+  }
+  .fill{height:100%; width:0%;} .fill.sta{background:linear-gradient(90deg,#eab308,#f59e0b);} .fill.exp{background:linear-gradient(90deg,#16a34a,#4ade80);} .fill.hp{background:linear-gradient(90deg,#ef4444,#b91c1c);} .fill.mp{background:linear-gradient(90deg,#3b82f6,#1d4ed8);}
+  .actions{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding-top:6px;}
+  .gbtn{padding:5px 0; text-align:center; border-radius:10px; font-size: 12px;  font-weight:800; letter-spacing:2px; color:#fff; background:linear-gradient(#a6783e,#7f5626); border:1px solid #5e3d1a; box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 2px 0 rgba(0,0,0,.2);}
+  .title{text-align:center; color:#c7d2fe; font-weight:900; letter-spacing:6px; padding-top:4px;}
+  .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; padding-bottom:6px;}
+  .card{background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:6px; display:grid; grid-template-columns:52px 1fr; gap:10px; align-items:center;}
+  .thumb{width:40px; height:40px; border-radius:10px; overflow:hidden; display:grid; place-items:center; background:#1e293b;}
+  .thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .ctitle{font-weight:800; font-size: 12px; letter-spacing:1px;} .csub{font-size:12px; color:var(--muted);}
+  .dock{padding:0 12px 10px;}
+  .chatbox{background:#060a1a; border:1px solid rgba(255,255,255,.2); border-radius:10px; position:relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,.4);}
+  .corner-btn{position:absolute; width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-top:12px solid #fff; right:10px;}
+  .corner-btn.top{top:-6px;} .corner-btn.bottom{bottom:-6px; transform:rotate(180deg);}
+  .log{height:92px; overflow:auto; padding:8px 10px; font-size:12px;} .log .item{line-height:1.5} .log .ok{color:var(--ok)} .log .warn{color:var(--warn)} .log .muted{color:var(--muted)}
+  .speak{display:flex; gap:8px; border-top:1px solid rgba(255,255,255,.1); padding:8px; background:#0a1024; border-radius:0 0 10px 10px;}
+  .speak input{flex:1; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:#fff; color:#111;}
+  .speak button{padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-weight:700;}
 
-    /* 兩列選單：左＝大地圖（清單）／右＝副地圖（清單） */
-    .map-select{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
-    .col{
-      background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08);
-      border-radius:14px; padding:8px; display:grid; grid-template-rows:auto 1fr;
-      gap:8px; min-height:160px;
-    }
-    .col .clabel{font-size:12px; color:#a5b4fc; letter-spacing:2px;}
-    .col .opts{
-      display:flex; flex-direction:column; gap:6px; overflow:auto; padding-right:2px;
-      -webkit-overflow-scrolling:touch;
-    }
-    /* 清單條目（字小、整行可點） */
-    .tag{
-      display:flex; align-items:center; justify-content:space-between; width:100%;
-      padding:6px 10px; font-size:12px; border-radius:10px;
-      border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06);
-      cursor:pointer; user-select:none;
-    }
-    .tag .name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-    .tag .lv{margin-left:8px; font-size:11px; color:#93c5fd; opacity:.95; white-space:nowrap;}
-    .tag{padding:4px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.10); cursor:pointer; user-select:none; font-size:11px; line-height:1.1;}
-    .tag.active{background:linear-gradient(135deg,var(--accent),var(--accent2));}
+  /* Modal、Bag 與邏輯相關樣式保持原樣（從 v4 完整版沿用） */
+  .stage, .log { overscroll-behavior: contain; }
+  .dock { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  .modal{ position:fixed; inset:0; display:none; place-items:center; z-index:999; }
+  .modal.show{ display:grid; }
+  .modal .mask{ position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter: blur(2px); }
+  .sheet{ position:relative; width:min(92vw, 520px); border-radius:16px; overflow:hidden; background:var(--panel-2); border:1px solid rgba(255,255,255,.12); box-shadow: var(--shadow); color:var(--text); }
+  .sheet .sec-title{ background:rgba(255,255,255,.06); border-bottom:1px solid rgba(255,255,255,.08); text-align:center; font-weight:900; letter-spacing:4px; padding:8px 12px; position:relative; }
+  .sheet .close{ position:absolute; right:10px; top:50%; transform:translateY(-50%); width:24px; height:24px; border-radius:999px; display:grid; place-items:center; background:#ef4444; color:#fff; font-weight:900; cursor:pointer; user-select:none; }
+  .sheet .body{ padding:12px; display:grid; gap:12px; }
+  .attr-list{ display:grid; gap:8px; }
+  .attr-row{ display:grid; grid-template-columns:70px 42px 1fr 40px; align-items:center; gap:8px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:6px 8px; }
+  .attr-name{ font-weight:700; }
+  .attr-val{ font-variant-numeric: tabular-nums; text-align:right; }
+  .attr-bar{ height:12px; background:#1f273a; border-radius:999px; overflow:hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -1px 0 rgba(0,0,0,.3); }
+  .attr-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--accent2),var(--accent)); }
+  .attr-plus{ width:32px; height:26px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background:linear-gradient(180deg,#22c55e,#16a34a); color:#fff; font-weight:900; cursor:pointer; display:grid; place-items:center; user-select:none; }
+  .attr-plus.hide{ display:none; }
+  .remain{ text-align:right; font-size:12px; color:#e2e8f0; }
+  .kv{ display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; }
+  .kv .item{ display:flex; justify-content:space-between; gap:8px; padding:6px 8px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:8px; }
+  .kv .k{ opacity:.85; font-size:12px; }
+  .kv .v{ font-variant-numeric: tabular-nums; font-size:12px; }
 
-    /* 進入/動作區 */
-    .panel{background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:8px; display:grid; gap:8px;}
-    .btn{padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-weight:800; text-align:center; cursor:pointer; user-select:none;}
-    .btn.ghost{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.2);}
-    .btn[disabled]{opacity:.5; filter:grayscale(1); cursor:not-allowed;}
-
-    .row{display:flex; gap:8px; flex-wrap:wrap;}
-    .hint{font-size:12px; color:#93c5fd; text-align:center;}
-
-   /* === 地區情報（固定欄位・雙欄） === */
-    .panel.info{ padding:6px 8px; }
-    .info-title{
-      font-size:11px; color:#a5b4fc; letter-spacing:1.5px;
-      margin-bottom:4px; opacity:.95;
-    }
-    /* 固定雙欄：左欄較寬（怪物），右欄稍窄（事件） */
-    .info-grid{
-      display:grid; grid-template-columns: minmax(0,1.35fr) minmax(0,.85fr);
-      gap:6px 10px; align-items:start;
-    }
-    .info-col{ display:grid; gap:4px; min-width:0; }
-    .info-label{ font-size:11px; color:#e2e8f0; opacity:.8; }
-
-    /* 怪物膠囊（更緊湊） */
-    .chip-list{ display:flex; flex-wrap:wrap; gap:6px; }
-    .chip{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:3px 6px; border-radius:8px;
-      border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.08);
-      font-size:11px; line-height:1.1; white-space:nowrap;
-      max-width:100%;
-    }
-    .chip .mname{
-      max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    }
-    .chip .mlv{ font-size:10px; opacity:.75; }
-
-    /* 地區情報中的元素膠囊縮小一號 */
-    .info .pill.elem{
-      padding:0 6px; border-radius:8px;
-      font-size:10px; line-height:1.1;
-    }
-
-    /* 事件列表（真正齊頭：把分隔點放在前一個項目的尾端） */
-    .event-list{
-      display:flex; flex-wrap:wrap; gap:6px 10px;
-      margin:0; padding:0; list-style:none; font-size:11px; color:#cbd5e1;
-    }
-    .event-list li{
-      display:flex; align-items:center;
-    }
-    .event-list li::before{ content:''; } /* 清空上一版的前置點（避免快取造成殘留） */
-    .event-list li:not(:last-child)::after{
-      content:'・'; margin-left:6px; opacity:.55;
-    }
+  .bag-tabs{display:flex; gap:6px; padding:6px; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.08);}
+  .bag-tab{padding:4px 8px; border-radius:8px; font-weight:700; font-size:11px; cursor:pointer; user-select:none; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);}
+  .bag-tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff;}
+  /* ⚠ 原本寫 .bag-body 但你的 HTML 用的是 .bag-list，這裡改成 .bag-list 才會生效 */
+  .bag-list{padding:8px; display:grid; gap:6px; max-height:65vh; overflow:auto;}
 
 
-    /* Battle UI */
-    .battle{display:none; grid-template-rows:auto 1fr auto; gap:10px; min-height:340px;}
-    .battle.show{display:grid;}
-    .arena{display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:end; padding:8px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);}
-    .box{background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:8px; display:grid; gap:8px;}
-    /* 立繪容器（保留一點邊距） */
-    .art{
-      width:100%; height:112px;
-      border-radius:10px;
-      background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.15));
-      display:grid; place-items:center; overflow:hidden;
-      border:1px solid rgba(255,255,255,.08);
-      position:relative;
-    }
+  .item-row{ display:grid; grid-template-columns:36px 1fr; gap:6px; align-items:center; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:5px 8px; min-height:48px; cursor:pointer; }
+  .item-thumb{width:36px; height:36px; border-radius:8px; background:#1e293b; display:grid; place-items:center; font-weight:900;}
+  .item-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .item-main{display:grid; gap:2px;}
+  /* 改成自適應寬度，右側欄位縮窄；名稱可多行 */
+  .item-title.cons{display:grid; grid-template-columns: 1fr auto auto; align-items:center; column-gap:4px;}
+  .item-title.wep {display:grid; grid-template-columns: 46px 1fr auto; align-items:center; column-gap:6px;}
+  /* 名稱可換行，避免被 … 截斷；整體字再小一點 */
+  .item-name{
+    font-weight:800; font-size:10px; line-height:1.25;
+    overflow:visible; white-space:normal; text-overflow:clip; word-break:break-word;
+    background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18);
+    border-radius:10px; padding:2px 8px; text-align:center;
+  }
+  .count-slot{
+    justify-self:end; min-width:56px; text-align:right; font-variant-numeric: tabular-nums;
+    background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18);
+    border-radius:9999px; padding:2px 6px; font-size:11px;
+  }
+  .meta-effect{justify-self:end;}
+  .badge{display:inline-block; padding:1px 6px; font-size:9px; border-radius:9999px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.10);}
+  .badge.hp{background:#7f1d1d; border-color:#ef4444; color:#fff;}
+  .badge-lv{background:rgba(255,255,255,.85); color:#0b1024; font-weight:900; border-radius:8px; padding:1px 6px; font-size:11px;}
+  .right-meta{display:flex; align-items:center; gap:8px;}
+  .dur-chip{background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18); border-radius:9999px; padding:1px 6px; font-size:11px; color:#e2e8f0;}
+  .item-sub{display:flex; justify-content:space-between; gap:8px; font-size:9px; color:var(--muted); line-height:1.15;}
+  /* 允許左右說明也自動換行，避免擠到冒號或出現 … */
+  .sub-left{white-space:normal;}
+  .sub-right{white-space:normal; color:#93c5fd;}
+  .price{font-size:11px; color:#e2e8f0;}
 
-    /* 100×100 頭像框：玩家圓形、敵人方形 */
-    .frame{
-      width:100px; height:100px;
-      display:grid; place-items:center;
-      overflow:hidden;
-      background:rgba(0,0,0,.15);
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-    }
-    .p-frame{ border-radius:50%; }        /* 玩家圓形 */
-    .e-frame{ border-radius:12px; }       /* 敵人方形，帶一點圓角 */
+  /* ★ 稀有度顏色：使用「普/精/稀/史/傳」五級，對應 items.js 的 RARITY */
+  :root{
+    --rar-普:#e5e7eb; --rar-精:#22c55e; --rar-稀:#38bdf8; --rar-史:#a78bfa; --rar-傳:#f59e0b;
+  }
+  .rarity-普{color:var(--rar-普);}
+  .rarity-精{color:var(--rar-精);}
+  .rarity-稀{color:var(--rar-稀);}
+  .rarity-史{color:var(--rar-史);}
+  .rarity-傳{color:var(--rar-傳);}
 
-    /* 內部圖片：以 100×100 素材為主，保持完整顯示 */
-    .portrait{
-      width:100%; height:100%;
-      object-fit:contain; display:block;
-      image-rendering:auto;
-      filter: drop-shadow(0 4px 6px rgba(0,0,0,.35));
-      transition: opacity 600ms ease, transform 600ms ease;
-    }
-    .portrait.mirror{ transform: scaleX(-1); }
-    .portrait.fade-out{ opacity:0; transform: scale(0.96); }
+  /* 小方塊稀有度徽章（顯示「普/精/稀/史/傳」） */
+  .rb{display:inline-grid; place-items:center; width:16px; height:16px; font-size:10px; font-weight:900;
+      border-radius:4px; margin-right:4px; line-height:1; border:1px solid rgba(255,255,255,.25);}
+  .rb-普{background:var(--rar-普); color:#0b1024;}
+  .rb-精{background:var(--rar-精); color:#052411;}
+  .rb-稀{background:var(--rar-稀); color:#041621;}
+  .rb-史{background:var(--rar-史); color:#1a0b2c;}
+  .rb-傳{background:var(--rar-傳); color:#231400;}
 
-    /* ★ 新增：每次遭遇怪物的翻轉進場動畫（掛在敵人框 .e-frame 上，不影響 .mirror） */
-    @keyframes flipIn {
-      0%   { transform: perspective(600px) rotateY(90deg) scale(0.95); opacity:0; }
-      50%  { transform: perspective(600px) rotateY(10deg) scale(1.02); opacity:1; }
-      100% { transform: perspective(600px) rotateY(0deg)  scale(1.00); opacity:1; }
-    }
-    .e-frame.flip-in{
-      animation: flipIn 520ms ease;
-    }
+  /* 既有耐久字樣維持 */
+  .dur{font-size:10px; color:#e2e8f0;}
 
-
-
-    .who{display:flex; align-items:center; justify-content:space-between; gap:8px;}
-    .name{font-weight:900;}
-    .hpbar{height:10px; background:#1f273a; border-radius:999px; overflow:hidden;}
-    .hpfill{height:100%; width:0%; background:linear-gradient(90deg,#ef4444,#b91c1c);}
-    .atb{height:10px; background:#0b122b; border-radius:999px; overflow:hidden;}
-    .atbfill{height:100%; width:0%; background:linear-gradient(90deg,#22d3ee,#8b5cf6);}
-    .srow{display:flex; gap:10px; font-size:12px; color:#cbd5e1;}
-    .cmd{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
-    .cbtn{padding:10px 6px; text-align:center; border-radius:10px; border:1px solid rgba(255,255,255,.2);
-      background:linear-gradient(#a6783e,#7f5626); box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 2px 0 rgba(0,0,0,.2);
-      font-weight:800; letter-spacing:2px; color:#fff; cursor:pointer; user-select:none;}
-    .cbtn[disabled]{opacity:.5; filter:grayscale(1); cursor:not-allowed;}
-    /* ★ 改善戰鬥／地圖日誌：加大、加行距、背景透黑，並加入分類色 */
-    .log{
-      height:110px;
-      overflow:auto;
-      padding:10px 12px;
-      font-size:12px;         /* ↓ 小一點 */
-      line-height:1.35;
-      background:rgba(6,10,26,0.8);
-      border:1px solid rgba(255,255,255,.3);
-      border-radius:10px;
-    }
-
-    /* 每條訊息底下留一點間距 */
-    .log > div{ margin-bottom:4px; }
-    /* 日誌分類顏色：呼應全域變數 ok/warn/hp 等 */
-    .log .ok  { color: var(--ok);   }
-    .log .warn{ color: var(--warn); }
-    .log .hit { color: var(--hp);   }
-    .log .crit{ color:#ffd166;     }
-    .log .heal{ color:#34d399;     }
+  #bagAction{position:fixed; inset:0; display:none; place-items:center; z-index:1000;}
+  #bagAction.show{display:grid;}
+  #bagAction .mask{position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter: blur(2px);}
+  #bagAction .sheet{position:relative; width:min(92vw, 380px);} #bagAction .ops{display:flex; justify-content:flex-end; gap:6px;}
+  .opx{padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.08); color:#fff; font-weight:700; font-size:12px; cursor:pointer;}
+  .opx.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));}
 
 
-    .footrow{display:flex; gap:8px; justify-content:space-between; align-items:center;}
-    .locBadge{font-size:12px; color:#e2e8f0;}
+  /* 讓屬性面板的外層彈窗限制高度，避免超出視口 */
+#attrModal .sheet{
+  /* 原本就有 width/min… 可保留 */
+  max-height: min(86svh, 640px);      /* 手機優先：最高只到 86% 視口高 */
+  display: grid;
+  grid-template-rows: auto 1fr;       /* 上：標題列；下：內容可捲動 */
+  overflow: hidden;                    /* 捲動交給 body */
+}
 
-    /* ===== 受擊/浮字特效 ===== */
-    .art{ position:relative; }            /* 讓 fx 可以絕對定位在立繪上 */
-    .fx{ position:absolute; inset:0; pointer-events:none; overflow:visible; }
-    .dmg-float{
-      position:absolute; left:50%; top:45%;
-      transform: translate(-50%,-50%);
-      font-weight:900; font-size:22px; letter-spacing:1px;
-      text-shadow:0 2px 0 rgba(0,0,0,.35), 0 0 12px rgba(255,255,255,.2);
-      animation: rise 900ms ease-out forwards;
-      user-select:none; white-space:nowrap;
-    }
-    .dmg-float.crit{ font-size:26px; filter: drop-shadow(0 0 8px rgba(255,215,0,.55)); }
-    .dmg{ color:#ff6b6b; }
-    .heal{ color:#34d399; }
-    .crit{ color:#ffd166; }
+/* 標題列固定在最上方，永遠看得到 ✕ */
+#attrModal .sheet .sec-title{
+  position: sticky;
+  top: 0;                              /* 黏到頂端 */
+  z-index: 1;
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  background: rgba(255,255,255,.06);   /* 保留原底色 */
+  backdrop-filter: blur(2px);
+}
 
-    .flash{
-      position:absolute; inset:0;
-      background: radial-gradient( circle at 50% 45%, rgba(255,80,80,.55), rgba(255,0,0,.15) 60%, transparent 70% );
-      mix-blend-mode: screen;
-      border-radius:10px;
-      animation: flash 220ms ease-out forwards;
-    }
+/* 內容區域可獨立捲動；多到超過就出現滾動條 */
+#attrModal .sheet .body{
+  overflow: auto;
+  /* 預留底部安全區，避免 iPhone 底部指示條壓到 */
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
 
-    .portrait.shake{ animation: shake .28s cubic-bezier(.36,.07,.19,.97) 2; transform-origin:center; }
+/* 讓屬性清單在窄手機也好捲動（可選） */
+#attrModal .attr-list{
+  min-height: 0;   /* 搭配 grid 才能正確壓縮讓父層捲動 */
+}
+#attrModal .kv{
+  min-height: 0;
+}
 
-    @keyframes flash{
-      0%{ opacity:0; }
-      10%{ opacity:.95; }
-      100%{ opacity:0; }
-    }
-    @keyframes rise{
-      0%{ transform:translate(-50%,-20%) scale(.9); opacity:0; }
-      15%{ transform:translate(-50%,-40%) scale(1.05); opacity:1; }
-      100%{ transform:translate(-50%,-110%) scale(1.0); opacity:0; }
-    }
-    @keyframes shake{
-      10%, 90% { transform: translateX(-1px); }
-      20%, 80% { transform: translateX(2px); }
-      30%, 50%, 70% { transform: translateX(-4px); }
-      40%, 60% { transform: translateX(4px); }
-    } 
-  </style>
+/* 提升關閉鈕點擊面積（不改見到的大小，只增大可點區域） */
+#attrModal .close{
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px; height: 28px;          /* 稍微放大 */
+  touch-action: manipulation;
+}
+#attrModal .close::before{
+  content: "";
+  position: absolute;
+  inset: -8px;                         /* 外擴 8px 的隱形熱區 */
+}
+</style>
 </head>
 <body>
+
+<!-- ===== 原有 UI/Modal 結構：不改玩法、只動排版 ===== -->
+<div id="attrModal" class="modal" aria-hidden="true">
+  <div class="mask" data-close="attr"></div>
+  <div class="sheet" role="dialog" aria-labelledby="attrTitle">
+    <div class="sec-title" id="attrTitle">
+      基本屬性
+      <div class="close" data-close="attr">✕</div>
+    </div>
+    <div class="body">
+      <div class="remain">未分配屬性點：<b id="ptRemain">0</b></div>
+      <div class="attr-list" id="attrList"></div>
+      <div class="sec-title">能力值</div>
+      <div class="kv" id="statList"></div>
+    </div>
+  </div>
+</div>
+
+<div id="bagModal" class="modal" aria-hidden="true">
+  <div class="mask" data-close="bag"></div>
+  <div class="sheet" role="dialog" aria-labelledby="bagTitle">
+    <div class="sec-title" id="bagTitle">
+      儲物袋
+      <div class="close" data-close="bag">✕</div>
+    </div>
+
+    <div class="body">
+      <div class="bag-tabs">
+        <span class="bag-tab active" data-bag-tab="consumable">消耗品</span>
+        <span class="bag-tab" data-bag-tab="weapon">裝備</span>
+          <span class="bag-tab" data-bag-tab="ornament">飾品</span>
+          <span class="bag-tab" data-bag-tab="hidden">暗器</span>
+        <span class="bag-tab" data-bag-tab="material">材料</span>
+      </div>
+      <div id="bagList" class="bag-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="bagAction" aria-hidden="true">
+  <div class="mask" data-close="bagAction"></div>
+  <div class="sheet action" role="dialog" aria-labelledby="bagActionTitle">
+    <div class="sec-title" id="bagActionTitle">
+      物品操作
+      <div class="close" data-close="bagAction">✕</div>
+    </div>
+    <div class="body">
+      <div class="item-row" style="cursor:default">
+        <div class="item-thumb" id="actIcon"></div>
+        <div class="item-main">
+          <div class="item-title cons" id="actTop"></div>
+          <div class="item-sub"><span class="sub-left" id="actLeft"></span><span class="sub-right" id="actRight"></span></div>
+        </div>
+      </div>
+      <div class="ops" id="actBtns"></div>
+    </div>
+  </div>
+</div>
+
 <div class="stage">
   <div class="app">
     <header>
@@ -329,6 +341,7 @@
           </div>
         </div>
       </div>
+
       <div class="medals">
         <div class="medal-slot" id="medal1"></div>
         <div class="medal-slot" id="medal2"></div>
@@ -336,6 +349,7 @@
         <div class="medal-slot" id="medal4"></div>
         <div class="medal-slot" id="medal5"></div>
       </div>
+
       <div class="h-right">
         <div class="coins">
           <span class="coin">
@@ -347,1516 +361,1469 @@
             <span class="val" id="uiDiamond">0</span>
           </span>
         </div>
-        <div class="row">
-          <button id="btnBackHome" class="back-btn" title="返回主城">返回主城</button>
-          <button id="btnLogout" class="logout-btn" title="登出" aria-label="登出">登出</button>
-        </div>
+        <button id="btnLogout" class="logout-btn" title="登出" aria-label="登出">登出</button>
       </div>
     </header>
 
     <div class="divider"></div>
 
     <div class="main">
-      <!-- 顯示體力/經驗/氣血 -->
-    <div class="bars">
-      <div class="stat-row">
-        <div class="label">體力：</div>
-        <div class="prog"><div class="fill sta" id="barSta"></div></div>
-        <div class="num" id="txtSta">100/100</div>
+      <div class="bars">
+        <div class="stat-row">
+          <div class="label">體力：</div>
+          <div class="prog"><div class="fill sta" id="barSta"></div></div>
+          <div class="num" id="txtSta">100/100</div>
+        </div>
+        <div class="stat-row">
+          <div class="label">經驗：</div>
+          <div class="prog"><div class="fill exp" id="barExp"></div></div>
+          <div class="num" id="txtExp">0/100</div>
+        </div>
+        <div class="stat-row">
+          <div class="label">氣血：</div>
+          <div class="prog"><div class="fill hp" id="barHp"></div></div>
+          <div class="num" id="txtHp">--/--</div>
+        </div>
+        <div class="stat-row">
+          <div class="label">真元：</div>
+          <div class="prog"><div class="fill mp" id="barMp"></div></div>
+          <div class="num" id="txtMp">--/--</div>
+        </div>
       </div>
-      <div class="stat-row">
-        <div class="label">經驗：</div>
-        <div class="prog"><div class="fill exp" id="barExp"></div></div>
-        <div class="num" id="txtExp">0/100</div>
-      </div>
-      <div class="stat-row">
-        <div class="label">氣血：</div>
-        <div class="prog"><div class="fill hp" id="barHp"></div></div>
-        <div class="num" id="txtHp">--/--</div>
-      </div>
-      <div class="stat-row">
-        <div class="label">真元：</div>
-        <div class="prog"><div class="fill mp" id="barMp"></div></div>
-        <div class="num" id="txtMp">--/--</div>
-      </div>
+
+    <div class="actions">
+      <div class="gbtn" data-open="bag">儲物袋</div>
+      <div class="gbtn" data-open="skill">技能</div>
+      <div class="gbtn" data-open="equip">裝備欄</div>
+      <div class="gbtn" data-open="rank">排行榜</div>
+      <div class="gbtn" data-open="shop">商店</div>
     </div>
 
-<!-- 地圖選擇 -->
-      <div id="mapSection" class="map-wrap">
-        <div class="title">野 外 地 圖</div>
+      <div class="title">主 城</div>
 
-        <!-- 兩列選單：左大地圖、右副地圖（依左側選擇動態變化） -->
-        <div class="map-select">
-          <div class="col">
-            <div class="clabel">大地圖</div>
-            <div class="opts" id="bigMapCol"></div>
-          </div>
-          <div class="col">
-            <div class="clabel">副地圖</div>
-            <div class="opts" id="smallMapCol"></div>
-          </div>
-        </div>
-
-        <!-- 先按「進入」才會顯示探險/戰鬥 -->
-      <div class="panel">
-        <div class="locBadge" id="locBadge">尚未選擇地點</div>
-        <div class="row">
-          <button id="btnEnter"   class="btn" disabled>進 入</button>
-          <button id="btnExplore" class="btn" style="display:none;">探險（體力-2）</button>
-          <button id="btnFight"   class="btn" style="display:none;">戰 鬥</button>
-          <!-- ★ 新增：挑戰 BOSS（紅色） -->
-          <button id="btnBoss"    class="btn" style="display:none; background:#b91c1c; border:1px solid #dc2626;">挑戰 BOSS</button>
-        </div>
-        <div class="hint">請先選擇「大地圖 → 副地圖」並按下「進入」。進入後才會顯示「探險 / 戰鬥」。</div>
-        <!-- ★ 新增：萊姆洞窟進度提示 -->
-        <div id="slimeQuestHint" class="hint" style="display:none;"></div>
+      <div class="grid">
+        <div class="card" data-mod="cave"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">洞府</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="map"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">野外地圖</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="library"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">藏經閣</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="tower"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">試煉塔</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="war"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">規模戰</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="collection"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">卡片收藏</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="dex"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">圖鑑</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="shop"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">商城</div><div class="csub">目前待開發中</div></div></div>
       </div>
 
-        <!-- ★ 地區情報（固定欄位｜雙欄：左=怪物，右=事件） -->
-        <div class="panel info" id="areaInfo">
-          <div class="info-title">地 區 情 報</div>
-          <div class="info-grid">
-            <div class="info-col info-left">
-              <div class="info-label">可能出現的怪物</div>
-              <div id="infoMonsters" class="chip-list"><span class="chip">—</span></div>
-            </div>
-            <div class="info-col info-right">
-              <div class="info-label">探險可能事件</div>
-              <ul id="infoEvents" class="event-list">
-                <li>撿到靈石（約 50%）</li>
-                <li>發現素材（約 30%）</li>
-                <li>獲得丹藥（約 20%）</li>
-              </ul>
-            </div>
+      <div class="dock">
+        <div class="chatbox">
+          <div class="corner-btn top"></div>
+          <div class="log" id="log"></div>
+          <div class="speak">
+            <input id="chatInput" type="text" placeholder="輸入文字..." />
+            <button id="btnSend">送出</button>
           </div>
-        </div>
-
-        <!-- ★ 事件／戰鬥日誌（與戰鬥共用同一個 #log） -->
-        <div class="panel">
-          <div class="log" id="logMap"></div>
+          <div class="corner-btn bottom"></div>
         </div>
       </div>
 
-      <!-- 戰鬥場景 -->
-      <div id="battleSection" class="battle">
-        <div class="arena">
-        <div class="box">
-          <div class="who">
-          <div class="name">你</div>
-          <div class="srow">
-            <span>LV.<span id="pLv"></span></span>
-            <span id="pElem" class="pill elem">—</span>
-          </div>
-        </div>
-          <div class="art">
-            <div class="frame p-frame">
-              <img id="pImg" class="portrait" alt="player portrait">
-            </div>
-            <div class="fx" id="pFx"></div>
-          </div>
-          <div class="hpbar"><div id="pHp" class="hpfill"></div></div>
-          <div class="atb"><div id="pATB" class="atbfill"></div></div>
-        </div>
-        <div class="box">
-          <div class="who">
-          <div class="name" id="eName">敵人</div>
-          <div class="srow">
-            <span>LV.<span id="eLv"></span></span>
-            <span id="eElem" class="pill elem">—</span>
-          </div>
-        </div>
-          <div class="art">
-            <div class="frame e-frame">
-              <img id="eImg" class="portrait mirror" alt="enemy portrait">
-            </div>
-            <div class="fx" id="eFx"></div>
-          </div>
-          <div class="hpbar"><div id="eHp" class="hpfill"></div></div>
-          <div class="atb"><div id="eATB" class="atbfill"></div></div>
-        </div>
-        </div>
-        <div class="cmd">
-          <button id="actAttack" class="cbtn" disabled>攻 擊</button>
-          <button id="actSkill"  class="cbtn" disabled title="預留">技 能</button>
-          <button id="actItem"   class="cbtn" disabled>道 具</button>
-          <button id="actRun"    class="cbtn" disabled>逃 跑</button>
-        </div>
-        <div class="log" id="logBattle"></div>
-        <div class="footrow">
-          <div id="btState" class="locBadge"></div>
-          <div class="row">
-            <button id="btnLeaveBattle" class="btn ghost" style="display:none;">返回小地圖</button>
-          </div>
-        </div>
+</div>
+</div>
+</div>
+
+<!-- ★ 新增：商店介面 -->
+<div id="shopModal" class="modal" aria-hidden="true">
+  <div class="mask" data-close="shop"></div>
+  <div class="sheet" role="dialog" aria-labelledby="shopTitle">
+    <div class="sec-title" id="shopTitle">
+      商店
+      <div class="close" data-close="shop">✕</div>
+    </div>
+    <div class="body">
+      <!-- 商人清單頁 -->
+      <div id="merchantList"></div>
+      <!-- 商品清單頁 -->
+      <div id="merchantShop" style="display:none;">
+        <div class="sec-title" id="merchantName"></div>
+        <div id="shopList"></div>
+        <button class="opx" id="btnBackMerchants">返回商人清單</button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- ★ 新增：購買介面 Modal -->
+<div id="buyModal" class="modal" aria-hidden="true">
+  <div class="mask" data-close="buy"></div>
+  <div class="sheet" role="dialog" aria-labelledby="buyTitle">
+    <div class="sec-title" id="buyTitle">
+      購買物品
+      <div class="close" data-close="buy">✕</div>
+    </div>
+    <div class="body">
+      <div id="buyItemName" style="font-weight:700; text-align:center;"></div>
+      <div style="display:flex; gap:8px; align-items:center; justify-content:center;">
+        <label for="buyQty">數量：</label>
+        <input id="buyQty" type="number" value="1" min="1" style="width:80px; text-align:center;">
+      </div>
+      <div style="text-align:center; margin-top:10px;">
+        <button class="opx primary" id="btnConfirmBuy">確定購買</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
 <!-- Firebase（compat 版，免 ES Module） -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 <script>
-  (function(){
-    var firebaseConfig = {
-      apiKey: "AIzaSyBvKmn0jCTS_jIgEYOuQjc8vyYU40Q5F3I",
-      authDomain: "stellarblue-system.firebaseapp.com",
-      databaseURL: "https://stellarblue-system-default-rtdb.firebaseio.com",
-      projectId: "stellarblue-system",
-      storageBucket: "stellarblue-system.firebasestorage.app",
-      messagingSenderId: "803212433649",
-      appId: "1:803212433649:web:887080d10a51d533b23150",
-      measurementId: "G-YY94484DV9"
-    };
-    if(!firebase.apps || !firebase.apps.length){
-      firebase.initializeApp(firebaseConfig);
-    }
-    // 提供給 auth.js 使用
-    window.DB = firebase.database();
-  })();
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyBvKmn0jCTS_jIgEYOuQjc8vyYU40Q5F3I",
+    authDomain: "stellarblue-system.firebaseapp.com",
+    databaseURL: "https://stellarblue-system-default-rtdb.firebaseio.com",
+    projectId: "stellarblue-system",
+    storageBucket: "stellarblue-system.firebasestorage.app",
+    messagingSenderId: "803212433649",
+    appId: "1:803212433649:web:887080d10a51d533b23150",
+    measurementId: "G-YY94484DV9"
+  };
+  if(!firebase.apps || !firebase.apps.length){
+    firebase.initializeApp(firebaseConfig);
+  }
+  // 提供給 auth.js / 遊戲頁使用
+  window.DB = firebase.database();
+})();
 </script>
 
-<!-- 資料庫/帳號 -->
-<!-- 資料庫/帳號 -->
 <script src="stats.js"></script>
 <script src="items.js"></script>
-<script src="monsters.js"></script>
-<script src="equip.js"></script><!-- ★新增：裝備模組，確保 getBonuses 一致 -->
 <script src="auth.js"></script>
-
-
-
+<script src="equip.js"></script>
+<script src="rank.js"></script>
 <script>
-/* ===== 工具 ===== */
-const qs = (s, p=document)=>p.querySelector(s);
-const qsa = function(s, p){
-  p = p || document;
-  return Array.prototype.slice.call(p.querySelectorAll(s));
-};
+
+
+
+/* ===== 公用 ===== */
+const qs = s=>document.querySelector(s);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-const pct=(cur,max)=> (max>0? clamp(Math.round(cur/max*100),0,100) : 0);
-const fmt=(n)=> new Intl.NumberFormat('zh-Hant').format(n);
+const pct=(cur,max)=>clamp(Math.round(cur/max*100),0,100);
+const fmt = (n)=> new Intl.NumberFormat('zh-Hant').format(n);
+const fmtCompact = (n)=> new Intl.NumberFormat('en', { notation:'compact', maximumFractionDigits:1 }).format(n);
 
-/* ===== 元素＆相剋表 ===== */
 const ELEMENT_LABEL = {
-  none:'無', gold:'金', wood:'木', water:'水', fire:'火', earth:'土', spirit:'靈', dark:'暗'
+  none:'無元素',
+  gold:'金元素',
+  wood:'木元素',
+  water:'水元素',
+  fire:'火元素',
+  earth:'土元素',
+  spirit:'靈元素',
+  dark:'暗元素',
 };
 
-// 1) 相剋倍率（v1：五行相剋＋暗/靈互克；強 1.25×、弱 0.75×、其餘 1.00）
-
-window.ELEM_MUL = {
-  none:  { none:1, gold:1,   wood:1,    water:1,    fire:1,    earth:1,   spirit:1,   dark:1 },
-  gold:  { none:1, gold:1,   wood:1.25, water:1,    fire:0.75, earth:1,   spirit:1,   dark:1 },
-  wood:  { none:1, gold:0.75,wood:1,    water:1,    fire:0.75, earth:1.25,spirit:1,   dark:1 },
-  water: { none:1, gold:1,   wood:1,    water:1,    fire:1.25, earth:0.75,spirit:1,   dark:1 },
-  fire:  { none:1, gold:1.25,wood:1.25, water:0.75, fire:1,    earth:1,   spirit:1,   dark:1 },
-  earth: { none:1, gold:1,   wood:0.75, water:1.25, fire:1,    earth:1,   spirit:1,   dark:1 },
-  spirit:{ none:1, gold:1,   wood:1,    water:1,    fire:1,    earth:1,   spirit:1,   dark:1.25 },
-  dark:  { none:1, gold:1,   wood:1,    water:1,    fire:1,    earth:1,   spirit:1.25,dark:1 },
-};
-
-
-// 2) 同屬性加成（Same-Type Attack Bonus）：攻擊者元素==攻擊元素 → +10%
-window.STAB = 1.00;
-
-// 3) 取倍率工具
-function elemMult(dmgElem='none', defElem='none'){
-  const row = (window.ELEM_MUL||{})[dmgElem]||{};
-  return row[defElem] ?? 1;
-}
-// 將元素對應關係轉成易讀的片語（固定顯示，×1.00 也會寫出來）
-function elemRelationText(atkElem, defElem, elemMul, stabMul){
-  // 只有克制/受克才顯示；相同或中性不顯示
-  var m = (typeof elemMul === 'number') ? elemMul : 1;
-  if (m === 1) return '';
-  var label = (m > 1) ? '克制' : '受克';
-  var pct   = Math.round(Math.abs(m - 1) * 100);
-  return '（' + label + ' ' + (m>1?'+':'-') + pct + '%）';
-}
-
-
-// 玩家預設立繪（若沒有 avatar 才用這張）
-const PLAYER_IMG_URL = 'https://picsum.photos/seed/xian-hero/400/600';
-
-
-
-/* ===== 地圖資料（大地圖 -> 小地圖） ===== */
-const MAPS = [
-  { id:'forest', name:'青木山脈', lv:'1-4', small:[
-    { id:'slime_cave',  name:'萊姆洞窟', lv:'1-3',
-      monsters:['slime_young','slime','slime_king'], boss:'slime_boss' },
-    { id:'woodland',    name:'火林洞',   lv:'2-4',
-      monsters:['wood_wisp','Fire_Spirit','laily'] },
-    { id:'moss_vale',   name:'苔石谷',   lv:'2-4',
-      monsters:['slime','stone_golem'],  boss:'stone_golem_boss' },
-  ]},
-  { id:'tundra', name:'雪原台地', lv:'3-5', small:[
-    { id:'snowfield',   name:'雪原狩場', lv:'3-4',
-      monsters:['snow_wolf','ice_thorn'], boss:'ice_bear_boss' },
-    { id:'ice_cave',    name:'寒晶洞穴', lv:'4-5',
-      monsters:['ice_bear','ice_thorn'] },
-  ]},
-  { id:'ruins', name:'幽怨遺跡', lv:'5-7', small:[
-    { id:'spirit_hall', name:'靈侍大殿', lv:'4-6',
-      monsters:['spirit_acolyte','wraith'], boss:'spirit_acolyte_boss' },
-    { id:'shadow_pit',  name:'影翼深坑', lv:'4-6',
-      monsters:['shadow_bat','wraith'],     boss:'shadow_bat_boss' },
-  ]},
-  { id:'canyon', name:'磐石峽谷', lv:'3-6', small:[
-    { id:'beetle_ridge', name:'雷角嶺',  lv:'5-6',
-      monsters:['brass_beetle','thunder_beetle'], boss:'thunder_beetle_boss' },
-    { id:'bog',          name:'泥潭窪地',lv:'3-5',
-      monsters:['bog_tortoise','stone_golem'],    boss:'ancient_tortoise_boss' },
-  ]},
+/* ===== 屬性/能力定義 ===== */
+const BASE_ATTRS = [
+  {key:'str', name:'力道'},
+  {key:'vit', name:'體魄'},
+  {key:'dex', name:'身法'},
+  {key:'int', name:'悟性'},
+  {key:'wis', name:'心神'},
+  {key:'luk', name:'氣運'},
 ];
 
 
+/* ===== 主程式 API ===== */
+window.Game = (()=>{
+  const state = { player:null };
 
-/* ===== 玩家/導入角色 ===== */
-let P = null;           // 玩家角色
-let curBig = null;      // 現在選的大地圖 id
-let curSmall = null;    // 現在選的小地圖 id
-let entered = false;    // 是否已按「進入」，未進入前不顯示探險/戰鬥
+  function render(p){
+    state.player = p;
 
-// 取得玩家（從 Auth / localStorage）
-function loadPlayer(){
-  if(!window.Auth || !Auth.getCharacter){ alert('找不到帳號系統'); return null; }
-  const c = Auth.getCharacter();
-  if(!c){ location.href = 'index.html#create'; return null; }
+    // 頭像/名稱/等級/元素
+    const fallbackAvatar = (typeof Auth!=='undefined' && Auth.defaultAvatar)
+        ? (Auth.defaultAvatar() || 'https://picsum.photos/seed/xian/96')
+        : 'https://picsum.photos/seed/xian/96';
+    qs('#uiAvatar').src = p.avatar || fallbackAvatar;
+    qs('#uiName').textContent = p.name || '無名散修';
+    qs('#uiLv').textContent   = p.level ?? 1;
+    const elem = (p.element || 'none').toLowerCase();
+    const elemEl = qs('#uiElem');
+    if (elemEl){ elemEl.className = `pill elem ${elem}`; elemEl.textContent = ELEMENT_LABEL[elem] || '無元素'; }
 
-  // 確保背包存在 & 結構齊全
-  if(!c.bag){
-    c.bag = (window.ItemDB && ItemDB.getDefaultBag) ? ItemDB.getDefaultBag() 
-      : { consumables:[], weapons:[], ornaments:[], materials:[], hidden:[] };
-  }else{
-    c.bag.consumables = Array.isArray(c.bag.consumables) ? c.bag.consumables : [];
-    c.bag.weapons     = Array.isArray(c.bag.weapons)     ? c.bag.weapons     : [];
-    c.bag.ornaments   = Array.isArray(c.bag.ornaments)   ? c.bag.ornaments   : [];
-    c.bag.materials   = Array.isArray(c.bag.materials)   ? c.bag.materials   : [];
-    c.bag.hidden      = Array.isArray(c.bag.hidden)      ? c.bag.hidden      : [];
-  }
-
-  // HP 欄位若不存在，建立（沿用你的衍生規則）
-  if(!c.hp){ 
-    const d=derivedFrom(c); 
-    c.hp = { cur:d['氣血上限'], max:d['氣血上限'] }; 
-  }
-  // ★ 副地圖進度（萊姆洞窟）
-  c.mapProg = c.mapProg || {};
-  c.mapProg.slime_cave = c.mapProg.slime_cave || { kills:0, bossReady:false };
-
-  return c;
-}
-
-async function savePlayer(){
-  try{
-    if (typeof P !== 'undefined' && P){
-      // 標記本地時間戳，主城/其他頁比對快取與雲端時會選用較新版本
-      P._updatedAt = Date.now();
-
-      if (window.Auth){
-        // ★ Firebase 安全處理：移除 _live 避免特殊字符問題
-        var saveData = JSON.parse(JSON.stringify(P)); // 深拷貝
-        delete saveData._live; // 移除包含特殊字符的 _live 物件
-        
-        // ★ 強制同步：先更新本地快取
-        if (Auth.setCharacter) {
-          try{ 
-            Auth.setCharacter(saveData); 
-            console.log('✅ 本地快取已更新:', saveData.level, saveData.exp, saveData.hp, saveData.sta);
-          }catch(_e){
-            console.error('❌ 本地快取更新失敗:', _e);
-          }
-        }
-        
-        // ★ 強制同步：再寫雲端（加重試機制）
-        if (Auth.saveCharacter) {
-          var retries = 3;
-          while(retries > 0){
-            try{
-              await Auth.saveCharacter(saveData);
-              console.log('✅ 雲端存檔成功:', saveData.level, saveData.exp);
-              break;
-            }catch(saveErr){
-              retries--;
-              console.warn('⚠️ 雲端存檔失敗，剩餘重試次數:', retries, saveErr);
-              if(retries > 0) await new Promise(r => setTimeout(r, 500)); // 等待 500ms 重試
-            }
-          }
-        }
+    // 勳章
+    const slots = [qs('#medal1'), qs('#medal2'), qs('#medal3'), qs('#medal4'), qs('#medal5')];
+    slots.forEach(s => s && (s.innerHTML = ''));
+    (p.medals || []).slice(0, 5).forEach((m, i) => {
+      if (m?.icon && slots[i]) {
+        const img = new Image(); img.src = m.icon; slots[i].appendChild(img);
       }
-    }
-  }catch(e){
-    console.error('❌ savePlayer 整體失敗:', e);
-  }
-}
-
-
-// （已移除：使用 stats.js 的 global.derivedFrom，避免數值不一致）
-
-
-
-// === 只算一次的「最終能力快照」：基礎衍生 + 裝備加成 ===
-function finalDerived(player){
-  var base  = (typeof derivedFrom==='function') ? (derivedFrom(player)||{}) : {};
-  var bonus = (window.Equip && typeof Equip.getBonuses==='function') ? (Equip.getBonuses()||{}) : {};
-  var out = {};
-  // 相當於 { ...base }
-  for (var k in base) {
-    if (Object.prototype.hasOwnProperty.call(base, k)) out[k] = base[k];
-  }
-  // 疊加裝備加成
-  for (var k2 in bonus) {
-    if (Object.prototype.hasOwnProperty.call(bonus, k2)) {
-      out[k2] = (out[k2]||0) + (bonus[k2]||0);
-    }
-  }
-  return out;
-}
-
-
-
-// 重新整理快照（進地圖、開始戰鬥、升級後都可呼叫）
-function refreshLive(){
-  if(!P) return;
-  P._live = finalDerived(P);
-}
-
-/* ===== UI Render ===== */
-function renderHeader(){
-  const fallbackAvatar = (typeof Auth!=='undefined' && Auth.defaultAvatar)
-    ? (Auth.defaultAvatar() || 'https://picsum.photos/seed/xian/96')
-    : 'https://picsum.photos/seed/xian/96';
-  qs('#uiAvatar').src = P.avatar || fallbackAvatar;
-  qs('#uiName').textContent = P.name || '無名散修';
-  qs('#uiLv').textContent   = P.level ?? 1;
-  const elem = (P.element || 'none').toLowerCase();
-  const elemEl = qs('#uiElem'); elemEl.className = `pill elem ${elem}`; elemEl.textContent = ELEMENT_LABEL[elem] || '無元素';
-
-  qs('#uiStone').textContent   = fmt(P.currencies?.stone || 0);
-  qs('#uiDiamond').textContent = fmt(P.currencies?.diamond || 0);
-}
-
- // 玩家進入後連動的能量條
-
-function renderBars(){
-  if (!P) return;
-  if (!P._live) refreshLive();
-
-  // —— 以 API 狀態為主：僅補預設、限制範圍，不自行回滿 —— //
-  if (!P.sta){ P.sta = { cur:100, max:100 }; }
-  else{
-    if (typeof P.sta.max !== 'number' || P.sta.max <= 0) P.sta.max = 100;
-    if (typeof P.sta.cur !== 'number') P.sta.cur = P.sta.max;
-    if (P.sta.cur > P.sta.max) P.sta.cur = P.sta.max;
-    if (P.sta.cur < 0) P.sta.cur = 0;
-  }
-
-  if (!P.exp){ P.exp = { cur:0, max:100 }; }
-  else{
-    if (typeof P.exp.max !== 'number' || P.exp.max <= 0) P.exp.max = 100;
-    if (typeof P.exp.cur !== 'number') P.exp.cur = 0;
-    if (P.exp.cur > P.exp.max) P.exp.cur = P.exp.max;
-    if (P.exp.cur < 0) P.exp.cur = 0;
-  }
-
-  // 上限統一：基礎 + 裝備加成（與主城相同計算）
-  var base  = derivedFrom(P);
-  var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
-  var hpMax = (base['氣血上限'] || 0) + (bonus['氣血上限'] || 0);
-  var mpMax = (base['真元上限'] || 0) + (bonus['真元上限'] || 0);
-
-  if (!P.hp){ P.hp = { cur: hpMax, max: hpMax }; }
-  else{
-    P.hp.max = hpMax;
-    if (typeof P.hp.cur !== 'number') P.hp.cur = hpMax;
-    if (P.hp.cur > P.hp.max) P.hp.cur = P.hp.max;
-    if (P.hp.cur < 0) P.hp.cur = 0;
-  }
-
-  if (!P.mp){ P.mp = { cur: mpMax, max: mpMax }; }
-  else{
-    P.mp.max = mpMax;
-    if (typeof P.mp.cur !== 'number') P.mp.cur = mpMax;
-    if (P.mp.cur > P.mp.max) P.mp.cur = P.mp.max;
-    if (P.mp.cur < 0) P.mp.cur = 0;
-  }
-
-  // —— 畫面更新（純讀 P） —— //
-  var staBar = qs('#barSta'); if (staBar){ staBar.style.width = (P.sta.cur / P.sta.max * 100) + '%'; }
-  var staTxt = qs('#txtSta'); if (staTxt){ staTxt.textContent = P.sta.cur + '/' + P.sta.max; }
-
-  var expBar = qs('#barExp'); if (expBar){ expBar.style.width = (P.exp.cur / P.exp.max * 100) + '%'; }
-  var expTxt = qs('#txtExp'); if (expTxt){ expTxt.textContent = P.exp.cur + '/' + P.exp.max; }
-
-  var hpBar = qs('#barHp'); if (hpBar){ hpBar.style.width = (P.hp.cur / P.hp.max * 100) + '%'; }
-  var hpTxt = qs('#txtHp'); if (hpTxt){ hpTxt.textContent = P.hp.cur + '/' + P.hp.max; }
-
-  var mpBar = qs('#barMp'); if (mpBar){ mpBar.style.width = (P.mp.cur / P.mp.max * 100) + '%'; }
-  var mpTxt = qs('#txtMp'); if (mpTxt){ mpTxt.textContent = P.mp.cur + '/' + P.mp.max; }
-}
-
-
-
-function buildMapUI(){
-  const bigCol   = qs('#bigMapCol');
-  const smallCol = qs('#smallMapCol');
-  bigCol.innerHTML=''; smallCol.innerHTML='';
-
-  // 左列：大地圖（清單＋建議等級）
-  MAPS.forEach(m=>{
-    const btn = document.createElement('div');
-    btn.className = 'tag' + (m.id===curBig?' active':'');
-    btn.innerHTML = `<span class="name">${m.name}</span><span class="lv">建議 ${m.lv||'—'}</span>`;
-    btn.onclick = ()=>{
-      curBig = m.id;
-      curSmall = null;      // 切換大地圖時清空副地圖選擇
-      entered = false;      // 必須重新進入
-      buildMapUI();
-      setLocBadge();
-      updateActionPanel();
-    };
-    bigCol.appendChild(btn);
-  });
-
-  // 若尚未選擇，預設選第一個大地圖
-  const big = MAPS.find(x=>x.id===curBig) || MAPS[0];
-  if(!curBig && big){ curBig = big.id; }
-
-  // 右列：依目前大地圖顯示副地圖（清單＋建議等級）
-  (big?.small||[]).forEach(s=>{
-    const btn = document.createElement('div');
-    btn.className = 'tag' + (s.id===curSmall?' active':'');
-    btn.innerHTML = `<span class="name">${s.name}</span><span class="lv">建議 ${s.lv||'—'}</span>`;
-    btn.onclick = ()=>{
-      curSmall = s.id;
-      entered = false;    // 選了副地圖後，仍需按「進入」
-      setLocBadge();
-      updateActionPanel();
-
-      // 標記 active
-      Array.prototype.slice.call(smallCol.children).forEach(function(x){
-      x.classList.remove('active');
     });
-      btn.classList.add('active');
 
-      // 更新地區情報
-      renderAreaInfo();
-    };
-    smallCol.appendChild(btn);
+    // 貨幣
+    const stone = p.currencies?.stone ?? 0;
+    const diamond = p.currencies?.diamond ?? 0;
+    qs('#uiStone').textContent   = stone   >= 1_000_000 ? fmtCompact(stone)   : fmt(stone);
+    qs('#uiDiamond').textContent = diamond >= 1_000_000 ? fmtCompact(diamond) : fmt(diamond);
+
+    // 狀態條：HP/EXP/STA/MP
+    const S = p.sta || { cur: 100, max: 100 };
+    const E = p.exp || { cur: 0,   max: 100 };
+
+    // ★計入裝備加成
+    var base  = derivedFrom(p);
+    var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
+    var hpMaxNow = (base['氣血上限'] || 0) + (bonus['氣血上限'] || 0);
+    var mpMaxNow = (base['真元上限'] || 0) + (bonus['真元上限'] || 0);
+
+    // 同步到玩家狀態並夾在 0~max
+    if (!p.hp) { p.hp = { cur: hpMaxNow, max: hpMaxNow }; }
+    else { p.hp.max = hpMaxNow; p.hp.cur = Math.max(0, Math.min(p.hp.cur ?? hpMaxNow, hpMaxNow)); }
+    if (!p.mp) { p.mp = { cur: mpMaxNow, max: mpMaxNow }; }
+    else { p.mp.max = mpMaxNow; p.mp.cur = Math.max(0, Math.min(p.mp.cur ?? mpMaxNow, mpMaxNow)); }
+
+    const H = { cur: p.hp.cur, max: p.hp.max };
+    const M = { cur: p.mp.cur, max: p.mp.max };
+
+    if(qs('#barSta')){ qs('#barSta').style.width = pct(S.cur,S.max) + '%'; qs('#txtSta').textContent = `${S.cur}/${S.max}`; }
+    if(qs('#barExp')){ qs('#barExp').style.width = pct(E.cur,E.max) + '%'; qs('#txtExp').textContent = `${E.cur}/${E.max}`; }
+    if(qs('#barHp')) { qs('#barHp').style.width  = pct(H.cur,H.max) + '%';  qs('#txtHp').textContent  = `${H.cur}/${H.max}`; }
+    if(qs('#barMp')) { qs('#barMp').style.width  = pct(M.cur,M.max) + '%';  qs('#txtMp').textContent  = `${M.cur}/${M.max}`; }
+
+
+  }
+
+  /* ===== 屬性面板 ===== */
+  function openAttr(){ const m = qs('#attrModal'); if(!m) return; renderAttrPanel(); m.classList.add('show'); m.setAttribute('aria-hidden','false'); }
+  function closeAttr(){ const m = qs('#attrModal'); if(!m) return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); }
+
+  function renderAttrPanel(){
+    const P = state.player; if(!P) return;
+
+    const list = qs('#attrList');
+    if(list){
+      list.innerHTML = '';
+      BASE_ATTRS.forEach(({key,name})=>{
+        const val = P.attributes[key] ?? 10;
+        const row = document.createElement('div'); row.className='attr-row';
+        row.innerHTML = `
+          <div class="attr-name">${name}</div>
+          <div class="attr-val" id="val_${key}">${val}</div>
+          <div class="attr-bar"><div class="attr-fill" id="bar_${key}" style="width:${Math.min(100,val)}%"></div></div>
+          <div class="attr-plus" id="btn_${key}" data-key="${key}">＋</div>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    if(qs('#ptRemain')) qs('#ptRemain').textContent = P.unspentPoints ?? 0;
+    updatePlusButtons();
+    renderDerived();
+  }
+
+  function renderDerived(){
+    const P = state.player; if(!P) return;
+    const base  = derivedFrom(P);
+    const bonus = (window.Equip && Equip.getBonuses) ? Equip.getBonuses() : {};
+    const final = {};
+    for(const k of Object.keys(base)) final[k] = (base[k]||0) + (bonus[k]||0);
+
+    const box = qs('#statList'); if(!box) return;
+    box.innerHTML = '';
+    for(const [k,v] of Object.entries(final)){
+      const item = document.createElement('div'); item.className='item';
+      item.innerHTML = `<div class="k">${k}</div><div class="v">${v}</div>`;
+      box.appendChild(item);
+    }
+  }
+
+  function updatePlusButtons(){
+    const remain = state.player?.unspentPoints ?? 0;
+    BASE_ATTRS.forEach(({key})=>{
+      const btn = qs('#btn_'+key); if(!btn) return;
+      btn.classList.toggle('hide', remain<=0);
+    });
+    if(qs('#ptRemain')) qs('#ptRemain').textContent = remain;
+  }
+
+function wire(){
+  // 左上四顆主要按鈕：儲物袋、裝備欄、商店
+  document.querySelectorAll('.gbtn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const txt = b.textContent?.trim();
+      if (txt === '儲物袋') return openBag();
+      if (txt === '裝備欄') return (window.Equip && Equip.open && Equip.open());
+      if (txt === '商店') return openShop();
+      log(`開啟：${txt}`,'warn');
+    });
   });
 
-  setLocBadge();
-  updateActionPanel();
-  renderAreaInfo(); // 初始也渲染一次
-}
-
-/* 固定欄位：地區情報 */
-/* 固定欄位：地區情報（不用可選鏈/未宣告變數） */
-function renderAreaInfo(){
-  var box = qs('#infoMonsters');
-
-  // 依 curBig / curSmall 找到目前的小地圖
-  var big = null, s = null;
-  for (var i=0;i<MAPS.length;i++){
-    if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
-  }
-  if (big && big.small){
-    for (var j=0;j<big.small.length;j++){
-      if (big.small[j].id === curSmall){ s = big.small[j]; break; }
-    }
-  }
-  if (!s){
-    box.innerHTML = '<span class="chip">—</span>';
-    return;
-  }
-
-  var chips = [];
-  var list = s.monsters || [];
-  for (var k=0;k<list.length;k++){
-    var id = list[k];
-    var m = (window.MonsterDB && MonsterDB.get) ? MonsterDB.get(id) : null;
-    if(!m){
-      chips.push('<span class="chip"><span class="mname">'+id+'</span></span>');
-    }else{
-      var el = (window.ELEMENT_LABEL && ELEMENT_LABEL[m.element]) || '無';
-      chips.push(
-        '<span class="chip">' +
-          '<span class="pill elem '+(m.element||'none')+'">'+ el +'</span>' +
-          '<span class="mname">'+ m.name +'</span><span class="mlv">LV.'+(m.level||1)+'</span>' +
-        '</span>'
-      );
-    }
-  }
-
-  if (s.boss){
-    var b = (window.MonsterDB && MonsterDB.get) ? MonsterDB.get(s.boss) : null;
-    if (b){
-      var elb = (window.ELEMENT_LABEL && ELEMENT_LABEL[b.element]) || '無';
-      chips.push(
-        '<span class="chip" style="border-color:#dc2626;background:rgba(220,38,38,.12)">' +
-          '<strong>BOSS</strong>' +
-          '<span class="pill elem '+(b.element||'none')+'">'+ elb +'</span>' +
-          '<span class="mname">'+ b.name +'</span><span class="mlv">LV.'+(b.level||1)+'</span>' +
-        '</span>'
-      );
-    }
-  }
-
-  box.innerHTML = chips.join('');
-}
-
-
-function setLocBadge(){
-  const big = MAPS.find(x=>x.id===curBig);
-  const small = big?.small?.find(x=>x.id===curSmall);
-  const locTxt = small ? `目前位置：${big.name} ＞ ${small.name}` : '尚未選擇地點';
-  qs('#locBadge').textContent = entered ? `${locTxt}（已進入）` : locTxt;
-}
-
-function getSlimeProg(){
-  P.mapProg = P.mapProg || {};
-  P.mapProg.slime_cave = P.mapProg.slime_cave || { kills:0, bossReady:false };
-  return P.mapProg.slime_cave;
-}
-
-function updateBossUI(){
-  const hint = qs('#slimeQuestHint');
-  const btnBoss = qs('#btnBoss');
-  if(!hint || !btnBoss) return;
-
-  if(curSmall !== 'slime_cave'){
-    hint.style.display = 'none';
-    btnBoss.style.display = 'none';
-    return;
-  }
-
-  const prog = getSlimeProg();
-  // 只有已進入該區時才顯示提示
-  if(!entered){
-    hint.style.display = 'none';
-    btnBoss.style.display = 'none';
-    return;
-  }
-
-  // 顯示當前進度
-  if(prog.bossReady){
-    hint.textContent = `萊姆洞窟：討伐已達 10/10 → 可以挑戰 BOSS（未擊敗前，擊殺數不再累加）`;
-    hint.style.display = 'block';
-    btnBoss.style.display = 'inline-block';
-  }else{
-    hint.textContent = `萊姆洞窟：史萊姆討伐進度 ${prog.kills}/10（達 10/10 將出現 BOSS 按鈕）`;
-    hint.style.display = 'block';
-    btnBoss.style.display = 'none';
-  }
-}
-
-function updateActionPanel(){
-  const btnEnter   = qs('#btnEnter');
-  const btnExplore = qs('#btnExplore');
-  const btnFight   = qs('#btnFight');
-
-  const canEnter = !!curBig && !!curSmall;
-  btnEnter.disabled = !canEnter;
-
-  if(!entered){
-    btnEnter.style.display   = 'inline-block';
-    btnExplore.style.display = 'none';
-    btnFight.style.display   = 'none';
-  }else{
-    btnEnter.style.display   = 'none';
-    btnExplore.style.display = 'inline-block';
-    btnFight.style.display   = 'inline-block';
-  }
-
-  // ★ 同步更新 BOSS UI
-  updateBossUI();
-}
-
-/* ===== 探險 ===== */
-async function doExplore(){
-  if(!curSmall){ log('請先選擇副地圖。'); return; }
-  if(!entered){ log('請先按「進入」該地區。'); return; }
-
-  var staCur = (P && P.sta && typeof P.sta.cur === 'number') ? P.sta.cur : 0;
-  if(staCur < 2){ log('體力不足（需要 2）', 'warn'); return; }
-  P.sta.cur = staCur - 2;
-
-  var r = Math.random();
-  if(r < 0.5){
-    var got = 5 + Math.floor(Math.random()*16); // 5~20
-    P.currencies.stone = (P.currencies.stone||0) + got;
-    log('探險獲得 靈石 ×' + got, 'ok');
-  }else if(r < 0.8){
-    // 素材
-    var picks = ['wood_shard','stone_core','ghost_essence'];
-    var id = picks[Math.floor(Math.random()*picks.length)];
-    var hasDef = (ItemDB && typeof ItemDB.getDef==='function' && ItemDB.getDef('materials', id));
-    if(!hasDef){ id = 'wood_shard'; }
-    var qty = 1 + Math.floor(Math.random()*2);
-    if(ItemDB && typeof ItemDB.addMaterialToBag==='function') ItemDB.addMaterialToBag(P.bag, id, qty);
-    var mdef = (ItemDB && ItemDB.getDef) ? ItemDB.getDef('materials', id) : null;
-    var mname = (mdef && mdef.name) ? mdef.name : id;
-    log('探險獲得素材：' + mname + ' ×' + qty, 'ok');
-  }else{
-    // 消耗品
-    var ids = ['hp_small','mp_small'];
-    var filtered = [];
-    for (var i=0; i<ids.length; i++){
-      var ok = (ItemDB && typeof ItemDB.getDef==='function' && ItemDB.getDef('consumables', ids[i]));
-      if(ok) filtered.push(ids[i]);
-    }
-    var cid = filtered.length ? filtered[Math.floor(Math.random()*filtered.length)] : 'hp_small';
-    if(ItemDB && typeof ItemDB.addConsumableToBag==='function') ItemDB.addConsumableToBag(P.bag, cid, 1);
-    var cdef = (ItemDB && ItemDB.getDef) ? ItemDB.getDef('consumables', cid) : null;
-    var cname = (cdef && cdef.name) ? cdef.name : cid;
-    log('探險獲得丹藥：' + cname + ' ×1', 'ok');
-  }
-
-  refreshLive();
-  renderHeader();
-  renderBars();
-  
-  // ★ 探險後立即同步到 Auth 快取（加強版）
-  if (window.Auth && Auth.setCharacter) {
-    try { 
-      var cleanData = JSON.parse(JSON.stringify(P));
-      delete cleanData._live;
-      Auth.setCharacter(cleanData); 
-      console.log('🗺️ 探險後同步成功 - 體力:', P.sta.cur, '靈石:', P.currencies.stone);
-    } catch(_e) {
-      console.error('❌ 探險後同步失敗:', _e);
-    }
-  }
-}
-
-
-/* ===== 戰鬥（ATB） ===== */
-const ATB_MAX = 1000;      // 滿格門檻
-let battle = null;         // 戰鬥狀態
-let loop = null;           // 計時器
-
-function startBattle(){
-  if(!curSmall){ log('請先選擇副地圖。'); return; }
-  if(!entered){ log('請先按「進入」該地區。'); return; }
-
-  // 找到目前區域
-  var big = null, area = null, i, j;
-  for (i = 0; i < MAPS.length; i++){
-    if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
-  }
-  if (big && big.small){
-    for (j = 0; j < big.small.length; j++){
-      if (big.small[j].id === curSmall){ area = big.small[j]; break; }
-    }
-  }
-  if(!area){ log('找不到該地區'); return; }
-
-  // 指定怪（BOSS）或隨機
-  var enemy = null;
-  if(window.FORCE_MONSTER_ID){
-    var def = (window.MonsterDB && MonsterDB.DB) ? MonsterDB.DB[window.FORCE_MONSTER_ID] : null;
-    if(def) enemy = JSON.parse(JSON.stringify(def));
-    window.FORCE_MONSTER_ID = null;
-  }
-  if(!enemy){
-    var pool = [];
-    if (area.monsters && window.MonsterDB && MonsterDB.DB){
-      for (i = 0; i < area.monsters.length; i++){
-        var mid = area.monsters[i];
-        var mdef = MonsterDB.DB[mid];
-        if (mdef) pool.push(mdef);
-      }
-    }
-    if(!pool.length){ log('此地尚無怪物資料'); return; }
-    enemy = JSON.parse(JSON.stringify(pool[Math.floor(Math.random()*pool.length)]));
-  }
-
-  // 顯示戰鬥區
-  qs('#mapSection').style.display = 'none';
-  qs('#battleSection').classList.add('show');
-  if (loop){ clearInterval(loop); loop = null; }
-
-  // 玩家衍生值快照
-  refreshLive();
-  var d = (P && P._live) ? P._live : {};
-
-  // 取怪物衍生表
-  var dMon = null;
-  try{
-    if (window.MonsterDB && MonsterDB.getDerived){
-      dMon = MonsterDB.getDerived(enemy.id) || null;
-    }
-  }catch(_err){ dMon = null; }
-
-  function pickD(key, fallback){
-    var v = (dMon && typeof dMon[key]==='number') ? dMon[key] : fallback;
-    return (typeof v==='number') ? v : (fallback||0);
-  }
-
-  var eStats = {
-    atk  : pickD('物理攻擊',   10),
-    matk : pickD('法術攻擊',   10),
-    def  : pickD('物理防禦',    8),
-    mdef : pickD('法術防禦',    8),
-    acc  : pickD('命中率',     75),
-    eva  : pickD('閃避',        5),
-    crit : Math.min(100, pickD('暴擊率', 3)),
-    aspd : Math.max(0.5, pickD('行動條速度', 100) / 100),
-    pen  : pickD('破甲',        0)
-  };
-
-battle = {
-    enemy: enemy,
-    enemyStats: eStats,
-    p:{
-      hp   : (P && P.hp && typeof P.hp.cur==='number') ? P.hp.cur : 100,
-      hpMax: (P && P.hp && typeof P.hp.max==='number') ? P.hp.max : 100,
-      mp   : (P && P.mp && typeof P.mp.cur==='number') ? P.mp.cur : 0,
-      mpMax: (P && P.mp && typeof P.mp.max==='number') ? P.mp.max : 0,
-      atb  : 0,
-      // 直接吃行動條速度（0~任意），不要保底；比例化步幅會在人性化演算法中處理
-      speed: (d && typeof d['行動條速度']==='number') ? d['行動條速度'] : 100
-    },
-    e:{
-      hp   : pickD('氣血上限', 100),
-      hpMax: pickD('氣血上限', 100),
-      atb  : 0,
-      // 直接吃行動條速度（0~任意）
-      speed: pickD('行動條速度', 100)
-    },
-    turn:'none',
-    over:false
-  };
-
-
-
-  qs('#eName').textContent = enemy.name;
-  qs('#eLv').textContent = enemy.level;
-  qs('#pLv').textContent = P.level;
-
-  var getElemLabel = function(k){ return (ELEMENT_LABEL && ELEMENT_LABEL[k]) ? ELEMENT_LABEL[k] : k; };
-  var pElem = (P && (P.element || P.elem)) ? (P.element || P.elem) : 'none';
-  var eElem = (enemy && (enemy.element || enemy.elem)) ? (enemy.element || enemy.elem) : 'none';
-
-  var pEl = qs('#pElem'), eEl = qs('#eElem');
-  if (pEl) { pEl.textContent = getElemLabel(pElem); pEl.className = 'pill elem ' + pElem; }
-  if (eEl) { eEl.textContent = getElemLabel(eElem); eEl.className = 'pill elem ' + eElem; }
-
-  log('元素資訊｜你：' + getElemLabel(pElem) + '　敵人：' + getElemLabel(eElem));
-
-  var pSrc = (P && P.avatar && typeof P.avatar==='string' && P.avatar.trim()) ? P.avatar : PLAYER_IMG_URL;
-  var pic = (window.MonsterDB && MonsterDB.getImage) ? MonsterDB.getImage(enemy.id) : {url:'',mirror:false};
-  var pImg = qs('#pImg'); 
-  var eImg = qs('#eImg');
-
-  if (pImg) { pImg.src = pSrc; }
-
-  if (eImg){
-    // ★ 開戰先完整重置敵人立繪狀態（避免上一場的 0 透明度/動畫殘留）
-    eImg.style.opacity = '1';
-    eImg.style.transition = '';
-    eImg.classList.remove('fade-out');
-    // 清掉上一場特效殘留
-    var eFx = qs('#eFx'); if (eFx) eFx.innerHTML = '';
-    var pFx = qs('#pFx'); if (pFx) pFx.innerHTML = '';
-
-    // 設置圖片與鏡像
-    var finalUrl = (pic && typeof pic.url==='string' && pic.url.trim()) ? pic.url : 'https://picsum.photos/seed/monster/500/500';
-    eImg.classList.toggle('mirror', !!(pic && pic.mirror));
-
-    // 安全預載：失敗時回退預設圖，避免空黑畫面
-    var test = new Image();
-    test.onload = function(){
-      if (test.naturalWidth > 0 && test.naturalHeight > 0){
-        eImg.src = finalUrl;
-      }else{
-        eImg.src = 'https://picsum.photos/seed/monster/500/500';
-      }
-    };
-    test.onerror = function(){
-      eImg.src = 'https://picsum.photos/seed/monster/500/500';
-    };
-    test.src = finalUrl;
-
-    /* ★★★ 這裡關鍵：每一場戰鬥都重新觸發翻轉動畫 ★★★ */
-    var eFrame = document.querySelector('.e-frame');
-    if (eFrame){
-      // 移除舊動畫 → 強制回流 → 再加回去，確保每次都會播放
-      eFrame.classList.remove('flip-in');
-      void eFrame.offsetWidth;  // 強制回流（不要刪）
-      eFrame.classList.add('flip-in');
-    }
-  }
-
-  updateBattleBars();
-  updateCmdEnabled();
-  log('在 ' + (area.name||'當前地區') + ' 遭遇 ' + enemy.name + '！');
-  loop = setInterval(tickATB, 60);
-}
-
-
-function tickATB(){
-  if(!battle || battle.over) return;
-  if (battle.p.atb >= ATB_MAX) {
-    updateCmdEnabled();
-    updateBattleBars();
-    return;
-  }
-
-  // —— 人性化比例：以雙方最大速度當基準做映射（確保差距可見但不離譜）
-  var spP = (typeof battle.p.speed==='number') ? battle.p.speed : 100;
-  var spE = (typeof battle.e.speed==='number') ? battle.e.speed : 100;
-  if (spP < 0) spP = 0;
-  if (spE < 0) spE = 0;
-  var spMax = Math.max(spP, spE, 1);  // 避免除 0
-
-  // 可微調的人性化步幅區間
-  var MIN_STEP = 2;   // 每 tick 最少+2（讓非常慢的一方還是能動）
-  var MAX_STEP = 24;  // 每 tick 最多+24（非常快的一方）
-
-  function mapStep(sp){
-    var ratio = sp / spMax;                   // 0~1
-    var step  = Math.round(MIN_STEP + ratio * (MAX_STEP - MIN_STEP));
-    if (step < 1) step = 1;                   // 再保一層不會 0
-    return step;
-  }
-
-  var pStep = mapStep(spP);
-  var eStep = mapStep(spE);
-
-  battle.p.atb = clamp(battle.p.atb + pStep, 0, ATB_MAX);
-  battle.e.atb = clamp(battle.e.atb + eStep, 0, ATB_MAX);
-
-  updateBattleBars();
-  updateCmdEnabled();
-
-  if (battle.e.atb >= ATB_MAX){
-    enemyAttack();
-    battle.e.atb = 0;
-    updateBattleBars();
-  }
-}
-
-
-
-function updateBattleBars(){
-  qs('#pHp').style.width  = pct(battle.p.hp, battle.p.hpMax) + '%';
-  qs('#eHp').style.width  = pct(battle.e.hp, battle.e.hpMax) + '%';
-  qs('#pATB').style.width = pct(battle.p.atb, ATB_MAX) + '%';
-  qs('#eATB').style.width = pct(battle.e.atb, ATB_MAX) + '%';
-  qs('#btState').textContent = battle.over ? '戰鬥結束' : (battle.p.atb>=ATB_MAX?'輪到你行動':'等待行動條…');
-
-  if(P && P.hp){
-    P.hp.cur = battle.p.hp;
-    P.hp.max = battle.p.hpMax;
-  }
-  if(P && P.mp){
-    P.mp.cur = battle.p.mp || P.mp.cur || 0;
-    P.mp.max = battle.p.mpMax || P.mp.max || 0;
-  }
-  renderBars();
-}
-
-// 受擊浮字 / 閃光 / 抖動
-function spawnFloat(side, value, type){
-  type = type || 'dmg';
-  var host = (side==='player') ? qs('#pFx') : qs('#eFx');
-  if(!host) return;
-  var el = document.createElement('div');
-  if (type==='miss'){
-    el.className = 'dmg-float';
-    el.textContent = 'MISS';
-  }else{
-    el.className = 'dmg-float ' + (type==='heal'?'heal':(type==='crit'?'crit dmg':'dmg'));
-    el.textContent = (type==='heal' ? '+' : '-') + value;
-  }
-  host.appendChild(el);
-  setTimeout(function(){ el.remove(); }, 1000);
-}
-function flashShake(side){
-  var img = (side==='player') ? qs('#pImg') : qs('#eImg');
-  var fx  = (side==='player') ? qs('#pFx') : qs('#eFx');
-  if(!img || !fx) return;
-  var f = document.createElement('div');
-  f.className = 'flash';
-  fx.appendChild(f);
-  setTimeout(function(){ f.remove(); }, 260);
-  img.classList.add('shake');
-  setTimeout(function(){ img.classList.remove('shake'); }, 520);
-}
-function showHit(side, amount, isCrit, kind){
-  if(kind==='heal'){
-    spawnFloat(side, amount, 'heal');
-    return;
-  }
-  spawnFloat(side, amount, isCrit?'crit':'dmg');
-  flashShake(side);
-}
-
-function updateCmdEnabled(){
-  var canAct = battle && !battle.over && battle.p.atb>=ATB_MAX;
-  ['actAttack','actSkill','actItem','actRun'].forEach(function(id){ qs('#'+id).disabled = !canAct; });
-}
-
-function calcDamage(isPlayer){
-  function clamp01(x,min,max){ return Math.max(min, Math.min(max, x)); }
-  function hitChanceOf(attAcc, defEva, base){ base = (typeof base==='number')?base:75; return clamp01(base + (attAcc|0) - (defEva|0), 5, 98); }
-
-  if(isPlayer){
-    if (!P._live) refreshLive();
-    var D = P._live;
-
-    var attAcc = D['命中率'] || 0;
-    var defEva = (battle.enemyStats && battle.enemyStats.eva) ? battle.enemyStats.eva : 0;
-    var hitChance = hitChanceOf(attAcc, defEva, 75);
-    if (Math.random()*100 >= hitChance){
-      var atkElem0 = (P && (P.element||P.elem)) ? (P.element||P.elem) : 'none';
-      var defElem0 = (battle.enemy && (battle.enemy.element||battle.enemy.elem)) ? (battle.enemy.element||battle.enemy.elem) : 'none';
-      return { dmg:0, miss:true, crit:false, note:'', elemMul:1, stabMul:1, atkElem:atkElem0, defElem:defElem0, hitChance:hitChance };
-    }
-
-    var atk = D['物理攻擊']||0;
-    var pen = D['破甲']||0;
-    var critRate = D['暴擊率']||0;
-    var critDmg  = (100 + (D['暴擊傷害']||50)) / 100;
-    var eDef = Math.max(0, ((battle.enemyStats && battle.enemyStats.def) ? battle.enemyStats.def : 0) - pen);
-    var base = Math.max(1, atk - eDef);
-    base = Math.round(base * (0.9 + Math.random()*0.2));
-    var isCrit = Math.random()*100 < critRate;
-    var out = Math.max(1, Math.round(base * (isCrit ? critDmg : 1)));
-
-    var atkElem = (P && (P.element||P.elem)) ? (P.element||P.elem) : 'none';
-    var defElem = (battle.enemy && (battle.enemy.element||battle.enemy.elem)) ? (battle.enemy.element||battle.enemy.elem) : 'none';
-    var elemMul = elemMult(atkElem, defElem);
-    var stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
-    out = Math.max(1, Math.round(out * elemMul * stabMul));
-
-    return { dmg: out, miss:false, crit:isCrit, note:'', elemMul:elemMul, stabMul:stabMul, atkElem:atkElem, defElem:defElem, hitChance:hitChance };
-  }else{
-    var eS = battle.enemyStats || {};
-    if (!P._live) refreshLive();
-    var attAcc2 = eS.acc || 0;
-    var defEva2 = P._live['閃避'] || 0;
-    var hitChance2 = hitChanceOf(attAcc2, defEva2, 75);
-    if (Math.random()*100 >= hitChance2){
-      var atkElem1 = (battle.enemy && (battle.enemy.element||battle.enemy.elem)) ? (battle.enemy.element||battle.enemy.elem) : 'none';
-      var defElem1 = (P && (P.element||P.elem)) ? (P.element||P.elem) : 'none';
-      return { dmg:0, miss:true, crit:false, note:'', elemMul:1, stabMul:1, atkElem:atkElem1, defElem:defElem1, hitChance:hitChance2 };
-    }
-    var atk2 = Math.max(1, eS.atk || 8);
-    var pen2 = Math.max(0, eS.pen || 0);
-    var pDef0  = Math.max(0, (P._live['物理防禦']||0));
-    var effDef = Math.max(0, pDef0 - pen2);
-    var base2 = Math.max(1, atk2 - effDef);
-    base2 = Math.round(base2 * (0.9 + Math.random()*0.2));
-    var out2 = Math.max(1, Math.round(base2));
-
-    var atkElem2 = (battle.enemy && (battle.enemy.element||battle.enemy.elem)) ? (battle.enemy.element||battle.enemy.elem) : 'none';
-    var defElem2 = (P && (P.element||P.elem)) ? (P.element||P.elem) : 'none';
-    var elemMul2 = elemMult(atkElem2, defElem2);
-    var stabMul2 = (atkElem2!=='none') ? (window.STAB||1) : 1;
-    out2 = Math.max(1, Math.round(out2 * elemMul2 * stabMul2));
-
-    return { dmg: out2, miss:false, crit:false, note:'', elemMul:elemMul2, stabMul:stabMul2, atkElem:atkElem2, defElem:defElem2, hitChance:hitChance2 };
-  }
-}
-
-function playerAttack(){
-  var r = calcDamage(true);
-  if (r.miss){
-    spawnFloat('enemy', 0, 'miss');
-    log('你攻擊落空！（命中機率 ' + Math.round(r.hitChance) + '%）', 'warn');
-  }else{
-    battle.e.hp = clamp(battle.e.hp - r.dmg, 0, battle.e.hpMax);
-    showHit('enemy', r.dmg, !!r.crit, 'hit');
-    var rel = elemRelationText(r.atkElem, r.defElem, r.elemMul, r.stabMul);
-    log('你對 ' + battle.enemy.name + ' 造成 ' + r.dmg + ' 傷害' + (r.crit?'（暴擊）':'') + ' ' + rel);
-  }
-  battle.p.atb = 0;
-  endCheck();
-  updateBattleBars(); updateCmdEnabled();
-  if(!battle.over && battle.e.atb>=ATB_MAX){ enemyAttack(); battle.e.atb=0; updateBattleBars(); }
-}
-
-function enemyAttack(){
-  var E = battle.enemy || {};
-  var skills = E.skills || [];
-  if (skills.length){
-    var s = skills[0];
-    var hpRate = Math.max(0, battle.e.hp) / Math.max(1, battle.e.hpMax);
-    var useChance = (typeof s.chance==='number'?s.chance:0) + ((hpRate < 0.5) ? (typeof s.lowHpBonus==='number'?s.lowHpBonus:0) : 0);
-    if (Math.random() < useChance){
-      var magic = calcMagicDamageFromEnemy(s.elem || 'none');
-      battle.p.hp = clamp(battle.p.hp - magic.dmg, 0, battle.p.hpMax);
-      showHit('player', magic.dmg, false, 'hit');
-      var rel2 = elemRelationText(magic.atkElem, magic.defElem, magic.elemMul, magic.stabMul);
-      log(E.name + ' 施放「' + s.name + '」，對你造成 ' + magic.dmg + ' 法術傷害 ' + rel2);
-      applyDotToPlayer(s.dps|0, s.duration|0, s.name);
-      endCheck();
-      updateBattleBars();
+  // 主畫面卡片（進入地圖或其他模組）
+document.querySelectorAll('.card').forEach(c=>{
+  c.addEventListener('click', ()=>{
+    const mod = c.dataset.mod;
+    if (mod === 'map') {
+      location.href = 'map.html';
+      return;
+    } else if (mod === 'cave') {
+      location.href = 'cave.html';
       return;
     }
-  }
-  var r = calcDamage(false);
-  if (r.miss){
-    spawnFloat('player', 0, 'miss');
-    log(E.name + ' 的攻擊落空！（命中機率 ' + Math.round(r.hitChance) + '%）', 'warn');
-  }else{
-    battle.p.hp = clamp(battle.p.hp - r.dmg, 0, battle.p.hpMax);
-    showHit('player', r.dmg, false, 'hit');
-    var rel = elemRelationText(r.atkElem, r.defElem, r.elemMul, r.stabMul);
-    log(E.name + ' 對你造成 ' + r.dmg + ' 傷害 ' + rel);
-  }
-  endCheck();
-  updateBattleBars();
-}
+    log(`進入模組：${c.querySelector('.ctitle').textContent}`,'warn');
+  });
+});
 
-function calcMagicDamageFromEnemy(atkElem){
-  atkElem = atkElem || 'none';
-  var eS = battle.enemyStats || {};
-  var matk = Math.max(1, eS.matk || 8);
-  var mpen = Math.max(0, eS.mpen || 0);
-  if (!P._live) refreshLive();
-  var pMdef0  = Math.max(0, (P._live['法術防禦']||0));
-  var effMdef = Math.max(0, pMdef0 - mpen);
-  var base = Math.max(1, matk - effMdef);
-  base = Math.round(base * (0.9 + Math.random()*0.2));
-  var out = Math.max(1, Math.round(base));
-  var defElem = (P && (P.element||P.elem)) ? (P.element||P.elem) : 'none';
-  var elemMul = elemMult(atkElem, defElem);
-  var stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
-  out = Math.max(1, Math.round(out * elemMul * stabMul));
-  return { dmg: out, atkElem:atkElem, defElem:defElem, elemMul:elemMul, stabMul:stabMul };
-}
 
-function applyDotToPlayer(dps, seconds, label){
-  dps = dps|0; seconds = seconds|0; label = label || '持續傷害';
-  if(!battle.dotTimers) battle.dotTimers = [];
-  var t = 0;
-  var timer = setInterval(function(){
-    if(!battle || battle.over){ clearInterval(timer); return; }
-    if(battle.p.hp<=0 || battle.e.hp<=0){ clearInterval(timer); return; }
-    t++;
-    battle.p.hp = clamp(battle.p.hp - Math.max(0,dps), 0, battle.p.hpMax);
-    showHit('player', Math.max(0,dps), false, 'hit');
-    log('【持續傷害】' + label + '：-' + dps + '（' + t + '/' + seconds + '）', 'warn');
-    updateBattleBars();
-    endCheck();
-    if(t>=seconds) clearInterval(timer);
-  }, 1000);
-  battle.dotTimers.push(timer);
-}
+  // 聊天：送出按鈕與 Enter 送出
+  qs('#btnSend')?.addEventListener('click', sendChat);
+  qs('#chatInput')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendChat(); });
 
-function useItem(){
-  var bag = P.bag || {};
-  var list = (bag.consumables || []).filter(function(x){ return x && x.count>0; });
-  if(!list.length){
-    log('沒有可用的消耗品','warn');
-    return;
-  }
-  var menu = document.createElement('div');
-  menu.style.position='fixed';
-  menu.style.inset='0';
-  menu.style.background='rgba(0,0,0,0.6)';
-  menu.style.zIndex='9999';
-  menu.style.display='grid';
-  menu.style.placeItems='center';
+  // 打開／關閉角色屬性面板
+  qs('#uiAvatar')?.addEventListener('click', openAttr);
+  document.querySelectorAll('[data-close="attr"]').forEach(el=> el.addEventListener('click', closeAttr));
 
-  var box = document.createElement('div');
-  box.style.background='#1e293b';
-  box.style.padding='12px';
-  box.style.borderRadius='12px';
-  box.style.maxWidth='300px';
-  box.style.display='grid';
-  box.style.gap='8px';
-
-  var title = document.createElement('div');
-  title.textContent = '選擇要使用的消耗品';
-  title.style.fontWeight='700';
-  title.style.marginBottom='6px';
-  box.appendChild(title);
-
-  list.forEach(function(it){
-    var btn = document.createElement('button');
-    btn.style.display='flex';
-    btn.style.alignItems='center';
-    btn.style.gap='6px';
-    btn.style.padding='6px 8px';
-    btn.style.borderRadius='8px';
-    btn.style.background='rgba(255,255,255,0.08)';
-    btn.style.color='#fff';
-    btn.style.border='1px solid rgba(255,255,255,0.15)';
-    btn.style.cursor='pointer';
-
-    var img = document.createElement('img');
-    img.src = it.icon || '';
-    img.style.width='28px';
-    img.style.height='28px';
-    img.style.objectFit='cover';
-    img.style.borderRadius='6px';
-
-    var txt = document.createElement('div');
-    txt.innerHTML = '<b>' + it.name + '</b> ×' + it.count + '<br/><small>' + (it.effect && it.effect.hp ? ('回復HP ' + it.effect.hp) : '') + (it.effect && it.effect.mp ? (' 回復MP ' + it.effect.mp) : '') + '</small>';
-
-    btn.appendChild(img);
-    btn.appendChild(txt);
-
-    btn.onclick = function(){
-      it.count--; if(it.count<=0) bag.consumables = (bag.consumables||[]).filter(function(x){ return x.count>0; });
-      if(it.effect && typeof it.effect.hp==='number'){
-        var heal = it.effect.hp;
-        battle.p.hp = clamp(battle.p.hp + heal, 0, battle.p.hpMax);
-        if (P && P.hp) P.hp.cur = battle.p.hp;
-        showHit('player', heal, false, 'heal');
-        log('使用 ' + it.name + ' 回復 ' + heal + ' 氣血。');
-      }
-      if(it.effect && typeof it.effect.mp==='number'){
-        var heal2 = it.effect.mp;
-        battle.p.mp = clamp((battle.p.mp||0) + heal2, 0, battle.p.mpMax);
-        if (P && P.mp) P.mp.cur = battle.p.mp;
-        showHit('player', heal2, false, 'heal');
-        log('使用 ' + it.name + ' 回復 ' + heal2 + ' 真元。');
-      }
-      battle.p.atb = 0;
-      renderBars();
-    // ★ 使用道具後立即同步到 Auth 快取
-    if (window.Auth && Auth.setCharacter) {
-      try { 
-        var cleanData = JSON.parse(JSON.stringify(P));
-        delete cleanData._live;
-        Auth.setCharacter(cleanData); 
-      } catch(_) {}
+  // 按 Escape 關閉面板
+  addEventListener('keydown', e=>{
+    if(e.key==='Escape'){
+      closeAttr();
+      closeBag();
+      closeBagAction();
     }
-      savePlayer();
-      updateBattleBars(); updateCmdEnabled();
-      menu.remove();
-    };
-
-    box.appendChild(btn);
   });
 
-  var cancel = document.createElement('button');
-  cancel.textContent='取消';
-  cancel.style.marginTop='6px';
-  cancel.onclick=function(){ menu.remove(); };
-  box.appendChild(cancel);
+  // 關閉背包
+  document.querySelectorAll('[data-close="bag"]').forEach(function(el){ el.addEventListener('click', closeBag); });
+  document.querySelectorAll('[data-close="bagAction"]').forEach(function(el){ el.addEventListener('click', closeBagAction); });
 
-  menu.appendChild(box);
-  document.body.appendChild(menu);
-}
 
-function tryRun(){
-  var ok = Math.random()<0.6;
-  if(ok){
-    log('成功脫離戰鬥。','ok');
-    finishBattle(false);
-  }else{
-    log('逃跑失敗！','warn');
-    battle.p.atb = 0;
-    updateCmdEnabled();
-  }
-}
+  /**
+   * 單一 click 監聽器整合所有常用點擊事件（移除 ?. / ?? / 箭頭函式）
+   */
+  document.addEventListener('click', function(e){
+    var target = e.target;
 
-async function endCheck(){
-  if(!battle || battle.over) return;
+    // 加屬性點
+    var plus = target.closest ? target.closest('.attr-plus') : null;
+    if (plus) {
+      var key = plus.dataset.key;
+      var P = state.player;
+      if(!key || !P || ((P.unspentPoints == null ? 0 : P.unspentPoints)) <= 0) return;
 
-  if(battle.e.hp<=0){
-    log('你打倒了 ' + (battle.e.name||'敵人') + '！','ok');
+      P.attributes[key] = (P.attributes[key] == null ? 10 : P.attributes[key]) + 1;
+      P.unspentPoints = (P.unspentPoints == null ? 0 : P.unspentPoints) - 1;
 
-    // 1) 停止敵方行動、淡出（不再跑 ATB）
-    finishBattle();
-    var eImg = document.getElementById('eImg');
-    if(eImg){ eImg.classList.add('fade-out'); }
+      var elv = qs('#val_' + key); if (elv) elv.textContent = P.attributes[key];
+      var bar = qs('#bar_' + key); if (bar) bar.style.width = Math.min(100, P.attributes[key]) + '%';
 
-    // 1.5) 若在萊姆洞窟，累積擊殺數，達 10/10 顯示 BOSS
-    try{
-      // 找當前的小地圖
-      var big=null, area=null, i,j;
-      for(i=0;i<MAPS.length;i++){ if(MAPS[i].id===curBig){ big=MAPS[i]; break; } }
-      if(big && big.small){
-        for(j=0;j<big.small.length;j++){ if(big.small[j].id===curSmall){ area=big.small[j]; break; } }
-      }
-      if(area && area.id==='slime_cave'){
-        P.mapProg = P.mapProg || {};
-        var prog = P.mapProg.slime_cave || { kills:0, bossReady:false };
-        // 只有未出現 BOSS 前才累積
-        if(!prog.bossReady){
-          prog.kills = (prog.kills|0) + 1;
-          if(prog.kills >= 10){
-            prog.kills = 10;    // 封頂
-            prog.bossReady = true;
-            log('萊姆洞窟 BOSS 已出現！','ok');
-          }else{
-            log('萊姆洞窟討伐進度：' + prog.kills + '/10');
-          }
-          P.mapProg.slime_cave = prog;
-          updateBossUI();
-        }
-      }
-    }catch(_){}
+      updatePlusButtons();
+      renderDerived();
 
-    // 2) 掉落（MonsterDB）
-    (function resolveDrops(monId){
-      try{
-        var loots = (window.MonsterDB && typeof MonsterDB.rollDrops==='function') ? MonsterDB.rollDrops(monId) : [];
-        if(!loots || !loots.length){
-          log('戰利品：—');
-        }else{
-          if(window.MonsterDB && typeof MonsterDB.applyDrops==='function'){ MonsterDB.applyDrops(P, loots); }
-          var txt = [];
-          for (var i=0;i<loots.length;i++){
-            var it = loots[i]||{};
-            var shown = it.name || it.id || '';
-            if(!shown){
-              if (it.type==='material' && window.ItemDB && ItemDB.getDef){
-                var mdef = ItemDB.getDef('materials', it.id); if(mdef && mdef.name) shown = mdef.name;
-              }else if (it.type==='consumable' && window.ItemDB && ItemDB.getDef){
-                var cdef = ItemDB.getDef('consumables', it.id); if(cdef && cdef.name) shown = cdef.name;
+      // 更新血量上限
+      var d2 = derivedFrom(P);
+      var newHpMax = d2['氣血上限'];
+      P.hp = P.hp || { cur: newHpMax, max: newHpMax };
+      P.hp.max = newHpMax;
+      P.hp.cur = Math.min(P.hp.cur, newHpMax);
+      var hpBar = qs('#barHp'); if (hpBar) { hpBar.style.width = ((P.hp.cur / P.hp.max) * 100).toFixed(1) + '%'; }
+      var hpTxt = qs('#txtHp'); if (hpTxt) { hpTxt.textContent = P.hp.cur + '/' + P.hp.max; }
+
+      if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+      return;
+    }
+
+    // 切換背包分頁
+    var tab = target.closest ? target.closest('.bag-tab') : null;
+    if (tab) {
+      var k = tab.dataset.bagTab;
+      if (!k) return;
+      switchBagTab(k);
+      return;
+    }
+
+    // 點擊背包物品列，開啟操作面板
+    var row = target.closest ? target.closest('.item-row') : null;
+    if (row && row.dataset.type) {
+      openBagAction(row.dataset.type, +row.dataset.idx);
+      return;
+    }
+
+    // 點擊操作面板按鈕（使用／裝備／販賣／丟棄）
+    var btn = target.closest ? target.closest('.opx') : null;
+    if (btn) {
+      var type = btn.dataset.type;
+      var op   = btn.dataset.op;
+      var idx  = +(btn.dataset.idx || 0);
+      var P2   = state.player;
+
+      if (type === 'consumable') {
+        if (op === 'use') bagUseConsumable(idx);
+        else if (op === 'sell') bagSellConsumable(idx);
+        else if (op === 'throw') bagThrowConsumable(idx);
+
+      } else if (type === 'weapon') {
+        if (op === 'equip') bagEquipWeapon(idx);
+        else if (op === 'repair') bagRepairWeapon(idx);
+        else if (op === 'sell') bagSellWeapon(idx);
+        else if (op === 'throw') bagThrowWeapon(idx);
+
+      } else if (type === 'ornament') {
+        if (op === 'equip') {
+          if (typeof bagEquipOrnament === 'function') {
+            // 你專用的流程（含回收被頂替者）
+            bagEquipOrnament(idx);
+          } else {
+            // 直連 Equip（若回傳失敗就做手動後備裝備邏輯）
+            var o = (P2 && P2.bag && P2.bag.ornaments) ? P2.bag.ornaments[idx] : null;
+            if (!o) { closeBagAction(); return; }
+
+            // 舊存檔相容：如果是字串 id，補成完整物件
+            if (typeof o === 'string') {
+              var kindsL = ['ornaments','rings','earrings','cloaks','armors','boots','medals'];
+              var defL = null, iL;
+              for (iL=0;iL<kindsL.length;iL++) {
+                var tmp = (window.ItemDB && ItemDB.getDef) ? ItemDB.getDef(kindsL[iL], o) : null;
+                if (tmp) { defL = tmp; break; }
               }
+              o = defL ? { id: o, name: (defL.name || o), icon: (defL.icon || '') } : { id: o };
+              // 寫回背包裡這一格，避免之後再打開還是字串
+              if (P2 && P2.bag && P2.bag.ornaments) P2.bag.ornaments[idx] = o;
             }
-            if(it.type==='currency' && it.id==='stone') shown = '靈石';
-            if(it.type==='currency' && it.id==='diamond') shown = '鑽石';
-            var amount = it.amount|0;
-            if(amount>0) txt.push(shown + ' ×' + amount);
+
+            var equippedOk = false;
+            if (window.Equip && Equip.equipOrnament) {
+              // 若 equip.js 被修好會直接成功
+              equippedOk = !!Equip.equipOrnament(o);
+            }
+
+            if (!equippedOk) {
+              // —— 後備：在這裡直接完成裝備 —— //
+              P2.equip = P2.equip || { weapon:null, earrings:[null,null], rings:[null,null], cloak:null, armor:null, shoes:null, medals:[null,null,null,null,null] };
+
+              // 判斷種類（含 ornaments → 當作 rings）
+              var kind = '';
+              if (window.ItemDB && ItemDB.getDef) {
+                if (ItemDB.getDef('ornaments', o.id)) kind = 'rings';
+                else if (ItemDB.getDef('rings', o.id)) kind = 'rings';
+                else if (ItemDB.getDef('earrings', o.id)) kind = 'earrings';
+                else if (ItemDB.getDef('cloaks', o.id)) kind = 'cloak';
+                else if (ItemDB.getDef('armors', o.id)) kind = 'armor';
+                else if (ItemDB.getDef('boots', o.id)) kind = 'shoes';
+                else if (ItemDB.getDef('medals', o.id)) kind = 'medals';
+              }
+              if (!kind) { if (window.Game && Game.log) Game.log('無法辨識飾品種類','warn'); closeBagAction(); return; }
+
+              var back = null, j;
+
+              if (kind === 'rings' || kind === 'earrings' || kind === 'medals') {
+                var cap = (kind === 'medals') ? 5 : 2;
+                var arr = (P2.equip[kind] && P2.equip[kind].slice) ? P2.equip[kind] : new Array(cap);
+                for (j=0;j<cap;j++) if (typeof arr[j] === 'undefined') arr[j] = null;
+
+                // 禁止相同 id 重複裝備
+                for (j=0;j<arr.length;j++){ if (arr[j] && arr[j].id === o.id) { if(window.Game&&Game.log)Game.log('不可重複裝備相同飾品','warn'); closeBagAction(); return; } }
+
+                // 塞空位；無空位則覆蓋第 1 格並回收
+                var pos = -1; for (j=0;j<arr.length;j++){ if(!arr[j]){ pos=j; break; } }
+                if (pos === -1) { back = arr[0]; arr[0] = JSON.parse(JSON.stringify(o)); }
+                else { arr[pos] = JSON.parse(JSON.stringify(o)); }
+                P2.equip[kind] = arr;
+
+              } else {
+                // cloak / armor / shoes 單格位
+                back = P2.equip[kind] || null;
+                P2.equip[kind] = JSON.parse(JSON.stringify(o));
+              }
+
+              // 從背包移除本件
+              if (P2 && P2.bag && P2.bag.ornaments) {
+                P2.bag.ornaments.splice(idx, 1);
+              }
+
+              // 回收被頂替者
+              if (back){
+                P2.bag = P2.bag || {};
+                P2.bag.ornaments = Array.isArray(P2.bag.ornaments) ? P2.bag.ornaments : [];
+                try { P2.bag.ornaments.unshift(JSON.parse(JSON.stringify(back))); }
+                catch(_){ P2.bag.ornaments.unshift(back); }
+              }
+
+              equippedOk = true;
+            }
+
+            if (equippedOk) {
+              if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P2);
+              render(P2); renderBag('ornament');
+            }
           }
-          log('戰利品：' + (txt.length ? txt.join('；') : '—'), txt.length ? 'ok' : undefined);
+        } else if (op === 'sell') {
+          if (window.Game && Game.log) Game.log('飾品販售尚未實作。','warn');
+        } else if (op === 'throw') {
+          if (window.Game && Game.log) Game.log('飾品丟棄尚未實作。','warn');
         }
-      }catch(_e){}
-    })((battle.enemy && battle.enemy.id) ? battle.enemy.id : battle.enemy);
 
-    // 3) 經驗與升級（保留溢出）
-    var baseExp = 10 + ((battle.enemy && battle.enemy.level) || 1) * 4;
-    var expGain = baseExp;
-    var bonusExp = 0;
-    
+      } else if (type === 'hidden') {
+        if (op === 'use')  { if (window.Game && Game.log) Game.log('暗器僅能在戰鬥中使用。','info'); }
+        else if (op === 'sell') { if (window.Game && Game.log) Game.log('暗器販售尚未實作。','warn'); }
+        else if (op === 'throw'){ if (window.Game && Game.log) Game.log('暗器丟棄尚未實作。','warn'); }
+
+      } else if (type === 'material') {
+        if (op === 'sell')  bagSellMaterial(idx);
+        else if (op === 'throw') bagThrowMaterial(idx);
+      }
+
+      closeBagAction();
+      return;
+    }    
+  });
+
+  // 登出按鈕
+  document.getElementById('btnLogout')?.addEventListener('click', ()=>{
+    if (confirm('要登出嗎？')) {
+      if (window.Auth && Auth.logout) Auth.logout();
+      location.href = 'index.html';
+    }
+  });
+}
+
+/* ===== Shop (NPC → Items) ===== */
+function openShop(){
+  renderMerchants();
+  const m = qs('#shopModal'); if(!m) return;
+  m.classList.add('show'); m.setAttribute('aria-hidden','false');
+}
+function closeShop(){
+  const m = qs('#shopModal'); if(!m) return;
+  m.classList.remove('show'); m.setAttribute('aria-hidden','true');
+  const list = qs('#merchantList'); const page = qs('#merchantShop');
+  if(list) list.style.display = 'block';
+  if(page) page.style.display = 'none';
+}
+
+/* 商人清單頁 */
+function renderMerchants(){
+  const box = qs('#merchantList'); if(!box) return;
+  box.innerHTML = '';
+
+  // 1) 藥鋪小李（固定可用）
+  const li = document.createElement('div');
+  li.className = 'item-row';
+  li.innerHTML = ''
+    + '<div class="item-thumb"><img src="https://i.ibb.co/3fNzHbn/apothecary.png" alt="藥鋪小李"></div>'
+    + '<div class="item-main">'
+    + '  <div class="item-title"><span class="item-name">藥鋪小李</span></div>'
+    + '  <div class="item-sub"><span class="sub-left">販售丹藥</span></div>'
+    + '</div>';
+  li.onclick = function(){ openMerchant('藥鋪小李', ItemDB.DB.consumables || []); };
+  box.appendChild(li);
+
+  // 2) 洞窟補給商（打過萊姆洞窟 BOSS 才解鎖）
+var P = (window.Auth && Auth.getCharacter) ? Auth.getCharacter() : null;
+var unlocked = false;
+if(P && P.mapProg && P.mapProg.slime_cave && P.mapProg.slime_cave.bossReady){ unlocked = true; }
+
+  const cave = document.createElement('div');
+  cave.className = 'item-row';
+  cave.style.filter = unlocked ? 'none' : 'grayscale(1) opacity(.5)';
+  cave.innerHTML = ''
+    + '<div class="item-thumb"><img src="https://i.ibb.co/QnLR7vN/cave-merchant.png" alt="洞窟補給商"></div>'
+    + '<div class="item-main">'
+    + '  <div class="item-title"><span class="item-name">洞窟補給商</span></div>'
+    + '  <div class="item-sub"><span class="sub-left">' + (unlocked ? '販售特用品' : '尚未解鎖') + '</span></div>'
+    + '</div>';
+  if(unlocked){
+    cave.onclick = function(){ 
+      openMerchant('洞窟補給商', [
+        { id:'antidote', name:'解毒藥', price:120, icon:'https://i.ibb.co/JxR7ZzP/antidote.png' }
+      ]);
+    };
+  }
+  box.appendChild(cave);
+}
+
+/* 進入某位商人 → 顯示商品清單 */
+function openMerchant(name, items){
+  const list = qs('#merchantList'); const page = qs('#merchantShop');
+  if(list) list.style.display = 'none';
+  if(page) page.style.display = 'block';
+  const ttl = qs('#merchantName'); if(ttl) ttl.textContent = name;
+
+  const box = qs('#shopList'); if(!box) return;
+  box.innerHTML = '';
+  for(var i=0;i<items.length;i++){
+    var it = items[i] || {};
+    var hasIcon = (typeof it.icon === 'string') && /^https?:\/\//.test(it.icon);
+    var effHp = it.effect && it.effect.hp ? it.effect.hp : 0;
+    var effMp = it.effect && it.effect.mp ? it.effect.mp : 0;
+    var effHtml = '';
+    if(effHp){ effHtml += '<span class="badge hp">氣血+' + effHp + '</span>'; }
+    if(effMp){ effHtml += '<span class="badge">真元+' + effMp + '</span>'; }
+
+    var row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = ''
+      + '<div class="item-thumb">' + (hasIcon?('<img src="'+it.icon+'" alt="'+(it.name||'')+'">'):'') + '</div>'
+      + '<div class="item-main">'
+      + '  <div class="item-title cons">'
+      + '    <span class="item-name">' + (it.name||'') + '</span>'
+      + '    <span class="meta-effect">' + effHtml + '</span>'
+      + '    <span class="count-slot">×1</span>'
+      + '  </div>'
+      + '  <div class="item-sub">'
+      + '    <span class="sub-left">價格 ' + (it.price||0) + ' 靈石</span>'
+      + '    <span class="sub-right"><button class="opx primary" data-shop-src="'+name+'" data-shop-buy="'+i+'">購買</button></span>'
+      + '  </div>'
+      + '</div>';
+    box.appendChild(row);
+  }
+}
+
+/* 購買按鈕 → 先開數量輸入框 */
+document.addEventListener('click', function(e){
+  var btn = e.target && e.target.closest ? e.target.closest('[data-shop-buy]') : null;
+  if(!btn) return;
+
+  var idx = parseInt(btn.getAttribute('data-shop-buy')||'0',10);
+  var src = btn.getAttribute('data-shop-src') || '';
+
+  var items = [];
+  if(src === '藥鋪小李'){ items = ItemDB.DB.consumables || []; }
+  else if(src === '洞窟補給商'){ 
+    items = [{ id:'antidote', name:'解毒藥', price:120, icon:'https://i.ibb.co/JxR7ZzP/antidote.png' }];
+  }
+  var it = items[idx]; if(!it) return;
+
+  // 開啟購買介面
+  var m = qs('#buyModal'); if(!m) return;
+  var nameEl = qs('#buyItemName'); if(nameEl) nameEl.textContent = it.name + '（單價 ' + (it.price||0) + ' 靈石）';
+  m.dataset.itemIndex = idx;
+  m.dataset.itemSrc = src;
+  var qtyEl = qs('#buyQty'); if(qtyEl) qtyEl.value = 1;
+  m.classList.add('show'); m.setAttribute('aria-hidden','false');
+});
+
+
+/* 確定購買 */
+document.getElementById('btnConfirmBuy').addEventListener('click', function(){
+  var m = qs('#buyModal'); if(!m) return;
+  var idx = parseInt(m.dataset.itemIndex||'0',10);
+  var src = m.dataset.itemSrc || '';
+
+  var items = [];
+  if(src === '藥鋪小李'){ items = ItemDB.DB.consumables || []; }
+  else if(src === '洞窟補給商'){ 
+    items = [{ id:'antidote', name:'解毒藥', price:120, icon:'https://i.ibb.co/JxR7ZzP/antidote.png' }];
+  }
+  var it = items[idx]; if(!it) return;
+
+  var qtyEl = qs('#buyQty');
+  var qty = parseInt((qtyEl ? qtyEl.value : '1')||'1',10);
+  if(qty<1) qty=1;
+
+  var P = Game.getPlayer(); if(!P) return;
+  var stone = (P.currencies && typeof P.currencies.stone==='number') ? P.currencies.stone : 0;
+  var cost = (it.price||0) * qty;
+  if(stone < cost){
+    Game.log('靈石不足，無法購買 ' + (it.name||'') + ' ×' + qty, 'warn');
+    return;
+  }
+
+  P.currencies.stone = stone - cost;
+  ItemDB.addConsumableToBag(P.bag, it.id, qty);
+
+  if(window.Auth && Auth.saveCharacter) {
+    var cleanData = JSON.parse(JSON.stringify(P));
+    delete cleanData._live;
+    Auth.saveCharacter(cleanData);
+  }
+  Game.recalc();
+  Game.log('購買 ' + (it.name||'') + ' ×' + qty + ' 成功！', 'ok');
+
+  // 關閉購買框
+  m.classList.remove('show'); m.setAttribute('aria-hidden','true');
+});
+
+
+/* 關閉購買框 */
+document.querySelectorAll('[data-close="buy"]').forEach(function(el){
+  el.addEventListener('click', function(){
+    var m = qs('#buyModal'); if(!m) return;
+    m.classList.remove('show'); m.setAttribute('aria-hidden','true');
+  });
+});
+
+/* 返回商人清單、關閉商店 */
+var backBtn = document.getElementById('btnBackMerchants');
+if(backBtn){
+  backBtn.addEventListener('click', function(){
+    var list = qs('#merchantList'); var page = qs('#merchantShop');
+    if(list) list.style.display = 'block';
+    if(page) page.style.display = 'none';
+  });
+}
+document.querySelectorAll('[data-close="shop"]').forEach(function(el){
+  el.addEventListener('click', closeShop);
+});
+
+  /* ===== Bag ===== */
+  function openBag(){ seedBagIfMissing(); renderBag('consumable'); const m = qs('#bagModal'); if(!m) return; m.classList.add('show'); m.setAttribute('aria-hidden','false'); }
+  
+  function closeBag(){ const m = qs('#bagModal'); if(!m) return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); }
+  function switchBagTab(k){ document.querySelectorAll('.bag-tab').forEach(t=> t.classList.toggle('active', t.dataset.bagTab===k)); renderBag(k); }
+
+function renderBag(k){
+  const P = state.player; if(!P) return;
+  const box = qs('#bagList'); if(!box) return;
+  box.innerHTML = '';
+  if (k === 'consumable') {
+    renderConsumables(box, P);
+  } else if (k === 'weapon') {
+    renderWeapons(box, P);
+  } else if (k === 'ornament') {
+    renderOrnaments(box, P);
+  } else if (k === 'hidden') {
+    renderHidden(box, P);
+  } else if (k === 'material') {
+    renderMaterials(box, P);
+  } else {
+    const tip = document.createElement('div'); tip.className='item-sub';
+    tip.textContent = '尚無內容';
+    box.appendChild(tip);
+  }
+}
+
+
+/* === 新增：飾品清單渲染 === */
+function renderOrnaments(box, P){
+  const items = (P.bag && P.bag.ornaments) ? P.bag.ornaments : [];
+  const url = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
+
+  items.forEach((o,i)=>{
+    // 依次在不同表格找定義，避免因分類不同取不到
+    let def = ItemDB.getDef('ornaments', o.id) ||
+              ItemDB.getDef('rings',     o.id) ||
+              ItemDB.getDef('earrings',  o.id) ||
+              ItemDB.getDef('cloaks',    o.id) ||
+              ItemDB.getDef('armors',    o.id) ||
+              ItemDB.getDef('boots',     o.id) ||
+              ItemDB.getDef('medals',    o.id) || {};
+    const iconUrl = url(o.icon) ? o.icon : (url(def.icon) ? def.icon : null);
+    const name = o.name || def.name || o.id;
+    // 清單列只顯示「真元／氣血」兩個主要數值
+    const bonus = o.bonus || def.bonus || {};
+    const effect = o.effect || def.effect || {};
+    let mp = 0, hp = 0;
+    if (effect.mp) mp += effect.mp;
+    if (effect.hp) hp += effect.hp;
+    if (bonus['真元上限']) mp += bonus['真元上限'];
+    if (bonus['氣血上限']) hp += bonus['氣血上限'];
+    let primary = [];
+    if (mp) primary.push('真元+'+mp);
+    if (hp) primary.push('氣血+'+hp);
+    const subLeft  = primary.join(' ');
+    const subRight = '販售價格 ' + (o.price ?? def.price ?? 0);
+
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.type = 'ornament';
+    row.dataset.idx  = String(i);
+    row.innerHTML = `
+      <div class="item-thumb">${iconUrl?`<img src="${iconUrl}" alt="${name}">`:''}</div>
+      <div class="item-main">
+        <div class="item-title equip">
+          <span class="item-name">${name}</span>
+        </div>
+        <div class="item-sub">
+          <span class="sub-left">${subLeft}</span>
+          <span class="sub-right">${subRight}</span>
+        </div>
+      </div>
+    `;
+    box.appendChild(row);
+  });
+  if (!items.length){
+    const tip = document.createElement('div'); tip.className='item-sub';
+    tip.textContent = '尚無飾品';
+    box.appendChild(tip);
+  }
+}
+
+
+/* === 新增：暗器清單渲染 === */
+function renderHidden(box, P){
+  const items = (P.bag && P.bag.hidden) ? P.bag.hidden : [];
+  const url = function(s){ return typeof s==='string' && /^https?:\/\//.test(s); };
+
+  items.forEach(function(h, i){
+    const def = (ItemDB.getDef && ItemDB.getDef('hidden', h.id)) || {};
+    const iconUrl = url(h.icon) ? h.icon : (url(def.icon) ? def.icon : null);
+    const name = (h.name!=null ? h.name : (def.name!=null ? def.name : h.id));
+    const cnt = Math.max(0, h.count || 0);
+    var dmg = (h.effect && typeof h.effect.dmg==='number') ? h.effect.dmg
+            : (def.effect && typeof def.effect.dmg==='number') ? def.effect.dmg : 0;
+    var subLeft  = dmg ? ('傷害 ' + dmg) : (def.desc ? def.desc : '戰鬥中可使用以造成傷害');
+    var subRight = '販售價格 ' + String(h.price!=null ? h.price : (def.price || 0));
+
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.type = 'hidden';
+    row.dataset.idx = String(i);
+    row.innerHTML = `
+      <div class="item-thumb">${iconUrl?`<img src="${iconUrl}" alt="${name}">`:''}</div>
+      <div class="item-main">
+        <div class="item-title cons">
+          <span class="item-name">${name}</span>
+          <span class="count-slot">×${cnt}</span>
+        </div>
+        <div class="item-sub">
+          <span class="sub-left">${subLeft}</span>
+          <span class="sub-right">${subRight}</span>
+        </div>
+      </div>
+    `;
+    box.appendChild(row);
+  });
+
+  if (!items.length){
+    const tip = document.createElement('div'); tip.className='item-sub';
+    tip.textContent = '尚無暗器';
+    box.appendChild(tip);
+  }
+}
+
+function openBagAction(type, idx){
+  const P = state.player; if(!P) return;
+  const m = qs('#bagAction'); if(!m) return;
+
+  // 工具
+  const isUrl = function(s){ return typeof s === 'string' && /^https?:\/\//.test(s); };
+  const clampInt = function(n, lo, hi){ n = n|0; if(n<lo) n=lo; if(n>hi) n=hi; return n; };
+  const esc = function(s){ s=String(s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); };
+
+  // 把 bonus / effect 做成細節 HTML（所有物品共用）
+  function buildDetailHTML(kind, it, def){
+    var lines = [];
+
+    function addPlus(label, v){
+      if (typeof v !== 'number') return;
+      if (!v) return;
+      lines.push(label + (v>0 ? ('+'+v) : v));
+    }
+    function addRaw(label, v){
+      if (typeof v !== 'number') return;
+      if (!v && v!==0) return;
+      lines.push(label + ' ' + v);
+    }
+
+    // 1) bonus（裝備/飾品用）
+    var b = (it && it.bonus) ? it.bonus : (def && def.bonus ? def.bonus : null);
+    if (b){
+      for (var k in b){
+        if(!Object.prototype.hasOwnProperty.call(b,k)) continue;
+        var v = b[k];
+        if (v===0 || v===null || v===undefined) continue;
+        if (k==='真元上限') addPlus('真元上限', v);
+        else if (k==='氣血上限') addPlus('氣血上限', v);
+        else if (k==='物理攻擊') addPlus('物理攻擊', v);
+        else if (k==='法術攻擊') addPlus('法術攻擊', v);
+        else if (k==='物理防禦') addPlus('物理防禦', v);
+        else if (k==='法術防禦') addPlus('法術防禦', v);
+        else if (k==='命中') addPlus('命中', v);
+        else if (k==='閃避') addPlus('閃避', v);
+        else if (k==='暴擊') addPlus('暴擊', v);
+        else if (k==='攻速') addPlus('攻速', v);
+        else addPlus(k, v);
+      }
+    }
+
+    // 2) effect（消耗品/暗器/部分飾品）
+    var e = (it && it.effect) ? it.effect : (def && def.effect ? def.effect : null);
+    if (e){
+      addPlus('氣血', e.hp);
+      addPlus('真元', e.mp);
+      addPlus('攻擊', e.atk);
+      addPlus('法攻', e.matk);
+      addPlus('防禦', e.def);
+      addPlus('法防', e.mdef);
+      addPlus('命中', (e.acc!=null?e.acc:e.hit));
+      addPlus('閃避', (e.eva!=null?e.eva:e.evd));
+      addPlus('暴擊', (e.crit!=null?e.crit:e.cri));
+      addPlus('攻速', (e.aspd!=null?e.aspd:e.spd));
+      addPlus('力', e.str);
+      addPlus('體', e.vit);
+      addPlus('悟', e.int);
+      addPlus('敏', e.agi);
+      addRaw('傷害', e.dmg);
+    }
+
+    // 3) 武器專屬資訊
+    if (kind==='weapon'){
+      var dmg = (it && it.dmg) ? it.dmg : (def && def.dmg ? def.dmg : null);
+      var plus = (it && typeof it.plus==='number') ? it.plus : (def && def.plus ? def.plus : 0);
+      if (dmg && typeof dmg.length==='number'){
+        var dmin = dmg[0]||0, dmax = dmg[1]||0;
+        lines.push('攻擊 ' + dmin + '~' + dmax + (plus?(' +' + plus):''));
+      }
+      var durCur = (it && it.dur && typeof it.dur.cur==='number') ? it.dur.cur : (def && typeof def.durCur==='number' ? def.durCur : null);
+      var durMax = (it && it.dur && typeof it.dur.max==='number') ? it.dur.max : (def && typeof def.durMax==='number' ? def.durMax : null);
+      if (durMax!==null && durMax!==undefined){
+        lines.push('耐久 ' + (durCur!==null && durCur!==undefined ? (durCur + '/' + durMax) : durMax));
+      }
+    }
+
+    // 4) 材料描述
+    if (kind==='material' && def && def.desc){
+      lines.push('用途：' + def.desc);
+    }
+
+    // 5) 暗器描述
+    if (kind==='hidden' && def && def.desc){
+      lines.push('說明：' + def.desc);
+    }
+
+    if (!lines.length) lines.push('無額外屬性');
+    var html = '';
+    for (var i=0;i<lines.length;i++){
+      html += '<div class="line">' + esc(lines[i]) + '</div>';
+    }
+    return html;
+  }
+
+  let name='', subRight='', iconUrl=null, btnsHtml='';
+
+  if (type === 'consumable') {
+    const it  = (P.bag.consumables || [])[idx]; if (!it) return;
+    const def = ItemDB.getDef('consumables', it.id) || {};
+    name     = it.name || def.name || it.id;
+
+    const effHp  = (it.effect && typeof it.effect.hp==='number') ? it.effect.hp
+                   : (def.effect && typeof def.effect.hp==='number') ? def.effect.hp : 0;
+    const effTxt = effHp ? ('<span class="badge hp">氣血+' + effHp + '</span>') : '';
+    subRight = '販售價格 ' + String( (it.price!=null?it.price:(def.price||0)) );
+    iconUrl  = isUrl(it.icon) ? it.icon : (isUrl(def.icon) ? def.icon : null);
+    const cnt = clampInt(it.count ?? 0, 0, 9999);
+
+    qs('#actTop').className = 'item-title cons';
+    qs('#actTop').innerHTML = ''
+      + '<span class="item-name">' + esc(name) + '</span>'
+      + '<span class="meta-effect">' + effTxt + '</span>'
+      + '<span class="count-slot">×' + cnt + '</span>';
+
+    qs('#actLeft').innerHTML   = buildDetailHTML('consumable', it, def);
+    qs('#actRight').textContent = subRight;
+
+    btnsHtml = ''
+      + '<button class="opx primary" data-op="use"  data-type="consumable" data-idx="'+idx+'">使用</button>'
+      + '<button class="opx"         data-op="sell" data-type="consumable" data-idx="'+idx+'">販賣</button>'
+      + '<button class="opx"         data-op="throw"data-type="consumable" data-idx="'+idx+'">丟棄</button>';
+
+  } else if (type === 'material') {
+    const mat = (P.bag.materials || [])[idx]; if (!mat) return;
+    const def = ItemDB.getDef('materials', mat.id) || {};
+    name     = mat.name || def.name || mat.id;
+    iconUrl  = isUrl(mat.icon) ? mat.icon : (isUrl(def.icon) ? def.icon : null);
+    const cnt = clampInt(mat.count ?? 0, 0, 9999);
+    subRight = def.price ? ('販售價格 ' + def.price) : '';
+
+    qs('#actTop').className = 'item-title';
+    qs('#actTop').innerHTML = ''
+      + '<span class="item-name">' + esc(name) + '</span>'
+      + '<span class="count-slot">×' + cnt + '</span>';
+
+    qs('#actLeft').innerHTML   = buildDetailHTML('material', mat, def);
+    qs('#actRight').textContent = subRight;
+
+    btnsHtml = ''
+      + '<button class="opx" data-op="sell"  data-type="material" data-idx="'+idx+'">販賣</button>'
+      + '<button class="opx" data-op="throw" data-type="material" data-idx="'+idx+'">丟棄</button>';
+
+  } else if (type === 'weapon') {
+    const w   = (P.bag.weapons || [])[idx]; if (!w) return;
+    const def = ItemDB.getDef('weapons', w.id) || {};
+    name     = w.name || def.name || w.id;
+    const dmg = Array.isArray(w.dmg) ? w.dmg : (def.dmg || [0,0]);
+    const dmin = dmg[0]||0, dmax = dmg[1]||0;
+    const plus = (typeof w.plus==='number') ? w.plus : (def.plus||0);
+    const durCur = (w.dur && typeof w.dur.cur==='number') ? w.dur.cur : (def.durCur||0);
+    const durMax = (w.dur && typeof w.dur.max==='number') ? w.dur.max : (def.durMax||0);
+    iconUrl  = isUrl(w.icon) ? w.icon : (isUrl(def.icon) ? def.icon : null);
+    subRight = '販售價格 ' + String(w.price ?? def.price ?? 0);
+
+    qs('#actTop').className = 'item-title wep';
+    qs('#actTop').innerHTML = ''
+      + '<span class="item-name">' + esc(String(name).replace(/^(普|精|稀|史|傳)的?/,'') ) + '</span>'
+      + '<span class="meta-effect">' + (dmin||dmax ? ('<span class="badge atk">' + dmin + '~' + dmax + (plus?(' +' + plus):'') + '</span>') : '') + '</span>'
+      + '<span class="dur-chip">' + (durMax ? (durCur + '/' + durMax) : '') + '</span>';
+
+    qs('#actLeft').innerHTML   = buildDetailHTML('weapon', w, def);
+    qs('#actRight').textContent = subRight;
+
+    btnsHtml = ''
+      + '<button class="opx primary" data-op="equip" data-type="weapon" data-idx="'+idx+'">裝備</button>'
+      + '<button class="opx"         data-op="sell"  data-type="weapon"  data-idx="'+idx+'">販賣</button>'
+      + '<button class="opx"         data-op="throw" data-type="weapon"  data-idx="'+idx+'">丟棄</button>';
+
+  } else if (type === 'ornament') {
+    const o = (P.bag.ornaments || [])[idx]; if(!o) return;
+    // 依你的清單渲染邏輯一樣走多類別找定義，避免因分類不同取不到 def
+    const def = ItemDB.getDef('ornaments', o.id)
+            || ItemDB.getDef('earrings', o.id)
+            || ItemDB.getDef('cloaks',   o.id)
+            || ItemDB.getDef('armors',   o.id)
+            || ItemDB.getDef('boots',    o.id)
+            || ItemDB.getDef('medals',   o.id)
+            || {};
+    name    = o.name || def.name || o.id;
+    iconUrl = isUrl(o.icon) ? o.icon : (isUrl(def.icon) ? def.icon : null);
+    subRight = '販售價格 ' + String(o.price != null ? o.price : (def.price || 0));
+
+    qs('#actTop').className = 'item-title equip';
+    qs('#actTop').innerHTML = ''
+      + '<span class="item-name">' + esc(name) + '</span>';
+
+    // 顯示完整屬性
+    qs('#actLeft').innerHTML   = buildDetailHTML('ornament', o, def);
+    qs('#actRight').textContent = subRight;
+
+    btnsHtml = ''
+      + '<button class="opx primary" data-op="equip" data-type="ornament" data-idx="'+idx+'">裝備</button>'
+      + '<button class="opx"         data-op="sell"  data-type="ornament" data-idx="'+idx+'">販賣</button>'
+      + '<button class="opx"         data-op="throw" data-type="ornament" data-idx="'+idx+'">丟棄</button>';
+
+  } else if (type === 'hidden') {
+    const h  = (P.bag.hidden || [])[idx]; if (!h) return;
+    const def = ItemDB.getDef('hidden', h.id) || {};
+    name     = h.name || def.name || h.id;
+    const cnt = clampInt(h.count ?? 0, 0, 9999);
+    iconUrl  = isUrl(h.icon) ? h.icon : (isUrl(def.icon) ? def.icon : null);
+    subRight = def.price ? ('販售價格 ' + def.price) : '';
+
+    qs('#actTop').className = 'item-title cons';
+    qs('#actTop').innerHTML = ''
+      + '<span class="item-name">' + esc(name) + '</span>'
+      + '<span class="count-slot">×' + cnt + '</span>';
+
+    qs('#actLeft').innerHTML   = buildDetailHTML('hidden', h, def);
+    qs('#actRight').textContent = subRight;
+
+    btnsHtml = ''
+      + '<button class="opx" data-op="sell"  data-type="hidden" data-idx="'+idx+'">販賣</button>'
+      + '<button class="opx" data-op="throw" data-type="hidden" data-idx="'+idx+'">丟棄</button>';
+
+  } else {
+    return;
+  }
+
+  qs('#actIcon').innerHTML = iconUrl ? ('<img src="'+esc(iconUrl)+'" alt="">') : '';
+  qs('#actBtns').innerHTML = btnsHtml;
+
+  m.classList.add('show');
+  m.setAttribute('aria-hidden', 'false');
+}
+
+  function closeBagAction(){ const m = qs('#bagAction'); if(!m) return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); qs('#actBtns').innerHTML = ''; }
+
+  function seedBagIfMissing(){
+    const P = state.player; if(!P) return;
+    if (!P.bag) { P.bag = ItemDB.getDefaultBag(); return; }
+    P.bag.consumables = Array.isArray(P.bag.consumables) ? P.bag.consumables : [];
+    P.bag.weapons     = Array.isArray(P.bag.weapons)     ? P.bag.weapons     : [];
+    P.bag.ornaments   = Array.isArray(P.bag.ornaments)   ? P.bag.ornaments   : [];
+    P.bag.materials   = Array.isArray(P.bag.materials)   ? P.bag.materials   : [];
+    P.bag.hidden      = Array.isArray(P.bag.hidden)      ? P.bag.hidden      : [];
+  }
+
+
+  function renderConsumables(box, P){
+  const items = P.bag.consumables || [];
+  const isUrl = s => typeof s === 'string' && /^https?:\/\//.test(s);
+
+  items.forEach((it, i) => {
+    const def = ItemDB.getDef('consumables', it.id) || {};
+    const name  = it.name  || def.name  || it.id;
+    const price = (it.price ?? def.price ?? 0);
+    const effHp = (it.effect?.hp ?? def.effect?.hp);
+    const effHtml = effHp ? `<span class="badge hp">氣血+${effHp}</span>` : '';
+    const iconUrl = isUrl(it.icon) ? it.icon : (isUrl(def.icon) ? def.icon : null);
+    const cnt = Math.max(0, it.count || 0);
+
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.type = 'consumable';
+    row.dataset.idx  = String(i);
+
+    row.innerHTML = `
+      <div class="item-thumb">${iconUrl ? `<img src="${iconUrl}" alt="${name}">` : ''}</div>
+      <div class="item-main">
+        <div class="item-title cons">
+          <span class="item-name">${name}</span>
+          <span class="meta-effect">${effHtml}</span>
+          <span class="count-slot">×${cnt}</span>
+        </div>
+        <div class="item-sub">
+          <span class="sub-left"></span>
+          <span class="sub-right">販售價格 ${price}</span>
+        </div>
+      </div>
+    `;
+    box.appendChild(row);
+  });
+}
+
+function renderWeapons(box, P){
+  const items = P.bag.weapons || [];
+  const url = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
+
+  items.forEach((w, i)=>{
+    const def = ItemDB.getDef('weapons', w.id);
+    const iconUrl = url(w.icon) ? w.icon : (url(def?.icon) ? def.icon : null);
+    const name = w.name || def?.name || w.id;
+    const r = (w.rarity || def?.rarity || '').trim();            // ★ 稀有度（普/精/稀/史/傳）
+    const rCls = r ? `rarity-${r}` : '';
+    const rBadge = r ? `<span class="rb rb-${r}" title="稀有度">${r}</span>` : '';
+
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.type = 'weapon';
+    row.dataset.idx = String(i);
+
+    row.innerHTML = `
+      <div class="item-thumb">${iconUrl?`<img src="${iconUrl}" alt="${name}">`:''}</div>
+      <div class="item-main">
+        <div class="item-title wep">
+          <span class="badge-lv">LV.${w.level ?? def?.level ?? 1}</span>
+          <span class="item-name ${rCls}">${rBadge}${String(name).replace(/^(普|精|稀|史|傳)的?/, '')}</span>
+          <span class="right-meta">
+            <span>+${w.plus || 0}</span>
+            <span class="dur-chip">耐久 ${(w.dur?.cur ?? def?.durMax ?? 0)}/${(w.dur?.max ?? def?.durMax ?? 0)}</span>
+          </span>
+        </div>
+        <div class="item-sub">
+          <span class="sub-left">物理攻擊 ${(Array.isArray(w.dmg)?w.dmg[0]:(def?.dmg?.[0]??0))}-${(Array.isArray(w.dmg)?w.dmg[1]:(def?.dmg?.[1]??0))}</span>
+          <span class="sub-right">販售價格 ${w.price ?? def?.price ?? 0}</span>
+        </div>
+      </div>
+    `;
+    box.appendChild(row);
+  });
+}
+
+/* ★ 新增：材料清單渲染 */
+function renderMaterials(box, P){
+  const items = P.bag.materials || [];
+  const url = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
+
+  items.forEach((m, i)=>{
+    const def = ItemDB.getDef('materials', m.id);
+    const iconUrl = url(m.icon) ? m.icon : (url(def?.icon) ? def.icon : null);
+    const cnt = Math.max(0, m.count || 0);
+    const name = m.name || def?.name || m.id;
+    const r = (m.rarity || def?.rarity || '').trim();            // ★ 稀有度（普/精/稀/史/傳）
+    const rCls = r ? `rarity-${r}` : '';
+    const rBadge = r ? `<span class="rb rb-${r}" title="稀有度">${r}</span>` : '';
+
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.type = 'material';
+    row.dataset.idx = String(i);
+
+    row.innerHTML = `
+      <div class="item-thumb">${iconUrl?`<img src="${iconUrl}" alt="${name}">`:''}</div>
+      <div class="item-main">
+        <div class="item-title">
+          <span class="item-name ${rCls}">${rBadge}${name}</span>
+          <span class="count-slot">×${cnt}</span>
+        </div>
+        <div class="item-sub">
+          <span class="sub-left">${def?.desc ? def.desc : (r ? '稀有度 '+r : '')}</span>
+          <span class="sub-right">${def?.price ? `販售價格 ${def.price}` : ''}</span>
+        </div>
+      </div>
+    `;
+    box.appendChild(row);
+  });
+
+  if (!items.length){
+    const tip = document.createElement('div'); tip.className='item-sub';
+    tip.textContent = '尚無材料';
+    box.appendChild(tip);
+  }
+}
+
+  function bagUseConsumable(i){
+    const P = state.player; const it = P.bag.consumables[i]; if(!it) return;
+    if (it.effect?.hp){
+      const hpMax = derivedFrom(P)['氣血上限'];
+      P.hp = P.hp || {cur:hpMax,max:hpMax};
+      P.hp.cur = Math.min(P.hp.cur + it.effect.hp, hpMax);
+    }
+    it.count = (it.count||0) - 1;
+    if (it.count <= 0) P.bag.consumables.splice(i,1);
+    if (window.Auth && Auth.saveCharacter) {
+      var cleanData = JSON.parse(JSON.stringify(P));
+      delete cleanData._live;
+      Auth.saveCharacter(cleanData);
+    }
+    render(P); renderBag('consumable');
+  }
+
+  function bagSellConsumable(i){
+    const P = state.player; const it = P.bag.consumables[i]; if(!it) return;
+    const max = it.count||0;
+    const qty = +prompt(`輸入販賣數量（1-${max}）`, String(max));
+    if (!qty || qty<1 || qty>max) return;
+    P.currencies = P.currencies || {stone:0, diamond:0};
+    P.currencies.stone += qty * (it.price||0);
+    it.count -= qty;
+    if (it.count <= 0) P.bag.consumables.splice(i,1);
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('consumable');
+  }
+  function bagThrowConsumable(i){
+    const P = state.player; const it = P.bag.consumables[i]; if(!it) return;
+    const max = it.count||0;
+    const qty = +prompt(`輸入丟棄數量（1-${max}）`, String(max));
+    if (!qty || qty<1 || qty>max) return;
+    it.count -= qty;
+    if (it.count <= 0) P.bag.consumables.splice(i,1);
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('consumable');
+  }
+
+function bagEquipWeapon(i){
+  const P = state.player; if(!P) return;
+  P.bag = P.bag || {}; 
+  P.bag.weapons = Array.isArray(P.bag.weapons) ? P.bag.weapons : [];
+
+  const w = P.bag.weapons[i]; 
+  if(!w) return;
+
+  // 先記住舊武器（避免被覆蓋後消失）
+  const prev = (P.equip && P.equip.weapon) ? P.equip.weapon : null;
+
+  // 裝備新武器（有 Equip 模組就用它，否則直接寫入）
+  if (window.Equip && Equip.equipWeapon) {
+    Equip.equipWeapon(w);
+  } else {
+    P.equip = P.equip || {};
     try{
-      if (window.MonsterDB && typeof MonsterDB.expFor === 'function') {
-        // 用真正的怪物（或其 id）來計算，才有正確等級/Rank/xpBonus
-        var monForExp = (battle.enemy && battle.enemy.id) ? battle.enemy.id : battle.enemy;
-        expGain = MonsterDB.expFor(monForExp, (P && typeof P.level==='number') ? P.level : null);
-        bonusExp = expGain - baseExp;
-      }
-    }catch(_){}
+      P.equip.weapon = JSON.parse(JSON.stringify(w));
+    }catch(_){
+      P.equip.weapon = w;
+    }
+    renderDerived();
+  }
+
+  // 從背包移除已裝備的那把
+  P.bag.weapons.splice(i, 1);
+
+  // 若原本有裝備，丟回背包前端避免遺失
+  if (prev){
+    try{
+      P.bag.weapons.unshift(JSON.parse(JSON.stringify(prev)));
+    }catch(_){
+      P.bag.weapons.unshift(prev);
+    }
+  }
+
+  // 存檔 + 重繪
+  if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+  render(P); 
+  renderBag('weapon');
+
+  log('已裝備：' + (w.name || '武器'), 'ok');
+}
 
 
-    
-    if (!P.exp) P.exp = {cur:0, max:100};
-    if (typeof P.exp.cur!=='number') P.exp.cur = 0;
-    if (typeof P.exp.max!=='number' || P.exp.max<=0) P.exp.max = 100;
-    P.exp.cur = (P.exp.cur|0) + (expGain|0);
-    
-    // ★分開顯示基礎經驗和額外經驗
-    if (bonusExp > 0) {
-      log('獲得經驗：' + baseExp + ' + ' + bonusExp + ' = ' + expGain + '（含額外加成）', 'ok');
-    } else if (bonusExp < 0) {
-      log('獲得經驗：' + baseExp + ' - ' + Math.abs(bonusExp) + ' = ' + expGain + '（等級差距減少）', 'ok');
+  function bagSellWeapon(i){
+    const P = state.player; const w = P.bag.weapons[i]; if(!w) return;
+    if (!confirm(`確定要販賣：「${w.name}」？（可得 ${w.price} 靈石）`)) return;
+    P.currencies = P.currencies || {stone:0, diamond:0};
+    P.currencies.stone += (w.price||0);
+    P.bag.weapons.splice(i,1);
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('weapon');
+  }
+  function bagThrowWeapon(i){
+    const P = state.player; const w = P.bag.weapons[i]; if(!w) return;
+    if (!confirm(`確定要丟棄：「${w.name}」？（不可回收）`)) return;
+    P.bag.weapons.splice(i,1);
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('weapon');
+  }
+
+  // === 飾品：裝備（含回收被頂替者） ===
+  function bagEquipOrnament(i){
+    var P = state.player; if(!P) return;
+    P.bag = P.bag || {};
+    var list = P.bag.ornaments || [];
+    var o = list[i]; if(!o) return;
+
+// 判定飾品種類
+var kind = '';
+if (window.ItemDB && ItemDB.getDef){
+  if (ItemDB.getDef('ornaments', o.id)) kind = 'rings'; // ornaments 視為「戒指」
+  else if (ItemDB.getDef('rings',    o.id)) kind = 'rings';
+  else if (ItemDB.getDef('earrings', o.id)) kind = 'earrings';
+  else if (ItemDB.getDef('cloaks',   o.id)) kind = 'cloak';
+  else if (ItemDB.getDef('armors',   o.id)) kind = 'armor';
+  else if (ItemDB.getDef('boots',    o.id)) kind = 'shoes';
+  else if (ItemDB.getDef('medals',   o.id)) kind = 'medals';
+}
+if (!kind) { log('無法辨識飾品種類'); return; }
+
+
+    // 裝備欄保底初始化
+    P.equip = P.equip || { weapon:null, earrings:[null,null], rings:[null,null], cloak:null, armor:null, shoes:null, medals:[null,null,null,null,null] };
+
+    var copy = JSON.parse(JSON.stringify(o));
+    var back = null;
+
+    if (kind==='rings' || kind==='earrings' || kind==='medals'){
+      var cap = (kind==='medals') ? 5 : 2;
+      var arr = Array.isArray(P.equip[kind]) ? P.equip[kind] : (P.equip[kind] = new Array(cap).fill(null));
+
+      // 不允許同 ID 重複裝備
+      for (var t=0;t<arr.length;t++){ if(arr[t] && arr[t].id===copy.id){ log('不可重複裝備相同飾品'); return; } }
+
+      // 找空位；沒有就覆蓋第 1 格並回收被覆蓋者
+      var pos = -1; for (var j=0;j<arr.length;j++){ if(!arr[j]){ pos=j; break; } }
+      if (pos===-1){ back = arr[0]; arr[0] = copy; } else { arr[pos] = copy; }
     } else {
-      log('獲得經驗：' + expGain, 'ok');
+      back = P.equip[kind] || null;
+      P.equip[kind] = copy;
     }
 
+    // 從背包移除本件
+    list.splice(i,1);
 
-    // ★ 每升一級 +2 基礎屬性點（unspentPoints）
-    var leveled = 0;
-    while (P.exp.cur >= P.exp.max){
-      P.exp.cur = P.exp.cur - P.exp.max;
-      P.level = (P.level|0) + 1;
-      P.exp.max = Math.max(50, Math.round((P.exp.max||100) * 1.25));
-      leveled = leveled + 1;
-    }
-    if (leveled>0){
-      if (typeof P.unspentPoints!=='number') P.unspentPoints = 0;
-      P.unspentPoints = P.unspentPoints + (leveled * 2);
-      log('升到 ' + P.level + ' 級！獲得屬性點 +' + (leveled*2) + '（可到主城分配）','ok');
-      refreshLive();
-      renderHeader();
-      renderBars();
-      if(battle && !battle.over){
-        var newHpMax = P._live['氣血上限'] || P.hp.max;
-        var newMpMax = P._live['真元上限'] || P.mp.max;
-        battle.p.hpMax = newHpMax;
-        battle.p.mpMax = newMpMax;
-        P.hp.max = newHpMax;
-        P.mp.max = newMpMax;
-        updateBattleBars();
-      }
-      // ★ 關鍵：升級後立即同步到 Auth 快取（加強版）
-      if (window.Auth && Auth.setCharacter) {
-        try { 
-          var cleanData = JSON.parse(JSON.stringify(P));
-          delete cleanData._live;
-          Auth.setCharacter(cleanData); 
-          console.log('🎉 升級後同步成功 - 等級:', P.level, '經驗:', P.exp.cur + '/' + P.exp.max);
-        } catch(_e) {
-          console.error('❌ 升級後同步失敗:', _e);
-        }
-      }
+    // 將被頂替者回收回儲物袋（回到 ornaments）
+    if (back){
+      P.bag.ornaments = Array.isArray(P.bag.ornaments) ? P.bag.ornaments : [];
+      try { P.bag.ornaments.unshift(JSON.parse(JSON.stringify(back))); }
+      catch(_){ P.bag.ornaments.unshift(back); }
     }
 
-
-    renderHeader();
-    renderBars();
-    
-    // ★ 戰鬥結束後立即同步到 Auth 快取（加強版）
-    if (window.Auth && Auth.setCharacter) {
-      try { 
-        var cleanData = JSON.parse(JSON.stringify(P));
-        delete cleanData._live;
-        Auth.setCharacter(cleanData); 
-        console.log('⚔️ 戰鬥結束後同步成功 - 等級:', P.level, '氣血:', P.hp.cur + '/' + P.hp.max);
-      } catch(_e) {
-        console.error('❌ 戰鬥結束後同步失敗:', _e);
-      }
-    }
-    // ★ 修正：戰鬥結束存檔前先清理 _live
-    var tempLive = P._live;  // 暫存 _live
-    delete P._live;          // 移除 _live
-    try{ await savePlayer(); }catch(_){}
-    P._live = tempLive;      // 恢復 _live（供後續使用）
-
-
-    setTimeout(function(){ leaveBattle(); }, 1200);
-    }else if(battle.p.hp<=0){
-    log('你被擊倒了…（保留 1 點氣血）', 'warn');
-    battle.p.hp = 1;
-    if (P && P.hp) {
-      P.hp.cur = 1;
-      P.hp.max = battle.p.hpMax || P.hp.max;
-    }
-    renderBars();
-    
-    // ★ 戰鬥結束後立即同步到 Auth 快取（加強版）
-    if (window.Auth && Auth.setCharacter) {
-      try { 
-        var cleanData = JSON.parse(JSON.stringify(P));
-        delete cleanData._live;
-        Auth.setCharacter(cleanData); 
-        console.log('⚔️ 戰鬥結束後同步成功 - 等級:', P.level, '氣血:', P.hp.cur + '/' + P.hp.max);
-      } catch(_e) {
-        console.error('❌ 戰鬥結束後同步失敗:', _e);
-      }
-    }
-
-    // ★ 修正：戰鬥結束存檔前先清理 _live
-    var tempLive2 = P._live;  // 暫存 _live
-    delete P._live;           // 移除 _live
-    try{ await savePlayer(); }catch(_){}
-    P._live = tempLive2;      // 恢復 _live（供後續使用）
-
-
-    setTimeout(function(){ leaveBattle(); }, 1200);
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('ornament');
   }
-}
+
+  // === 材料：販賣 / 丟棄 ===
 
 
-function finishBattle(){
-  battle.over = true;
-  if(loop){ clearInterval(loop); loop=null; }
-  if(battle && Array.isArray(battle.dotTimers)){
-    for(var i=0;i<battle.dotTimers.length;i++){ try{ clearInterval(battle.dotTimers[i]); }catch(e){} }
-    battle.dotTimers.length = 0;
+  function bagSellMaterial(i){
+    const P = state.player; const it = P.bag.materials?.[i]; if(!it) return;
+    const def = ItemDB.getDef('materials', it.id);
+    const price = def?.price || 0;
+    const max = it.count || 0;
+    const qty = +prompt(`輸入販賣數量（1-${max}）`, String(max));
+    if (!qty || qty < 1 || qty > max) return;
+
+    P.currencies = P.currencies || { stone: 0, diamond: 0 };
+    P.currencies.stone += qty * price;
+
+    it.count -= qty;
+    if (it.count <= 0) P.bag.materials.splice(i, 1);
+
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('material');
   }
-  updateBattleBars(); updateCmdEnabled();
-  qs('#btnLeaveBattle').style.display='none';
-}
 
-function leaveBattle(){
-  qs('#battleSection').classList.remove('show');
-  qs('#btnLeaveBattle').style.display='none';
-  qs('#mapSection').style.display='grid';
-  battle=null;
-}
+  function bagThrowMaterial(i){
+    const P = state.player; const it = P.bag.materials?.[i]; if(!it) return;
+    const max = it.count || 0;
+    const qty = +prompt(`輸入丟棄數量（1-${max}）`, String(max));
+    if (!qty || qty < 1 || qty > max) return;
 
-/* ===== Log（同步寫入地圖＆戰鬥兩邊） ===== */
-function log(t, cls){
-  const targets = [ qs('#logMap'), qs('#logBattle') ].filter(Boolean);
-  for(const box of targets){
-    const el = document.createElement('div');
-    el.textContent = t;
-    if (cls) el.classList.add(cls);
-    box.appendChild(el);
-    // ★ 若行數過多，刪除最舊的，以免日誌過長
-    while(box.childElementCount > 60){ box.removeChild(box.firstChild); }
-    box.scrollTop = 1e9;
+    it.count -= qty;
+    if (it.count <= 0) P.bag.materials.splice(i, 1);
+
+    if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
+    render(P); renderBag('material');
   }
-}
+
+  function log(txt, cls=''){ const el=document.createElement('div'); el.className = `item ${cls}`; el.textContent = txt; const box=qs('#log'); if(!box) return; box.appendChild(el); box.scrollTop = box.scrollHeight; }
+  function sendChat(){ const inp = qs('#chatInput'); const msg = (inp?.value||'').trim(); if(!msg) return; log(`你：${msg}`,'ok'); inp.value=''; }
+
+  return {
+    start(player){
+    const defaults = {
+      level: 1,
+      attributes: { str:0, vit:0, dex:0, int:0, wis:0, luk:0 },
+      unspentPoints: 0,
+      medals: [],
+      equip: { weapon: null, earrings: [null,null], rings: [null,null], cloak: null, armor: null, shoes: null, medals: [null,null,null,null,null] },
+      sta: { cur: 100, max: 100 },
+      exp: { cur: 0,   max: 100 },
+      hp:  { cur: 0,   max: 0 },
+      currencies: { stone: 0, diamond: 0 },
+    };
 
 
-/* ===== 事件 ===== */
-qs('#btnBackHome').onclick = async function(){
-  try{ if (P) { await savePlayer(); } }catch(e){}
-  location.href = 'game.html';
-};
-
-/* ★ 新增：頁面離開/隱藏時也強制存檔，避免沒點到「回主城」導致沒存到 */
-addEventListener('pagehide', function(){
-  try { 
-    if (P && window.Auth && Auth.saveCharacter) { 
-      var cleanData = JSON.parse(JSON.stringify(P));
-      delete cleanData._live;
-      Auth.saveCharacter(cleanData); 
-    } 
-  } catch(_){}
-});
-addEventListener('visibilitychange', function(){
-  try { 
-    if (document.visibilityState === 'hidden' && P && window.Auth && Auth.saveCharacter) { 
-      var cleanData = JSON.parse(JSON.stringify(P));
-      delete cleanData._live;
-      Auth.saveCharacter(cleanData); 
-    } 
-  } catch(_){}
-});
+    const p = Object.assign({}, defaults, player || {});  // 玩家資料優先，避免蓋掉等級
 
 
-qs('#btnLogout').onclick = ()=>{ if(window.Auth && Auth.logout) Auth.logout(); location.href='index.html'; };
+      // ★ 關鍵：把玩家寫回 state，後面所有功能才能正常讀到
+      state.player = p;
 
-  qs('#btnEnter').onclick = ()=>{
-    if(!curSmall){ log('請先選擇副地圖。'); return; }
-    entered = true;
-    refreshLive();
-    setLocBadge();
-    updateActionPanel();
-    log('已進入當前區域，可以進行「探險 / 戰鬥」。','ok');
+      // ★計入裝備加成的上限（初始化用）
+      var base  = derivedFrom(p);
+      var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
+      var hpMax = (base['氣血上限'] || 0) + (bonus['氣血上限'] || 0);
+
+      // HP：若沒有就建立；若已有就只更新上限並夾在 0 ~ max 之間，不回滿
+      if (!p.hp) {
+        p.hp = { cur: hpMax, max: hpMax };
+      } else {
+        p.hp.max = hpMax;
+        var cur = (p.hp.cur ?? hpMax);
+        p.hp.cur = Math.max(0, Math.min(cur, hpMax));
+      }
+
+      // MP（真元）：同樣處理（計入裝備加成）
+      var mpMax = (base['真元上限'] || 0) + (bonus['真元上限'] || 0);
+      if (!p.mp) {
+        p.mp = { cur: mpMax, max: mpMax };
+      } else {
+        p.mp.max = mpMax;
+        var curM = (p.mp.cur ?? mpMax);
+        p.mp.cur = Math.max(0, Math.min(curM, mpMax));
+      }
+
+
+      // 體力：同理，不強制回滿；沒有才給預設
+      if (!p.sta) {
+        p.sta = { cur: 100, max: 100 };
+      } else {
+        p.sta.max = p.sta.max ?? 100;
+        const curSta = (p.sta.cur ?? p.sta.max);
+        p.sta.cur = Math.max(0, Math.min(curSta, p.sta.max));
+      }
+
+      // 經驗：保留原本 cur，若越界就夾回範圍；沒有就用預設
+      if (!p.exp) { p.exp = { cur:0, max:100 }; }
+      else {
+        p.exp.max = p.exp.max ?? 100;
+        p.exp.cur = Math.max(0, Math.min(p.exp.cur ?? 0, p.exp.max));
+      }
+
+
+      wire();
+      render(p);
+    },
+    getPlayer(){ return state.player; },
+    save(){ if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(state.player); },
+    recalc(){ render(state.player); renderDerived(); },
+    log(txt, cls=''){ log(txt, cls); }
   };
+})();
 
-  qs('#btnExplore').onclick = doExplore;
-  qs('#btnFight').onclick   = startBattle;
-// BOSS 直進戰鬥（安全取當前小地圖）
-qs('#btnBoss').onclick = function(){
-  // 找到目前的小地圖資料
-  var big = null, s = null, i, j;
-  for (i=0;i<MAPS.length;i++){
-    if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
-  }
-  if (big && big.small){
-    for (j=0;j<big.small.length;j++){
-      if (big.small[j].id === curSmall){ s = big.small[j]; break; }
-    }
-  }
-  var bossId = s && s.boss;
-  if (!bossId){ log('這區沒有 BOSS'); return; }
-  window.FORCE_MONSTER_ID = bossId; // 交給 startBattle 走既有流程
-  startBattle();
-};
-
-
-
-
-  qs('#actAttack').onclick = playerAttack;
-  qs('#actItem').onclick   = useItem;
-  qs('#actRun').onclick    = tryRun;
-
-  qs('#btnLeaveBattle').onclick = leaveBattle;
-
-
-/* ===== 啟動（以 API 為主，必要時用本地較新快取）===== */
-window.addEventListener('DOMContentLoaded', async function(){
-  // 1) 登入檢查
+// ===== 只保留這一段啟動流程（等雲端載入完再進主城）=====
+window.addEventListener('DOMContentLoaded', async () => {
+  // 先檢查是否已登入
   var user = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
-  if(!user){ location.href = 'index.html'; return; }
+  if(!user){ window.location.href = 'index.html'; return; }
 
-  // 2) 讀雲端角色
+  // 讀雲端角色
   var char = null;
   try{
     char = (window.Auth && Auth.loadCharacter) ? (await Auth.loadCharacter()) : null;
@@ -1864,54 +1831,38 @@ window.addEventListener('DOMContentLoaded', async function(){
     char = null;
   }
 
-  // 3) 若本地快取較新 → 優先用本地（避免剛在主城存檔尚未同步）
+  // 若本地快取較新，優先用快取（避免剛存檔未同步）
   var cached = (window.Auth && Auth.getCharacter) ? Auth.getCharacter() : null;
-  if (cached){
+  if (cached) {
     var useCached = false;
-    if (!char){ useCached = true; }
-    else{
-      var t1 = (cached && cached._updatedAt) ? cached._updatedAt : 0;
-      var t2 = (char   && char._updatedAt)   ? char._updatedAt   : 0;
-      if (t1 > t2){ useCached = true; }
+    if (!char) { useCached = true; }
+    else {
+      var t1 = cached && cached._updatedAt ? cached._updatedAt : 0;
+      var t2 = char && char._updatedAt ? char._updatedAt : 0;
+      if (t1 > t2) { useCached = true; }
     }
-    if (useCached){ char = cached; }
+    if (useCached) { char = cached; }
   }
 
-  if(!char){ location.href = 'index.html#create'; return; }
+  // 沒有角色 → 回登入頁的創角頁
+  if (!char){ window.location.href = 'index.html#create'; return; }
 
-  // 4) 以 API 為主：把資料寫入全域 P，地圖上所有顯示都讀 P
-  P = char;
-
-  // 5) 掛裝備模組（此時 P 已可用）
+  // 先掛上裝備模組（讓初始化就能正確拿到裝備加成）
   if (window.Equip && Equip.mount) {
     Equip.mount({
-      getPlayer: function(){ return P; },
-      save:      function(){ try{ if (window.Auth && Auth.saveCharacter && P){ var cleanData = JSON.parse(JSON.stringify(P)); delete cleanData._live; Auth.saveCharacter(cleanData); } }catch(_){ } },
-      recalc:    function(){ try{ renderHeader(); renderBars(); }catch(_){} },
-      log:       function(t){ try{ console.log(t); }catch(_){} }
+      getPlayer: function(){ return Game.getPlayer(); },
+      save:      function(){ return Game.save && Game.save(); },
+      recalc:    function(){ return Game.recalc && Game.recalc(); },
+      log:       function(t){ return Game.log ? Game.log(t) : console.log(t); }
     });
   }
 
-  // 6) 啟動後第一次渲染
-  console.log('🚀 頁面載入完成 - 角色狀態:', {
-    level: P.level,
-    exp: P.exp,
-    hp: P.hp,
-    sta: P.sta,
-    currencies: P.currencies
-  });
+  // 再啟動遊戲
+  if (window.Game && Game.start) { Game.start(char); }
+
   
-  renderHeader();
-  refreshLive();
-  renderBars();
-  buildMapUI();
-  setLocBadge();
-  updateActionPanel();
-
 });
-
-
-
 </script>
 </body>
 </html>
+

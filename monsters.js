@@ -25,6 +25,8 @@ slime_young:{
   stats:{ hp:92, mp:41, atk:10,  matk:2,  def:0,  mdef:0,  acc:60, eva:5, crit:3, aspd:1.00 },  // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
   extra:{ critDmg:50, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },         // 額外屬性：暴擊傷害/速度/回復魔力/回復生命/物理穿透/魔法穿透
   skills:[], // 無技能
+      // 額外經驗：+5；若玩家等級超過10等則不給（僅註記，不影響相容）
+  xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
   drops:[
     {type:'currency',  id:'stone',       name:'靈石',       min:6,  max:14, chance:1.00},      // 掉落貨幣：靈石，數量6-14，機率100%
     {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},      // 掉落素材：史萊姆凝膠，數量1，機率60%
@@ -41,6 +43,8 @@ slime_young:{
     stats:{ hp:98, mp:41, atk:12,  matk:2,  def:1,  mdef:1,  acc:61, eva:5, crit:3, aspd:1.00 },
     extra:{ critDmg:51, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },
     skills:[], // 無
+        // 額外經驗：+5；若玩家等級超過10等則不給（僅註記，不影響相容）
+    xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
       {type:'currency',  id:'stone',       name:'靈石',       min:10, max:15, chance:1.00},
       {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},
@@ -60,7 +64,7 @@ slime_young:{
       { id:'dash', name:'高速衝撞', elem:'none', kind:'physical', power:120, mp:6, desc:'造成120%無屬性物理傷害' }
     ],
     // 額外經驗：+5；若玩家等級超過10等則不給（僅註記，不影響相容）
-    xpBonus:{ extra:5, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
       {type:'currency',  id:'stone',       name:'靈石',       min:15, max:20, chance:1.00},
       {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},
@@ -91,9 +95,8 @@ slime_young:{
         }
       }
     ],
-    
     // 額外經驗 +5；若玩家等級 > 10 不給
-    xpBonus:{ extra:5, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
       {type:'currency',  id:'stone',     name:'靈石',   min:18, max:22, chance:1.00},
       {type:'material',  id:'charcoal',  name:'木炭',   min:1,  max:1,  chance:0.60},
@@ -122,7 +125,7 @@ slime_young:{
       }
     ],
     // 額外經驗 +7；若玩家等級 > 10 不給
-    xpBonus:{ extra:7, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
       {type:'currency',  id:'stone',     name:'靈石',   min:20, max:23, chance:1.00},
       {type:'material',  id:'fire_seed', name:'火種',   min:1,  max:1,  chance:0.60},
@@ -150,7 +153,7 @@ slime_young:{
       }
     ],
     // 額外經驗 +8；若玩家等級 > 10 不給
-    xpBonus:{ extra:8, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
       {type:'currency',  id:'stone',     name:'靈石',   min:25, max:28, chance:1.00},
       {type:'material',  id:'fire_seed', name:'火種',   min:1,  max:2,  chance:0.60},
@@ -242,17 +245,6 @@ slime_young:{
     ]
   },
 
-  // 金：高命中・中高防禦
-  Fire_Spirit:{
-    id:'Fire_Spirit', name:'火之靈', level:2, element:'fire',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756962118/%E7%81%AB%E4%B9%8B%E9%9D%88_fzypz6.png', imgMirror:false,
-    scales:{ '物理防禦':1.10, '命中率':1.10, '行動條速度':0.95 },
-    stats:{ hp:165, mp:24, atk:15, matk:8, def:16, mdef:10, acc:88, eva:4, crit:4, aspd:1.05 },
-    drops:[
-      {type:'currency', id:'stone', name:'靈石', min:9, max:18, chance:1.00},
-      {type:'material', id:'hard_rock', name:'堅石', min:1, max:2, chance:0.55},
-    ]
-  },
 
   // 火：DoT 法師型
   ember_imp:{
@@ -430,41 +422,6 @@ slime_young:{
     scales:{}, stats:{ hp:1008, mp:45, atk:32, matk:11, def:57, mdef:32, acc:88, eva:3, crit:2, aspd:0.74 }, drops:[]
   },
 };
-/* === 裝備掉落補丁（集中放在這裡，方便之後調整） === */
-if (DB.slime_king) DB.slime_king.drops.push(
-  {type:'ornament', id:'ring_green',   name:'翠玉戒指', min:1, max:1, chance:0.15}
-);
-if (DB.snow_wolf) DB.snow_wolf.drops.push(
-  {type:'ornament', id:'ear_wolf',     name:'狼嚎耳飾', min:1, max:1, chance:0.14}
-);
-if (DB.shadow_bat) DB.shadow_bat.drops.push(
-  {type:'ornament', id:'cloak_shadow', name:'影帛披風', min:1, max:1, chance:0.10}
-);
-if (DB.stone_golem) DB.stone_golem.drops.push(
-  {type:'ornament', id:'armor_rock',   name:'岩甲',     min:1, max:1, chance:0.12}
-);
-if (DB.ice_bear) DB.ice_bear.drops.push(
-  {type:'ornament', id:'shoes_fur',    name:'熊皮靴',   min:1, max:1, chance:0.16}
-);
-if (DB.thunder_beetle) DB.thunder_beetle.drops.push(
-  {type:'ornament', id:'ring_thunder', name:'雷角戒',   min:1, max:1, chance:0.12}
-);
-if (DB.wraith) DB.wraith.drops.push(
-  {type:'ornament', id:'ring_midnight',name:'子夜之環', min:1, max:1, chance:0.10}
-);
-
-/* BOSS / 特殊掉落（示範：勳章 or 武器） */
-if (DB.slime_boss) DB.slime_boss.drops.push(
-  {type:'medal', id:'medal_slime_crown', name:'萊姆之冠', min:1, max:1, chance:0.25}
-);
-if (DB.wraith_boss) DB.wraith_boss.drops && DB.wraith_boss.drops.push(
-  {type:'medal', id:'medal_wraith', name:'幽王勳章', min:1, max:1, chance:0.22}
-);
-if (DB.stone_golem && !DB.stone_golem_boss && DB.thunder_beetle){
-  // 非必要：也可以讓部分普通怪偶爾掉落新武器
-  DB.thunder_beetle.drops.push({type:'weapon', id:'iron_sword1',  name:'打鐵長劍', min:1, max:1, chance:0.08});
-}
-
 
 
 // === 正規化（把缺的能力補齊，特別是 acc / eva / crit / aspd）===
@@ -580,11 +537,12 @@ function applyDrops(player, drops){
       if(window.ItemDB && ItemDB.addMedalToBag)     ItemDB.addMedalToBag(player.bag, d.id, qty);
     }
   }
-  if(window.Auth && Auth.saveCharacter) Auth.saveCharacter(player);
+  if(window.Auth && Auth.saveCharacter) {
+    var cleanData = JSON.parse(JSON.stringify(player));
+    delete cleanData._live;
+    Auth.saveCharacter(cleanData);
+  }
 }
-
-
-
 
   function getImage(id){
     var m = get(id);
@@ -667,11 +625,11 @@ function mappedFromStats(mon){
 
 
 
-/* === 怪物 Rank 與經驗規則（供 map.html 使用）=== */
+/* === 怪物 Rank 與 expFor(mon) 規則（供 map.html 使用）=== */
   var EXP_RULE = {
-    normal: function(lvl){ return Math.round(8 + lvl*4); },        // 基礎
-    elite:  function(lvl){ return Math.round((8 + lvl*4) * 1.8); },// 菁英倍率
-    boss:   function(lvl){ return Math.round((8 + lvl*4) * 4.0); } // BOSS 倍率
+    normal: function(lvl){ return Math.round(10 + lvl*4); },        // 基礎
+    elite:  function(lvl){ return Math.round((10 + lvl*4) * 1.8); },// 菁英倍率
+    boss:   function(lvl){ return Math.round((10 + lvl*4) * 4.0); } // BOSS 倍率
   };
 
 /* === 活動：全局經驗倍率（預設 1.0，可動態調整）=== */
@@ -694,8 +652,7 @@ function mappedFromStats(mon){
     return 'normal';
   }
 
-  // 可吃 id 或整個 monster 物件
-function expFor(mon){
+function expFor(mon, playerLevel){
     var m = (typeof mon==='string') ? get(mon) : mon;
     var mul = (typeof EXP_EVENT_MUL==='number' && EXP_EVENT_MUL>0) ? EXP_EVENT_MUL : 1;
 
@@ -706,8 +663,22 @@ function expFor(mon){
     var lvl = m.level || 1;
     var fn = EXP_RULE[r] || EXP_RULE.normal;
     var base = fn(lvl);
-    return Math.round(base * mul);
+
+    // 套用每隻怪的額外經驗（若有設定）
+    var bonus = 0;
+    var xpb = (m && m.xpBonus) ? m.xpBonus : null;
+    var pLvl = (typeof playerLevel==='number') ? playerLevel : null;
+    if (xpb && typeof xpb.extra==='number'){
+      // 未設定 cutoffLevel → 一律給；有設定 → 玩家等級未超過才給
+      if (!xpb.cutoffLevel || (pLvl === null) || (pLvl <= xpb.cutoffLevel)){
+        bonus = Math.max(0, Math.round(xpb.extra));
+      }
+    }
+
+    return Math.round((base + bonus) * mul);
   }
+
+
 
 
   window.MonsterDB = {

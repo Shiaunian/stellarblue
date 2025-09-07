@@ -149,7 +149,7 @@
       // 名稱欄位：頭像 + 名稱（可點擊開啟對方資訊）
       var nameCell =
         '<div style="display:flex; align-items:center; gap:8px; min-width:0;">' +
-          '<img src="'+ avatar +'" alt="avatar" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.2)">' +
+          '<img src="'+ avatar +'" alt="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.2)">' +
           '<button class="rank-prof" data-view-profile="'+ (r.username || '') +'" '+
                   'style="all:unset;cursor:pointer;color:#eaf2ff;font-weight:700;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
             + (r.name || '(未命名)') +

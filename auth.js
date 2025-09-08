@@ -136,6 +136,7 @@ async createCharacter(name, element='none', gender='M', avatarOverride=''){
   var isAdmin = (u && u.username === '0017');
   if (isAdmin) {
     try {
+  
       // 額外外觀
       character.bag.appearances.push({ id: 'skin_qing_m', count: 1 });
       character.bag.appearances.push({ id: 'skin_qing_f', count: 1 });

@@ -119,7 +119,7 @@
 
 function onClick(e){
   const closeBtn = e.target.closest('[data-eq-close]'); if (closeBtn){ close(); return; }
-  const slot = e.target.closest('.eq-slot, .eq-hole'); if(!slot) return;
+  const slot = e.target.closest('.eq-slot, .eq-hole, .eq-char'); if(!slot) return;
 
   const P = api.getPlayer && api.getPlayer(); if(!P) return;
   const part = slot.dataset.part; const idx = +slot.dataset.idx || 0;
@@ -133,19 +133,41 @@ function onClick(e){
       try { P.bag.weapons.unshift(JSON.parse(JSON.stringify(obj))); }
       catch(_) { P.bag.weapons.unshift(obj); }
     } else if (kind === 'orn') {
-      // 先歸到 ornaments（耳環/戒指/披風/衣服/鞋子）— 之後若你有更細類別可再拆
       P.bag.ornaments = Array.isArray(P.bag.ornaments) ? P.bag.ornaments : [];
       try { P.bag.ornaments.unshift(JSON.parse(JSON.stringify(obj))); }
       catch(_) { P.bag.ornaments.unshift(obj); }
     } else if (kind === 'medal') {
-      // 先暫放 hidden，未來若有專屬勳章袋可再改
       P.bag.hidden = Array.isArray(P.bag.hidden) ? P.bag.hidden : [];
       try { P.bag.hidden.unshift(JSON.parse(JSON.stringify(obj))); }
       catch(_) { P.bag.hidden.unshift(obj); }
+    } else if (kind === 'appearance') {
+      P.bag.appearances = Array.isArray(P.bag.appearances) ? P.bag.appearances : [];
+      const id = obj && obj.id;
+      if (!id) return;
+      // 找同 id，加一；沒有就新增 {id, count:1}
+      var found = false;
+      for (var i=0;i<P.bag.appearances.length;i++){
+        var it = P.bag.appearances[i];
+        if (it && it.id === id){
+          it.count = (it.count||0) + 1;
+          found = true;
+          break;
+        }
+      }
+      if (!found){
+        P.bag.appearances.unshift({ id:id, count:1 });
+      }
+      // 清理：移除所有 count<=0 的項目（確保 0 代表沒有）
+      for (var j=P.bag.appearances.length-1;j>=0;j--){
+        if (!P.bag.appearances[j] || (P.bag.appearances[j].count||0)<=0){
+          P.bag.appearances.splice(j,1);
+        }
+      }
     }
+
   };
 
-  // 點擊 = 卸下（改為：先回袋，再清空欄位）
+  // 點擊 = 卸下
   if (part === 'weapon') {
     if (P.equip?.weapon) {
       backToBag('weapon', P.equip.weapon);
@@ -170,6 +192,15 @@ function onClick(e){
       api.log('已卸下 → 回到儲物袋');
     }
   }
+  // ★ 新增：角色外觀（character）— 卸下時回收至外觀背包
+  else if (part === 'character') {
+    const cur = P.equip && P.equip.character;
+    if (cur){
+      backToBag('appearance', cur);
+      P.equip.character = null;
+      api.log('已卸下角色外觀 → 回到外觀背包');
+    }
+  }
   else if (part === 'medals') {
     const arr = P.equip?.medals || [];
     const cur = arr[idx];
@@ -182,6 +213,7 @@ function onClick(e){
 
   api.save(); render(); api.recalc();
 }
+
 
 
   function render(){
@@ -218,7 +250,7 @@ function onClick(e){
     charDiv.dataset.part = 'character';
     charDiv.innerHTML = P.equip?.character?.icon
       ? `<img src="${P.equip.character.icon}" alt="角色外觀">`
-      : '<span>角色</span>';
+      : '<span>外觀</span>';
     grid.appendChild(charDiv);
 
     // 原本的裝備欄位

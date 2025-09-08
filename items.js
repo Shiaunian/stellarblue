@@ -68,19 +68,19 @@
     // 外觀不可強化，可堆疊；裝備位僅 1 格，會直接替換舊外觀
     appearances: [
       { id: "skin_qing_m", name: "清流男俠客", rarity: "精", level: 1,
-        effect: { hp: 20, mdef: 2, 閃避: 1, 行動速度: 1, '法術攻擊': 2 },
+        effect: { hp: 20, mdef: 2, eva: 1, aspd: 1, 'matk': 2 },
         price: 800, stackable: true,
         icon: "https://i.ibb.co/2cZzXXXX/qing-m.png",
         desc: "出身清流門的男俠客，劍眉星目、氣定神閒。身法靈巧，氣脈流轉。"
       },
       { id: "skin_qing_f", name: "清流女俠客", rarity: "精", level: 1,
-        effect: { hp: 20, mdef: 2, 閃避: 1, 行動速度: 1, '法術攻擊': 2 },
+        effect: { hp: 20, mdef: 2, eva: 1, aspd: 1, 'matk': 2 },
         price: 800, stackable: true,
         icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757258391/%E6%B8%85%E6%B5%81%E5%A5%B3%E4%BF%A0%E5%AE%A2_hufn0b.png",
         desc: "清流門女俠客，眉目如畫、劍膽琴心。真元溫潤，動如行雲。"
       },
       { id: "skin_raiming", name: "雷鳴清", rarity: "稀", level: 3,
-        effect: { hp: 30, def: 2, 行動速度: 3, 閃避: 3 },
+        effect: { hp: 30, def: 2, aspd: 3, eva: 3 },
         grantSkills: ["thunder_palm", "thunder_drop"],  // 裝備外觀後賦予技能
         price: 1600, stackable: true,
         icon: "https://i.ibb.co/7tZZXXXX/raiming.png",

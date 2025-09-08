@@ -25,7 +25,7 @@
                 '<th style="text-align:center;font-size:12px;">性別</th>'+
                 '<th style="text-align:center;font-size:12px;">元素</th>'+
                 '<th style="text-align:center;font-size:12px;">等級</th>'+
-                '<th style="text-align:center;font-size:12px;">戰力</th>'+
+                '<th style="text-align:center;font-size:12px;min-width:96px;">戰力</th>'+
               '</tr></thead>'+
               '<tbody><tr><td colspan="6" style="padding:10px;opacity:.8;">尚無資料</td></tr></tbody>'+
             '</table>'+
@@ -157,23 +157,24 @@ function normalizePlayer(username, data){
 
       // 名稱欄位：頭像 + 名稱（可點擊開啟對方資訊）
       var nameCell =
-        '<div style="display:flex; align-items:center; gap:8px; min-width:0;">' +
+        '<div style="display:flex; align-items:center; justify-content:center; gap:8px; min-width:0;">' +
           '<img src="'+ avatar +'" alt="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.2)">' +
           '<button class="rank-prof" data-view-profile="'+ (r.username || '') +'" '+
-                  'style="all:unset;cursor:pointer;color:#eaf2ff;font-weight:700;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
+                  'style="all:unset;cursor:pointer;color:#eaf2ff;font-weight:700;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
             + (r.name || '(未命名)') +
           '</button>' +
         '</div>';
 
-      var genderSymbol = (r.gender === 'F') ? '♀' : '♂';
+      // 性別以「男 / 女」顯示
+      var genderText = (r.gender === 'F') ? '女' : '男';
 
       tr.innerHTML =
         '<td style="padding:6px 8px; white-space:nowrap; text-align:center; font-size:11px;">'+ (i+1) +'</td>'+
-        '<td style="padding:6px 8px; max-width:180px;">'+ nameCell +'</td>'+
-        '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ genderSymbol +'</td>'+
+        '<td style="padding:6px 8px; max-width:180px; text-align:center;">'+ nameCell +'</td>'+
+        '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ genderText +'</td>'+
         '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ elemText +'</td>'+
         '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ fmt(r.level) +'</td>'+
-        '<td style="padding:6px 8px; font-weight:600; text-align:center; font-size:11px;">'+ fmt(r.power) +'</td>';
+        '<td style="padding:6px 8px; font-weight:600; text-align:center; font-size:11px; min-width:96px; white-space:nowrap;">'+ fmt(r.power) +'</td>';
 
       tbody.appendChild(tr);
       i = i + 1;

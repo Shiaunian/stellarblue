@@ -515,15 +515,13 @@
     window.DB = firebase.database();
   })();
 </script>
-
-<!-- 資料庫/帳號 -->
 <!-- 資料庫/帳號 -->
 <script src="stats.js"></script>
 <script src="items.js"></script>
+<script src="skills.js"></script>
 <script src="monsters.js"></script>
 <script src="equip.js"></script><!-- ★新增：裝備模組，確保 getBonuses 一致 -->
 <script src="auth.js"></script>
-
 
 
 <script>
@@ -537,33 +535,112 @@ const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const pct=(cur,max)=> (max>0? clamp(Math.round(cur/max*100),0,100) : 0);
 const fmt=(n)=> new Intl.NumberFormat('zh-Hant').format(n);
 
-/* ===== 元素＆相剋表 ===== */
+/* ===== 元素＆相剋表（18屬性版） ===== */
 const ELEMENT_LABEL = {
-  none:'無', gold:'金', wood:'木', water:'水', fire:'火', earth:'土', spirit:'靈', dark:'暗'
+  none:'無', fire:'火', water:'水', grass:'草',
+  thunder:'雷', body:'體', poison:'毒', earth:'土',
+  wind:'風', mind:'超', bug:'蟲', rock:'岩',
+  soul:'魂', ice:'冰', dragon:'龍', dark:'暗',
+  steel:'鋼', demon:'妖'
 };
 
-// 1) 相剋倍率（v1：五行相剋＋暗/靈互克；強 1.25×、弱 0.75×、其餘 1.00）
-
-window.ELEM_MUL = {
-  none:  { none:1, gold:1,   wood:1,    water:1,    fire:1,    earth:1,   spirit:1,   dark:1 },
-  gold:  { none:1, gold:1,   wood:1.25, water:1,    fire:0.75, earth:1,   spirit:1,   dark:1 },
-  wood:  { none:1, gold:0.75,wood:1,    water:1,    fire:0.75, earth:1.25,spirit:1,   dark:1 },
-  water: { none:1, gold:1,   wood:1,    water:1,    fire:1.25, earth:0.75,spirit:1,   dark:1 },
-  fire:  { none:1, gold:1.25,wood:1.25, water:0.75, fire:1,    earth:1,   spirit:1,   dark:1 },
-  earth: { none:1, gold:1,   wood:0.75, water:1.25, fire:1,    earth:1,   spirit:1,   dark:1 },
-  spirit:{ none:1, gold:1,   wood:1,    water:1,    fire:1,    earth:1,   spirit:1,   dark:1.25 },
-  dark:  { none:1, gold:1,   wood:1,    water:1,    fire:1,    earth:1,   spirit:1.25,dark:1 },
+// 攻擊方「剋制」與「被剋制」清單
+window.ELEM_STRONG = {
+  none: [],
+  fire:    ['grass','ice','bug','steel'],
+  water:   ['fire','earth','rock'],
+  grass:   ['water','earth','rock'],
+  thunder: ['wind','water'],
+  body:    ['dark','ice','rock','steel','none'],
+  poison:  ['grass','demon'],
+  earth:   ['fire','thunder','poison','rock','steel'],
+  wind:    ['grass','body','bug'],
+  mind:    ['body','poison'],
+  bug:     ['mind','grass','dark'],
+  rock:    ['fire','ice','bug','wind'],
+  soul:    ['soul','mind'],
+  ice:     ['dragon','wind','grass','earth'],
+  dragon:  ['dragon'],
+  dark:    ['soul','mind'],
+  steel:   ['demon','rock','ice'],
+  demon:   ['dark','dragon','body']
+};
+window.ELEM_WEAK = {
+  none:    ['body'], // 無元素被體剋
+  fire:    ['water','earth','rock'],
+  water:   ['thunder','grass'],
+  grass:   ['fire','ice','poison','wind','bug'],
+  thunder: ['earth'],
+  body:    ['wind','mind','demon'],
+  poison:  ['earth','mind'],
+  earth:   ['water','grass','ice'],
+  wind:    ['thunder','ice','rock'],
+  mind:    ['bug','soul','dark'],
+  bug:     ['fire','wind','rock'],
+  rock:    ['water','grass','body','earth','steel'],
+  soul:    ['soul','dark'],
+  ice:     ['fire','body','rock','steel'],
+  dragon:  ['ice','dragon','demon'],
+  dark:    ['body','bug','demon'],
+  steel:   ['火'.replace('火','fire'),'body','earth'], // 註：等價 fire/body/earth
+  demon:   ['poison','steel']
 };
 
+// 倍率常數（可微調）
+window.ELEM_MUL_STRONG = 1.5;
+window.ELEM_MUL_WEAK   = 0.5;
+window.ELEM_MUL_NEUT   = 1.0;
+window.ELEM_MUL_DOUBLE_STRONG = 2.0;
 
-// 2) 同屬性加成（Same-Type Attack Bonus）：攻擊者元素==攻擊元素 → +10%
-window.STAB = 1.00;
+// 本源加成（同屬性 / 異屬性）；無元素不受影響
+window.STAB_SAME = 1.15;  // 同屬性略增
+window.STAB_DIFF = 0.95;  // 異屬性略減
+// 舊版相容
+window.STAB = window.STAB_SAME;
 
-// 3) 取倍率工具
-function elemMult(dmgElem='none', defElem='none'){
-  const row = (window.ELEM_MUL||{})[dmgElem]||{};
-  return row[defElem] ?? 1;
+// 計算相剋倍率；defElems 可為字串或陣列
+window.getElemMultiplier = function(atkElem, defElems){
+  if (!atkElem || atkElem==='none') return 1.0; // 無元素攻擊一律中性
+
+  var defs = Array.isArray(defElems) ? defElems.slice(0) : [defElems];
+  var cleaned = [];
+  for (var i=0;i<defs.length;i++){ if(defs[i] && defs[i]!=='none') cleaned.push(defs[i]); }
+  if (cleaned.length===0) return 1.0;
+
+  var strong = window.ELEM_STRONG[atkElem] || [];
+  var weak   = window.ELEM_WEAK[atkElem]   || [];
+
+  var s=0,w=0,i=0;
+  for(i=0;i<cleaned.length;i++){
+    var d = cleaned[i];
+    var j=0,hitS=false,hitW=false;
+    for(j=0;j<strong.length;j++){ if(strong[j]===d){ hitS=true; break; } }
+    for(j=0;j<weak.length;j++){ if(weak[j]===d){ hitW=true; break; } }
+    if (hitS) s=s+1;
+    if (hitW) w=w+1;
+  }
+
+  if (s>=2) return window.ELEM_MUL_DOUBLE_STRONG; // 兩個都被剋制
+  if (s>=1 && w>=1) return window.ELEM_MUL_NEUT;  // 一剋一抵
+  if (s>=1) return window.ELEM_MUL_STRONG;        // 一剋一無關
+  if (w>=1) return window.ELEM_MUL_WEAK;
+  return window.ELEM_MUL_NEUT;
+};
+
+// 舊函式相容：單/雙防禦元素都可
+function elemMult(atkElem, defElemOrElems){
+  return window.getElemMultiplier(atkElem, defElemOrElems);
 }
+
+// 顯示相剋說明（摘要）
+function elemRelationText(atk){
+  var strong = window.ELEM_STRONG[atk] || [];
+  var weak   = window.ELEM_WEAK[atk]   || [];
+  var s = strong.map(function(k){ return ELEMENT_LABEL[k]||k; }).join('、');
+  var w = weak.map(function(k){ return ELEMENT_LABEL[k]||k; }).join('、');
+  return '攻克：' + (s||'無') + '；弱於：' + (w||'無');
+}
+
 // 將元素對應關係轉成易讀的片語（固定顯示，×1.00 也會寫出來）
 function elemRelationText(atkElem, defElem, elemMul, stabMul){
   // 只有克制/受克才顯示；相同或中性不顯示
@@ -1145,12 +1222,15 @@ battle = {
 
   log('元素資訊｜你：' + getElemLabel(pElem) + '　敵人：' + getElemLabel(eElem));
 
-  var pSrc = (P && P.avatar && typeof P.avatar==='string' && P.avatar.trim()) ? P.avatar : PLAYER_IMG_URL;
+  var pImg = qs('#pImg'); var eImg = qs('#eImg');
+  // 優先使用外觀圖示，沒有外觀時才回退到頭像/預設
+  var pSrc = (P && P.equip && P.equip.character && P.equip.character.icon && String(P.equip.character.icon).trim())
+    ? P.equip.character.icon
+    : ((P && P.avatar && typeof P.avatar==='string' && P.avatar.trim()) ? P.avatar : PLAYER_IMG_URL);
   var pic = (window.MonsterDB && MonsterDB.getImage) ? MonsterDB.getImage(enemy.id) : {url:'',mirror:false};
-  var pImg = qs('#pImg'); 
-  var eImg = qs('#eImg');
 
   if (pImg) { pImg.src = pSrc; }
+
 
   if (eImg){
     // ★ 開戰先完整重置敵人立繪狀態（避免上一場的 0 透明度/動畫殘留）
@@ -1844,11 +1924,192 @@ qs('#btnBoss').onclick = function(){
 
 
   qs('#actAttack').onclick = playerAttack;
+  qs('#actSkill').onclick  = openSkillMenu; // ★新增：打開技能選單
   qs('#actItem').onclick   = useItem;
   qs('#actRun').onclick    = tryRun;
 
   qs('#btnLeaveBattle').onclick = leaveBattle;
 
+  // ====== 技能選單（動態建立覆蓋層）======
+  function openSkillMenu(){
+    if(!battle || battle.over){ return; }
+    if(!(battle.p && battle.p.atb >= 100)){ log('尚未輪到你行動'); return; }
+
+    var skills = (P && Array.isArray(P.skills)) ? P.skills : [];
+    // 建立覆蓋層（沿用 useItem 的簡易樣式風格）
+    var menu = document.createElement('div');
+    menu.style.position='fixed';
+    menu.style.left='0'; menu.style.top='0';
+    menu.style.right='0'; menu.style.bottom='0';
+    menu.style.zIndex='9999';
+
+    var mask = document.createElement('div');
+    mask.style.position='absolute'; mask.style.left='0'; mask.style.top='0';
+    mask.style.right='0'; mask.style.bottom='0'; mask.style.background='rgba(0,0,0,0.4)';
+    menu.appendChild(mask);
+
+    var sheet = document.createElement('div');
+    sheet.style.position='absolute';
+    sheet.style.left='50%'; sheet.style.top='50%';
+    sheet.style.transform='translate(-50%,-50%)';
+    sheet.style.width='min(680px, 92vw)';
+    sheet.style.maxHeight='70vh';
+    sheet.style.overflow='auto';
+    sheet.style.background='#111';
+    sheet.style.border='1px solid #333';
+    sheet.style.borderRadius='10px';
+    sheet.style.boxShadow='0 10px 30px rgba(0,0,0,0.5)';
+    sheet.style.padding='8px 10px';
+    menu.appendChild(sheet);
+
+    var title = document.createElement('div');
+    title.textContent='選擇技能';
+    title.style.fontWeight='bold';
+    title.style.fontSize='18px';
+    title.style.padding='6px 2px 10px';
+    sheet.appendChild(title);
+
+    var box = document.createElement('div');
+    sheet.appendChild(box);
+
+    if(!skills.length){
+      var row = document.createElement('div');
+      row.textContent='尚未學會任何技能';
+      row.style.textAlign='center'; row.style.padding='16px';
+      box.appendChild(row);
+    }else{
+      for(var i=0;i<skills.length;i++){
+        var sid = skills[i];
+        var sk  = (window.SkillDB && SkillDB.get) ? SkillDB.get(sid) : null;
+        if(!sk) continue;
+
+        var row = document.createElement('div');
+        row.style.display='grid';
+        row.style.gridTemplateColumns='60px 1fr 90px';
+        row.style.gridGap='10px';
+        row.style.alignItems='center';
+        row.style.padding='8px';
+        row.style.border='1px solid #222';
+        row.style.borderRadius='8px';
+        row.style.margin='6px 0';
+        row.style.background='#0b0b0b';
+
+        // 圖示
+        var ico = document.createElement('div');
+        ico.style.width='60px'; ico.style.height='60px';
+        ico.style.borderRadius='8px'; ico.style.background='#1a1a1a';
+        ico.style.display='flex'; ico.style.alignItems='center'; ico.style.justifyContent='center';
+        if(sk.icon){
+          var im = document.createElement('img'); im.src=sk.icon; im.alt=sk.name||sid;
+          im.style.maxWidth='60px'; im.style.maxHeight='60px';
+          ico.appendChild(im);
+        }else{
+          ico.textContent='技';
+        }
+        row.appendChild(ico);
+
+        // 文字
+        var main = document.createElement('div');
+        var nm = document.createElement('div');
+        nm.textContent = (sk.name||sid);
+        nm.style.fontWeight='bold'; nm.style.fontSize='16px';
+        main.appendChild(nm);
+
+        var sub = document.createElement('div');
+        var elemText = (window.ELEMENT_LABEL && sk.elem) ? (ELEMENT_LABEL[sk.elem] || sk.elem) : '';
+        var desc = (sk.desc || '') + (elemText ? ('　[屬性：' + elemText + ']') : '');
+        sub.textContent = desc;
+        sub.style.opacity='0.85';
+        sub.style.fontSize='13px';
+        sub.style.marginTop='4px';
+        main.appendChild(sub);
+        row.appendChild(main);
+
+        // 操作
+        var ops = document.createElement('div');
+        var btn = document.createElement('button');
+        btn.textContent='施 放（MP ' + (sk.mp||0) + '）';
+        btn.className='btn primary';
+        btn.style.width='100%';
+        btn.setAttribute('data-skill', sid);
+        ops.appendChild(btn);
+        row.appendChild(ops);
+
+        box.appendChild(row);
+      }
+    }
+
+    // 點空白或右上角關閉
+    mask.addEventListener('click', function(){ try{ document.body.removeChild(menu); }catch(_){ } });
+
+    // 點「施放」
+    sheet.addEventListener('click', function(e){
+      var t = e.target || e.srcElement;
+      var b = null;
+      while(t && t !== sheet){
+        if(t.getAttribute && t.getAttribute('data-skill')){ b=t; break; }
+        t = t.parentNode;
+      }
+      if(!b) return;
+      var sid = b.getAttribute('data-skill');
+      var ok  = useSkill(sid);
+      if(ok){ try{ document.body.removeChild(menu); }catch(_){ } }
+    });
+
+    document.body.appendChild(menu);
+  }
+
+  // ====== 施放技能（扣 MP、計算傷害、進入敵方回合）======
+  function useSkill(sid){
+    if(!battle || battle.over) return false;
+    if(!(battle.p && battle.p.atb >= 100)){ log('尚未輪到你行動'); return false; }
+
+    var sk  = (window.SkillDB && SkillDB.get) ? SkillDB.get(sid) : null;
+    if(!sk){ log('未知技能：' + sid, 'warn'); return false; }
+
+    var need = sk.mp || 0;
+    var curMp = (P && typeof P.mp === 'number') ? P.mp : 0;
+    if(curMp < need){ log('真元不足（需要 ' + need + '）','warn'); return false; }
+
+    // 扣 MP（同步到戰鬥狀態）
+    P.mp = curMp - need; if(P.mp < 0) P.mp = 0;
+    if(battle.p){ battle.p.mp = P.mp; }
+
+    // 傷害計算（由 skills.js 提供）
+    var r = (window.SkillDB && SkillDB.calcDamage) ? SkillDB.calcDamage(P, battle.enemy, sid) : null;
+    var dmg = 0, isCrit=false;
+    if(r){
+      dmg = Math.max(1, Math.floor(r.dmg || r.damage || 0));
+      isCrit = !!r.isCrit;
+    }
+
+    // 造成傷害
+    battle.e.hp = Math.max(0, (battle.e.hp|0) - dmg);
+
+    // 日誌
+    var name = sk.name || sid;
+    log('你施放【' + name + '】對 ' + (battle.e.name||'敵人') + ' 造成 ' + dmg + ' 點傷害' + (isCrit ? '（暴擊）' : '') + '。');
+
+    // ★雷落額外效果：玩家本身是雷（spirit）時，回復 20 HP
+    if(sid === 'thunder_drop' && P && P.element === 'spirit'){
+      var heal = 20;
+      var maxHp = (battle.p && battle.p.hpMax) ? battle.p.hpMax : ((P.hp && P.hp.max) ? P.hp.max : 0);
+      var curHp = (battle.p && typeof battle.p.hp === 'number') ? battle.p.hp : ((P.hp && P.hp.cur) ? P.hp.cur : 0);
+      curHp = Math.min(maxHp, curHp + heal);
+      if(battle.p) battle.p.hp = curHp;
+      if(P && P.hp){ P.hp.cur = curHp; P.hp.max = maxHp; }
+      log('雷落追加效果：你回復 ' + heal + ' 點氣血。','ok');
+    }
+
+    // 重置我方 ATB，輪到敵方
+    battle.p.atb = 0;
+    updateBattleBars();
+    // 勝敗檢查
+    if(battle.e.hp <= 0){ endCheck(); return true; }
+
+    setTimeout(function(){ enemyTurn(); }, 400);
+    return true;
+  }
 
 /* ===== 啟動（以 API 為主，必要時用本地較新快取）===== */
 window.addEventListener('DOMContentLoaded', async function(){

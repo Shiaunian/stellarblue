@@ -41,7 +41,20 @@
           chanceBase:0.10, vsHigher5:0.05, vsFire:0.00, vsGrass:0.15
         }
       }
+    },
+
+    // === 新增：雷系（暫以 spirit 代表雷元素） ===
+    thunder_palm: {
+      id:'thunder_palm', name:'雷電掌', elem:'spirit',
+      power:120, mp:12,
+      desc:'對敵方造成「雷元素」120%物理傷害（暫以靈元素計）'
+    },
+    thunder_drop: {
+      id:'thunder_drop', name:'雷落', elem:'spirit',
+      power:140, mp:22,
+      desc:'對敵方造成「雷元素」140%物理傷害（暫以靈元素計）；若施放者自身亦為雷系，另行回復20點氣血（引擎支援後生效）'
     }
+
   };
 
 
@@ -67,18 +80,25 @@
     var DEF  = useMatk ? safe(dD,'法術防禦',8)   : safe(dD,'物理防禦',8);
     var PEN  = useMatk ? safe(aD,'法穿',0)       : safe(aD,'破甲',0);
 
-    // 3) 相剋倍率（若 map.html 沒掛，回退 1.0）
+    // 3) 相剋倍率（支援雙元素防禦；若 map.html 未掛 getElemMultiplier，退回舊表/1.0）
     var atkElem = (sk && sk.elem) ? sk.elem : 'none';
-    var defElem = (defender && defender.element) ? defender.element : 'none';
-    var MULS = (window.ELEM_MUL && window.ELEM_MUL[atkElem]) ? window.ELEM_MUL[atkElem] : null;
-    var elemMul = MULS ? (MULS[defElem]||1.0) : 1.0;
+    var defElems = (defender && defender.element) ? defender.element : 'none';
+    var elemMul = 1.0;
+    if (typeof window.getElemMultiplier === 'function'){
+      elemMul = window.getElemMultiplier(atkElem, defElems);
+    }else{
+      var MULS = (window.ELEM_MUL && window.ELEM_MUL[atkElem]) ? window.ELEM_MUL[atkElem] : null;
+      var defOne = Array.isArray(defElems) ? (defElems[0]||'none') : defElems;
+      elemMul = MULS ? (MULS[defOne]||1.0) : 1.0;
+    }
 
-    // STAB（同屬性加成）：由地圖定義；若未定義則 1.0
-    var STAB = (typeof window.STAB==='number') ? window.STAB : 1.0;
-
-    // 若攻擊者自身元素與技能元素一致 → 同屬性加成
-    var sameType = (attacker && attacker.element && attacker.element===atkElem);
-    if (sameType) elemMul = elemMul * STAB;
+    // 本源加成（同屬性↑，異屬性↓；無元素不受影響）
+    var STAB_SAME = (typeof window.STAB_SAME==='number') ? window.STAB_SAME : ((typeof window.STAB==='number')?window.STAB:1.0);
+    var STAB_DIFF = (typeof window.STAB_DIFF==='number') ? window.STAB_DIFF : 1.0;
+    if (atkElem !== 'none' && attacker && attacker.element){
+      if (attacker.element === atkElem) elemMul = elemMul * STAB_SAME;
+      else elemMul = elemMul * STAB_DIFF;
+    }
 
     // 4) 係數與穿透
     var power = safe(sk,'power',100) / 100;  // 100% → 1.0

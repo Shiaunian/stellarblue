@@ -132,7 +132,7 @@
   .modal{ position:fixed; inset:0; display:none; place-items:center; z-index:999; }
   .modal.show{ display:grid; }
   .modal .mask{ position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter: blur(2px); }
-  .sheet{ position:relative; width:min(92vw, 520px); border-radius:16px; overflow:hidden; background:var(--panel-2); border:1px solid rgba(255,255,255,.12); box-shadow: var(--shadow); color:var(--text); }
+  .sheet{ position:relative; width:min(98vw, 520px); border-radius:16px; overflow:hidden; background:var(--panel-2); border:1px solid rgba(255,255,255,.12); box-shadow: var(--shadow); color:var(--text); }
   .sheet .sec-title{ background:rgba(255,255,255,.06); border-bottom:1px solid rgba(255,255,255,.08); text-align:center; font-weight:900; letter-spacing:4px; padding:8px 12px; position:relative; }
   .sheet .close{ position:absolute; right:10px; top:50%; transform:translateY(-50%); width:24px; height:24px; border-radius:999px; display:grid; place-items:center; background:#ef4444; color:#fff; font-weight:900; cursor:pointer; user-select:none; }
   .sheet .body{ padding:12px; display:grid; gap:12px; }
@@ -397,6 +397,7 @@
       <div class="gbtn" data-open="equip">裝備欄</div>
       <div class="gbtn" data-open="rank">排行榜</div>
       <div class="gbtn" data-open="shop">商店</div>
+      <div class="gbtn" data-open="appearance">外觀</div>
     </div>
 
       <div class="title">主 城</div>
@@ -500,6 +501,7 @@
 <script src="auth.js"></script>
 <script src="equip.js"></script>
 <script src="rank.js"></script>
+<script src="appearance.js"></script>
 <script>
 
 
@@ -651,9 +653,10 @@ function wire(){
   document.querySelectorAll('.gbtn').forEach(b=>{
     b.addEventListener('click', ()=>{
       const txt = b.textContent?.trim();
-      if (txt === '儲物袋') return openBag();
-      if (txt === '裝備欄') return (window.Equip && Equip.open && Equip.open());
-      if (txt === '商店') return openShop();
+        if (txt === '儲物袋') return openBag();
+        if (txt === '裝備欄') return (window.Equip && Equip.open && Equip.open());
+        if (txt === '商店') return openShop();
+        if (txt === '外觀') return openAppearance();
       log(`開啟：${txt}`,'warn');
     });
   });
@@ -884,6 +887,16 @@ document.querySelectorAll('.card').forEach(c=>{
     }
   });
 }
+
+/* ===== Appearance（外觀） ===== */
+function openAppearance(){
+  if (window.Appearance && typeof Appearance.open === 'function'){
+    Appearance.open();
+  }else{
+    alert('appearance.js 未載入');
+  }
+}
+
 
 /* ===== Shop (NPC → Items) ===== */
 function openShop(){
@@ -1861,6 +1874,17 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (window.Game && Game.start) { Game.start(char); }
 
   
+});
+
+document.addEventListener('DOMContentLoaded', function(){
+  if (window.Appearance && typeof Appearance.mount === 'function'){
+    Appearance.mount({
+      getPlayer: function(){ return window._player || null; },
+      save: function(){ if(window.saveAll) try{ saveAll(); }catch(e){} },
+      recalc: function(){ if(window.recalcUI) try{ recalcUI(); }catch(e){} },
+      log: function(t){ try{ log(String(t||'')); }catch(e){ console.log(t); } }
+    });
+  }
 });
 </script>
 </body>

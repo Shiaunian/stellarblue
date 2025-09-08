@@ -5,52 +5,46 @@
   function fmt(n){ return new Intl.NumberFormat('zh-Hant').format(n||0); }
   function safe(v, d){ return (v==null ? d : v); }
 
-  // ===== 產出 Modal（若不存在）=====
+  // ===== 確保排行榜 Modal 存在（若不存在就動態建立）=====
   function ensureModal(){
-    if (qs('#rankModal')) return;
-    var wrap = document.createElement('div');
-    wrap.id = 'rankModal';
-    wrap.className = 'modal';
-    wrap.setAttribute('aria-hidden','true');
-    wrap.innerHTML =
-      '<div class="mask" data-close="rank"></div>'+
-      '<div class="sheet" role="dialog" aria-labelledby="rankTitle">'+
-        '<div class="sec-title" id="rankTitle">排行榜'+
-          '<div class="close" data-close="rank">✕</div>'+
-        '</div>'+
-        '<div class="body" style="display:grid; gap:10px; max-height:65vh; overflow:auto;">'+
-          '<div class="row" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">'+
-            '<button class="opx" id="btnRankRefresh">重新整理</button>'+
-            '<span id="rankHint" style="font-size:12px; opacity:.8;"></span>'+
-          '</div>'+
-          '<div style="overflow:auto;">'+
-            '<table id="rankTable" style="width:100%; border-collapse:collapse; font-size:12px;">'+
-              '<thead>'+
-                '<tr style="text-align:left; border-bottom:1px solid rgba(255,255,255,.15)">'+
-                  '<th style="padding:6px 8px; writing-mode:horizontal-tb; text-orientation:mixed;">#</th>'+
-                  '<th style="padding:6px 8px; writing-mode:horizontal-tb; text-orientation:mixed;">名稱</th>'+
-                  '<th style="padding:6px 8px; writing-mode:horizontal-tb; text-orientation:mixed;">元素</th>'+
-                  '<th style="padding:6px 8px; writing-mode:horizontal-tb; text-orientation:mixed;">等級</th>'+
-                  '<th style="padding:6px 8px; writing-mode:horizontal-tb; text-orientation:mixed;">戰力</th>'+
-                  '<th style="padding:6px 8px; writing-mode:horizontal-tb; text-orientation:mixed;">真元上限</th>'+
-                '</tr>'+
-              '</thead>'+
-              '<tbody></tbody>'+
+    var m = qs('#rankModal');
+    if (!m){
+      m = document.createElement('div');
+      m.id = 'rankModal';
+      m.className = 'modal';
+      m.setAttribute('aria-hidden','true');
+      m.innerHTML =
+        '<div class="mask" data-close="rank"></div>'+
+        '<div class="sheet" role="dialog" aria-labelledby="rankTitle">'+
+          '<div class="sec-title" id="rankTitle">排行榜<div class="close" data-close="rank">✕</div></div>'+
+          '<div class="body">'+
+            '<table id="rankTable" style="width:100%;border-collapse:collapse;">'+
+              '<thead><tr>'+
+                '<th style="text-align:center;font-size:12px;">#</th>'+
+                '<th style="text-align:center;font-size:12px;">名稱</th>'+
+                '<th style="text-align:center;font-size:12px;">性別</th>'+
+                '<th style="text-align:center;font-size:12px;">元素</th>'+
+                '<th style="text-align:center;font-size:12px;">等級</th>'+
+                '<th style="text-align:center;font-size:12px;">戰力</th>'+
+              '</tr></thead>'+
+              '<tbody><tr><td colspan="6" style="padding:10px;opacity:.8;">尚無資料</td></tr></tbody>'+
             '</table>'+
+            '<div id="rankHint" style="margin-top:6px;opacity:.8;font-size:12px;"></div>'+
           '</div>'+
-        '</div>'+
-      '</div>';
-    document.body.appendChild(wrap);
+        '</div>';
+      document.body.appendChild(m);
 
-    // 關閉事件
-    wrap.addEventListener('click', function(e){
-      var closeBtn = e.target.getAttribute ? e.target.getAttribute('data-close') : '';
-      if (closeBtn === 'rank'){ Rank.close(); }
-    });
-    // 重新整理
-    var btn = qs('#btnRankRefresh', wrap);
-    if (btn){ btn.addEventListener('click', function(){ Rank.refresh(); }); }
+      // 關閉（委派：遮罩 & 右上角 ✕）
+      m.addEventListener('click', function(e){
+        var c = e && e.target && e.target.getAttribute ? e.target.getAttribute('data-close') : '';
+        if (c === 'rank'){
+          m.classList.remove('show');
+          m.setAttribute('aria-hidden','true');
+        }
+      });
+    }
   }
+
 
 
   // ===== 戰力估算：所有能力值合成（含裝備加成；HP/5、MP/10）=====
@@ -82,50 +76,53 @@
 
 
   // ===== 數據整形（補 avatar）=====
-  function normalizePlayer(username, data){
-    var p = data || {};
-    var name = p.name || username || '(未命名)';
-    var elem = p.element || 'none';
+function normalizePlayer(username, data){
+  var p = data || {};
+  var name = p.name || username || '(未命名)';
+  var elem = p.element || 'none';
+  var gender = (p.gender === 'F') ? 'F' : 'M';
 
-    // 頭像：玩家自帶 > Auth.defaultAvatar() > 預設
-    var fallbackAvatar = (window.Auth && typeof Auth.defaultAvatar==='function')
-      ? (Auth.defaultAvatar() || 'https://picsum.photos/seed/xian/64')
-      : 'https://picsum.photos/seed/xian/64';
-    var avatar = p.avatar || fallbackAvatar;
+  // 頭像：玩家自帶 > Auth.defaultAvatar() > 預設
+  var fallbackAvatar = (window.Auth && typeof Auth.defaultAvatar==='function')
+    ? (Auth.defaultAvatar() || 'https://picsum.photos/seed/xian/64')
+    : 'https://picsum.photos/seed/xian/64';
+  var avatar = p.avatar || fallbackAvatar;
 
-    // 重算上限（避免缺欄位時顯示不準）
-    try{
-      var base  = (typeof derivedFrom === 'function') ? derivedFrom(p) : {};
-      var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
-      var hpMax = safe(base['氣血上限'],0) + safe(bonus['氣血上限'],0);
-      var mpMax = safe(base['真元上限'],0) + safe(bonus['真元上限'],0);
-      p.hp = p.hp || { cur:hpMax, max:hpMax };
-      p.mp = p.mp || { cur:mpMax, max:mpMax };
-      p.hp.max = hpMax; p.mp.max = mpMax;
-    }catch(_){}
-    var lv  = safe(p.level,1);
-    var exp = (p.exp && p.exp.cur!=null) ? p.exp.cur : 0;
-    var pow = computePower(p);
+  // 重算上限（避免缺欄位時顯示不準）
+  try{
+    var base  = (typeof derivedFrom === 'function') ? derivedFrom(p) : {};
+    var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
+    var hpMax = safe(base['氣血上限'],0) + safe(bonus['氣血上限'],0);
+    var mpMax = safe(base['真元上限'],0) + safe(bonus['真元上限'],0);
+    p.hp = p.hp || { cur:hpMax, max:hpMax };
+    p.mp = p.mp || { cur:mpMax, max:mpMax };
+    p.hp.max = hpMax; p.mp.max = mpMax;
+  }catch(_){}
+  var lv  = safe(p.level,1);
+  var exp = (p.exp && p.exp.cur!=null) ? p.exp.cur : 0;
+  var pow = computePower(p);
 
-    // 更新時間（優先 _updatedAt）
-    var ts = safe(p._updatedAt, 0);
-    if (!ts && p.logs && p.logs.lastEnterCave) { ts = p.logs.lastEnterCave; }
-    if (!ts && p.logs && p.logs.lastMap) { ts = p.logs.lastMap; }
-    if (!ts) ts = 0;
+  // 更新時間（優先 _updatedAt）
+  var ts = safe(p._updatedAt, 0);
+  if (!ts && p.logs && p.logs.lastEnterCave) { ts = p.logs.lastEnterCave; }
+  if (!ts && p.logs && p.logs.lastMap) { ts = p.logs.lastMap; }
+  if (!ts) ts = 0;
 
-    return {
-      username: username || '',
-      name: name,
-      element: elem,
-      avatar: avatar,
-      level: lv,
-      exp: exp,
-      power: pow,
-      hpMax: safe(p.hp && p.hp.max, 0),
-      mpMax: safe(p.mp && p.mp.max, 0),
-      updatedAt: ts
-    };
-  }
+  return {
+    username: username || '',
+    name: name,
+    element: elem,
+    gender: gender,        // ★ 新增
+    avatar: avatar,
+    level: lv,
+    exp: exp,
+    power: pow,
+    hpMax: safe(p.hp && p.hp.max, 0),
+    mpMax: safe(p.mp && p.mp.max, 0),
+    updatedAt: ts
+  };
+}
+
 
 
   // ===== 排序（等級↓ → 經驗↓ → 戰力↓）=====
@@ -168,13 +165,15 @@
           '</button>' +
         '</div>';
 
+      var genderSymbol = (r.gender === 'F') ? '♀' : '♂';
+
       tr.innerHTML =
-        '<td style="padding:6px 8px; white-space:nowrap;">'+ (i+1) +'</td>'+
+        '<td style="padding:6px 8px; white-space:nowrap; text-align:center; font-size:11px;">'+ (i+1) +'</td>'+
         '<td style="padding:6px 8px; max-width:180px;">'+ nameCell +'</td>'+
-        '<td style="padding:6px 8px;">'+ elemText +'</td>'+
-        '<td style="padding:6px 8px;">'+ fmt(r.level) +'</td>'+
-        '<td style="padding:6px 8px; font-weight:600;">'+ fmt(r.power) +'</td>'+
-        '<td style="padding:6px 8px;">'+ fmt(r.mpMax) +'</td>';
+        '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ genderSymbol +'</td>'+
+        '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ elemText +'</td>'+
+        '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ fmt(r.level) +'</td>'+
+        '<td style="padding:6px 8px; font-weight:600; text-align:center; font-size:11px;">'+ fmt(r.power) +'</td>';
 
       tbody.appendChild(tr);
       i = i + 1;
@@ -184,6 +183,7 @@
       hint.textContent = '資料來源：characters（依 等級→經驗→戰力 排序）｜共 '+ fmt(max) +' 名';
     }
   }
+
 
 
   // ===== 讀取資料 =====
@@ -219,15 +219,15 @@
       var m = qs('#rankModal');
       if (m){ m.classList.remove('show'); m.setAttribute('aria-hidden','true'); }
     },
-    refresh: function(){
-      var tbody = qs('#rankTable tbody');
-      if (tbody){ tbody.innerHTML = '<tr><td colspan="6" style="padding:10px; opacity:.8;">讀取中…</td></tr>'; }
-      fetchAllCharacters(function(list){
-        list.sort(sortRank);
-        if (list.length > 50){ list = list.slice(0,50); }
-        renderTable(list);
-      });
-    },
+      refresh: function(){
+        var tbody = qs('#rankTable tbody');
+        if (tbody){ tbody.innerHTML = '<tr><td colspan="6" style="padding:10px; opacity:.8;">讀取中…</td></tr>'; }
+        fetchAllCharacters(function(list){
+          list.sort(sortRank);
+          if (list.length > 50){ list = list.slice(0,50); }
+          renderTable(list);
+        });
+      },
 
 
     // === 檢視指定使用者（對方資訊視窗）===

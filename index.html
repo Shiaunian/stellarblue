@@ -118,6 +118,14 @@
           </div>
 
           <div class="field">
+            <label>性別</label>
+            <div class="row" id="genderGroup">
+              <label><input type="radio" name="gender" value="M" checked /> 男 ♂</label>
+              <label><input type="radio" name="gender" value="F" /> 女 ♀</label>
+            </div>
+          </div>
+
+          <div class="field">
             <label>初始元素</label>
             <div class="elements" id="elementGrid">
               <!-- 單選卡 -->
@@ -146,6 +154,7 @@
           </div>
         </div>
       </section>
+
 
       <footer class="note">
         畫面以 <strong>93∶128</strong> 比例自動縮放，未寫死解析度；適配手機直向。
@@ -177,6 +186,7 @@
     window.DB = firebase.database();
   })();
 </script>
+<script src="items.js"></script>
 <script src="auth.js"></script>
 <script>
   const scrLogin   = document.getElementById('screen-login');
@@ -231,12 +241,14 @@ document.getElementById('btnLogin').addEventListener('click', async ()=>{
 
 
 document.getElementById('btnCreate').addEventListener('click', async ()=>{
-  const name = (document.getElementById('charName').value || '').trim();
-  const elem = (elGrid.querySelector('input[name="elem"]:checked') || {}).value || 'none';
+  var name = (document.getElementById('charName').value || '').trim();
+  var elem = (elGrid.querySelector('input[name="elem"]:checked') || {}).value || 'none';
+  var gEl  = document.querySelector('input[name="gender"]:checked');
+  var gender = gEl ? gEl.value : 'M';
   if(!name){ alert('請輸入角色名稱'); return; }
 
   try{
-    const ok = await Auth.createCharacter(name, elem);
+    var ok = await Auth.createCharacter(name, elem, gender);
     if(ok){
       window.location.href = 'game.html';
     }else{
@@ -246,7 +258,6 @@ document.getElementById('btnCreate').addEventListener('click', async ()=>{
     alert('創角錯誤，請稍後再試');
   }
 });
-
 
 
   document.getElementById('btnBackLogin').addEventListener('click', ()=>{

@@ -28,7 +28,27 @@
   background:#ef4444; color:#fff; font-weight:900; cursor:pointer; user-select:none;}
 #eqModal .body{ padding:12px; display:grid; gap:12px; }
 .eq-wrap{padding:4px; display:grid; gap:10px; max-height:60vh; overflow:auto;}
-.eq-grid{display:grid; grid-template-columns: repeat(4, 60px); column-gap:4px; row-gap:8px; justify-content:center;}
+.eq-grid{
+  display:grid;
+  grid-template-columns: 100px repeat(4, 60px); /* 左邊加角色外觀欄位 */
+  column-gap:8px;
+  row-gap:8px;
+  justify-content:center;
+  align-items:start;
+}
+.eq-char{
+  grid-row: 1 / span 3;   /* 高度跨 3 行 */
+  width:100px;
+  aspect-ratio:3/4;       /* 稍長矩形，類似立繪比例 */
+  border-radius:12px;
+  background:rgba(255,255,255,.05);
+  border:2px solid rgba(255,255,255,.15);
+  display:flex; align-items:center; justify-content:center;
+  color:#9ca3af; font-weight:700; font-size:12px;
+  overflow:hidden;
+}
+.eq-char img{ width:100%; height:100%; object-fit:cover; display:block; }
+
 .eq-slot{
   aspect-ratio: 1 / 1;
   width: 80%;
@@ -191,6 +211,17 @@ function onClick(e){
     };
 
     grid.innerHTML='';
+
+    // 新增角色外觀框
+    const charDiv = document.createElement('div');
+    charDiv.className = 'eq-char';
+    charDiv.dataset.part = 'character';
+    charDiv.innerHTML = P.equip?.character?.icon
+      ? `<img src="${P.equip.character.icon}" alt="角色外觀">`
+      : '<span>角色</span>';
+    grid.appendChild(charDiv);
+
+    // 原本的裝備欄位
     for(const s of slots){
       const cur = P.equip[s.key];
       const arr = (s.max===1) ? [cur] : (cur || []);
@@ -204,6 +235,7 @@ function onClick(e){
         grid.appendChild(div);
       }
     }
+
 
     bar.innerHTML='';
     const meds = P.equip.medals || [null,null,null,null,null];
@@ -286,7 +318,6 @@ function onClick(e){
     var P = api.getPlayer && api.getPlayer(); if(!P) return {};
     var sum = {};
 
-    // 將 item 的鍵轉成衍生屬性用的名稱：hp→氣血上限、mp→真元上限，其餘照原名
     function convert(raw){
       if(!raw) return null;
       var out = {};
@@ -314,7 +345,11 @@ function onClick(e){
     function norm(it, kind){
       if(!it) return null;
       if(typeof it === 'string'){
-        var g = (kind==='weapon') ? 'weapons' : (kind==='medal' ? 'medals' : kind);
+        var g;
+        if (kind === 'weapon') g = 'weapons';
+        else if (kind === 'medal') g = 'medals';
+        else if (kind === 'character') g = 'appearances';
+        else g = kind;
         var d = window.ItemDB && ItemDB.getDef(g, it);
         if (d) return d;
         return null;
@@ -322,7 +357,7 @@ function onClick(e){
       return it;
     }
 
-    // 武器：bonus / effect 皆可；否則用傷害估物攻
+    // 武器
     var w = norm(P.equip && P.equip.weapon, 'weapon');
     if (w){
       if (w.bonus) addMap(convert(w.bonus));
@@ -333,7 +368,7 @@ function onClick(e){
       }
     }
 
-    // 披風/護甲/鞋子（單格）
+    // 單格：披風/護甲/鞋子
     var single = ['cloak','armor','shoes'];
     for (var i=0;i<single.length;i++){
       var k = single[i];
@@ -341,7 +376,11 @@ function onClick(e){
       if (it) addMap(convert(it.bonus || it.effect));
     }
 
-    // 耳環/戒指/勳章（陣列）
+    // ★ 外觀（character）：單一欄位
+    var ch = norm(P.equip && P.equip.character, 'character');
+    if (ch) addMap(convert(ch.bonus || ch.effect));
+
+    // 陣列：耳環/戒指/勳章
     var arr, i2, it2;
 
     arr = (P.equip && P.equip.earrings) || [];
@@ -355,7 +394,6 @@ function onClick(e){
 
     return sum;
   }
-
 
   window.Equip = { mount, open, close, render, getBonuses, equipWeapon, equipMedal, equipOrnament };
 })();

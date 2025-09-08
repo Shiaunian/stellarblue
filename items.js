@@ -38,7 +38,7 @@
 
     // ---- 耳環（Earrings）----
     earrings: [
-      { id: "ear_smalljade", name: "小翠耳環", rarity: "普", level: 1, effect: { mp: 20 }, price: 80, icon: "https://i.ibb.co/mDRWyjr/ear-smalljade.png", desc: "靈玉雕製的耳環，帶微靈氣。" },
+      { id: "ear_smalljade", name: "小翠耳環", rarity: "普", level: 1, effect: { hp: 20 }, price: 80, icon: "https://i.ibb.co/mDRWyjr/ear-smalljade.png", desc: "靈玉雕製的耳環，帶微靈氣。" },
       { id: "ear_ice", name: "冰痕耳環", rarity: "普", level: 2, effect: { mp: 40, int: 1 }, price: 160, icon: "https://i.ibb.co/SNQwMfL/ear-ice.png", desc: "如霜凝結的冰晶耳飾，提升悟性。" },
       { id: "ear_shadow", name: "影縛耳環", rarity: "普", level: 4, effect: { mp: 60, agi: 2 }, price: 300, icon: "https://i.ibb.co/n8bkZJ1/ear-shadow.png", desc: "由陰影之絲編製而成，強化反應力。" },
     ],
@@ -62,6 +62,30 @@
       { id: "boot_cloth", name: "布鞋", rarity: "普", level: 1, effect: { agi: 1 }, price: 30, icon: "https://i.ibb.co/m05xVcs/boot-cloth.png", desc: "輕便布鞋，提升少許敏捷。" },
       { id: "boot_fur", name: "毛靴", rarity: "普", level: 2, effect: { agi: 2, def: 5 }, price: 100, icon: "https://i.ibb.co/t4MKtzS/boot-fur.png", desc: "保暖的毛皮靴，提升移動力。" },
       { id: "boot_phantom", name: "幻影靴", rarity: "普", level: 5, effect: { agi: 4 }, price: 300, icon: "https://i.ibb.co/GcsWR7r/boot-phantom.png", desc: "幽影如風，穿上後動如鬼魅。" },
+    ],
+
+    // ---- 外觀（Appearances）----
+    // 外觀不可強化，可堆疊；裝備位僅 1 格，會直接替換舊外觀
+    appearances: [
+      { id: "skin_qing_m", name: "清流男俠客", rarity: "精", level: 1,
+        effect: { hp: 20, mdef: 2, 閃避: 1, 行動速度: 1, '法術攻擊': 2 },
+        price: 800, stackable: true,
+        icon: "https://i.ibb.co/2cZzXXXX/qing-m.png",
+        desc: "出身清流門的男俠客，劍眉星目、氣定神閒。身法靈巧，氣脈流轉。"
+      },
+      { id: "skin_qing_f", name: "清流女俠客", rarity: "精", level: 1,
+        effect: { hp: 20, mdef: 2, 閃避: 1, 行動速度: 1, '法術攻擊': 2 },
+        price: 800, stackable: true,
+        icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757258391/%E6%B8%85%E6%B5%81%E5%A5%B3%E4%BF%A0%E5%AE%A2_hufn0b.png",
+        desc: "清流門女俠客，眉目如畫、劍膽琴心。真元溫潤，動如行雲。"
+      },
+      { id: "skin_raiming", name: "雷鳴清", rarity: "稀", level: 3,
+        effect: { hp: 30, def: 2, 行動速度: 3, 閃避: 3 },
+        grantSkills: ["thunder_palm", "thunder_drop"],  // 裝備外觀後賦予技能
+        price: 1600, stackable: true,
+        icon: "https://i.ibb.co/7tZZXXXX/raiming.png",
+        desc: "雷脈天賦者，電光縈身、步履如風。"
+      }
     ],
 
     // ---- 勳章（Medals）----
@@ -188,6 +212,12 @@ window.ItemDB = {
   normalizeRarity,
   getDef,
   getDefaultBag,
+  list: function(kind){
+    var d = DB && DB[kind];
+    if (Array.isArray(d)) return d.slice();
+    return [];
+  },
+
 
   // === 堆疊型 ===
   addConsumableToBag: addConsumableToBag,

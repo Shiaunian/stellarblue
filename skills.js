@@ -10,7 +10,7 @@
     // 例：基礎普攻（走元素相剋）
     basic: {
       id:'basic', name:'普攻', elem:'none',
-      power:100, mp:0, desc:'一般攻擊，受相剋與暴擊影響'
+      power:110, mp:0, desc:'一般攻擊，受相剋與暴擊影響'
     },
 
     // 保留舊有範例
@@ -31,6 +31,13 @@
       }
     },
 
+        // === 藍波拳 ===
+    ember: {
+      id:'Bluewave_Fist', name:'藍波拳', elem:'wind',
+      power:110, mp:13,
+      desc:'對敵方造成「風元素」110%物理傷害（暫以靈元素計）',
+    },
+
     // === 新增：火之靈、萊利會用到 ===
     fire_kiss: {
       id:'fire_kiss', name:'火吻', elem:'fire',
@@ -45,12 +52,12 @@
 
     // === 新增：雷系（暫以 spirit 代表雷元素） ===
     thunder_palm: {
-      id:'thunder_palm', name:'雷電掌', elem:'spirit',
+      id:'thunder_palm', name:'雷電掌', elem:'thunder',
       power:120, mp:12,
       desc:'對敵方造成「雷元素」120%物理傷害（暫以靈元素計）'
     },
     thunder_drop: {
-      id:'thunder_drop', name:'雷落', elem:'spirit',
+      id:'thunder_drop', name:'雷落', elem:'thunder',
       power:140, mp:22,
       desc:'對敵方造成「雷元素」140%物理傷害（暫以靈元素計）；若施放者自身亦為雷系，另行回復20點氣血（引擎支援後生效）'
     }

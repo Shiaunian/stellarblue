@@ -2109,15 +2109,34 @@ qs('#btnBoss').onclick = function(){
     var sk  = (window.SkillDB && SkillDB.get) ? SkillDB.get(sid) : null;
     if(!sk){ log('未知技能：' + sid, 'warn'); return false; }
 
+    // ── MP（真元）以物件 {cur,max} 為準；若是舊資料/異常則容錯
     var need = sk.mp || 0;
-    var curMp = (P && typeof P.mp === 'number') ? P.mp : 0;
+    var curMp = 0, mpMax = 0;
+    if (P && P.mp && typeof P.mp === 'object') {
+      curMp = +((P.mp.cur!=null)?P.mp.cur:0);
+      mpMax = +((P.mp.max!=null)?P.mp.max:0);
+    } else if (P && typeof P.mp === 'number') {
+      // 兼容舊存檔：把數字轉成 {cur,max}
+      curMp = P.mp|0;
+      mpMax = Math.max(curMp, mpMax|0);
+      P.mp = { cur: curMp, max: mpMax||curMp };
+    }
+
     if(curMp < need){ log('真元不足（需要 ' + need + '）','warn'); return false; }
 
-    // 扣 MP（同步到戰鬥狀態）
-    P.mp = curMp - need; if(P.mp < 0) P.mp = 0;
-    if(battle.p){ battle.p.mp = P.mp; }
+    // ── 扣 MP（同步到戰鬥狀態與 UI）
+    var after = Math.max(0, curMp - need);
+    if (P && P.mp && typeof P.mp === 'object') {
+      P.mp.cur = after;
+      if (mpMax>0) P.mp.max = mpMax;              // 保持上限
+    }
+    if (battle.p){
+      battle.p.mp = after;
+      // 若有 mpMax/條件，保持一致（大多在進場時已計算）
+      if (typeof battle.p.mpMax === 'number' && mpMax>0) battle.p.mpMax = mpMax;
+    }
 
-    // 傷害計算（由 skills.js 提供）
+    // ── 傷害計算（由 skills.js 提供）
     var r = (window.SkillDB && SkillDB.calcDamage) ? SkillDB.calcDamage(P, battle.enemy, sid) : null;
     var dmg = 0, isCrit=false;
     if(r){
@@ -2132,7 +2151,7 @@ qs('#btnBoss').onclick = function(){
     var name = sk.name || sid;
     log('你施放【' + name + '】對 ' + (battle.e.name||'敵人') + ' 造成 ' + dmg + ' 點傷害' + (isCrit ? '（暴擊）' : '') + '。');
 
-    // ★雷落額外效果：玩家本身是雷（spirit）時，回復 20 HP
+    // ★雷落額外效果：玩家本身是雷（spirit）時，回復 20 HP（原樣保留）
     if(sid === 'thunder_drop' && P && P.element === 'spirit'){
       var heal = 20;
       var maxHp = (battle.p && battle.p.hpMax) ? battle.p.hpMax : ((P.hp && P.hp.max) ? P.hp.max : 0);
@@ -2146,12 +2165,12 @@ qs('#btnBoss').onclick = function(){
     // 重置我方 ATB，輪到敵方
     battle.p.atb = 0;
     updateBattleBars();
-    // 勝敗檢查
     if(battle.e.hp <= 0){ endCheck(); return true; }
 
     setTimeout(function(){ enemyTurn(); }, 400);
     return true;
   }
+
 
 /* ===== 啟動（以 API 為主，必要時用本地較新快取）===== */
 window.addEventListener('DOMContentLoaded', async function(){

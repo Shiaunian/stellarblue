@@ -309,7 +309,7 @@ function onClick(e){
     api.save(); render(); api.recalc(); return true;
   }
 
-  // ★新增：飾品（戒指/耳飾/披風/護甲/鞋）裝備
+  // ★新增：飾品（戒指/耳飾/披風/護甲/鞋）裝備（修正：雙槽正規化）
   function equipOrnament(o){
     const P = api.getPlayer && api.getPlayer(); if(!P || !o) return false;
     P.equip = P.equip || {};
@@ -330,19 +330,42 @@ function onClick(e){
     var copy = JSON.parse(JSON.stringify(o));
 
     if (kind==='rings' || kind==='earrings'){
-      var arr = P.equip[kind] || (P.equip[kind]=[null,null]);
+      // —— 重要：將舊存檔可能的 [] / 單槽陣列正規化成 [null,null] —— //
+      var arr = P.equip[kind];
+      if (!Array.isArray(arr)) {
+        arr = [null, null];
+      } else {
+        // 將缺少的索引補成 null，並固定長度為 2
+        if (typeof arr[0] === 'undefined') arr[0] = null;
+        if (typeof arr[1] === 'undefined') arr[1] = null;
+        // 保險：避免多於 2 格的非預期情況
+        if (arr.length > 2) arr.length = 2;
+      }
+      P.equip[kind] = arr;
+
       // 不允許同 ID 重複裝備
-      for (var i=0;i<arr.length;i++){ if(arr[i] && arr[i].id===copy.id){ api.log('不可重複裝備相同飾品'); return false; } }
-      // 找空位，沒有就覆蓋第 1 格
-      var pos=-1; for (var j=0;j<arr.length;j++){ if(!arr[j]){ pos=j; break; } }
-      if (pos===-1){ arr[0] = copy; } else { arr[pos] = copy; }
-    }else{ // cloak / armor / shoes 單格
+      for (var i=0;i<2;i++){
+        if (arr[i] && arr[i].id === copy.id){
+          api.log('不可重複裝備相同飾品'); 
+          return false;
+        }
+      }
+
+      // 先找空位；若無空位才覆蓋第 1 格
+      var pos = -1;
+      for (var j=0;j<2;j++){
+        if (!arr[j]) { pos = j; break; }
+      }
+      if (pos === -1) { arr[0] = copy; } else { arr[pos] = copy; }
+
+    } else { // cloak / armor / shoes 單格
       P.equip[kind] = copy;
     }
 
     api.save(); render(); api.recalc();
     return true;
   }
+
 
 
 /* 對外：回傳所有裝備帶來的加成（讓主程式加到能力值） */

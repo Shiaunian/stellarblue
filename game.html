@@ -1253,7 +1253,7 @@ function openBagAction(type, idx){
     if (e){
       addPlus('氣血', e.hp);
       addPlus('真元', e.mp);
-      addPlus('攻擊', e.atk);
+      addPlus('物攻', e.atk);
       addPlus('法攻', e.matk);
       addPlus('防禦', e.def);
       addPlus('法防', e.mdef);
@@ -1274,7 +1274,7 @@ function openBagAction(type, idx){
       var plus = (it && typeof it.plus==='number') ? it.plus : (def && def.plus ? def.plus : 0);
       if (dmg && typeof dmg.length==='number'){
         var dmin = dmg[0]||0, dmax = dmg[1]||0;
-        lines.push('攻擊 ' + dmin + '~' + dmax + (plus?(' +' + plus):''));
+        lines.push('物攻 ' + dmin + '~' + dmax + (plus?(' +' + plus):''));
       }
       var durCur = (it && it.dur && typeof it.dur.cur==='number') ? it.dur.cur : (def && typeof def.durCur==='number' ? def.durCur : null);
       var durMax = (it && it.dur && typeof it.dur.max==='number') ? it.dur.max : (def && typeof def.durMax==='number' ? def.durMax : null);
@@ -1562,22 +1562,27 @@ function renderMaterials(box, P){
   }
 }
 
-  function bagUseConsumable(i){
-    const P = state.player; const it = P.bag.consumables[i]; if(!it) return;
-    if (it.effect?.hp){
-      const hpMax = derivedFrom(P)['氣血上限'];
-      P.hp = P.hp || {cur:hpMax,max:hpMax};
-      P.hp.cur = Math.min(P.hp.cur + it.effect.hp, hpMax);
-    }
-    it.count = (it.count||0) - 1;
-    if (it.count <= 0) P.bag.consumables.splice(i,1);
-    if (window.Auth && Auth.saveCharacter) {
-      var cleanData = JSON.parse(JSON.stringify(P));
-      delete cleanData._live;
-      Auth.saveCharacter(cleanData);
-    }
-    render(P); renderBag('consumable');
+function bagUseConsumable(i){
+  const P = state.player; const it = P.bag.consumables[i]; if(!it) return;
+  if (it.effect?.hp){
+    var base  = derivedFrom(P);
+    var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
+    var hpMax = (base['氣血上限'] || 0) + (bonus['氣血上限'] || 0);
+
+    P.hp = P.hp || {cur:hpMax,max:hpMax};
+    P.hp.max = hpMax;
+    P.hp.cur = Math.min(P.hp.cur + it.effect.hp, hpMax);
   }
+  it.count = (it.count||0) - 1;
+  if (it.count <= 0) P.bag.consumables.splice(i,1);
+  if (window.Auth && Auth.saveCharacter) {
+    var cleanData = JSON.parse(JSON.stringify(P));
+    delete cleanData._live;
+    Auth.saveCharacter(cleanData);
+  }
+  render(P); renderBag('consumable');
+}
+
 
   function bagSellConsumable(i){
     const P = state.player; const it = P.bag.consumables[i]; if(!it) return;

@@ -67,23 +67,36 @@
     // ---- 外觀（Appearances）----
     // 外觀不可強化，可堆疊；裝備位僅 1 格，會直接替換舊外觀
     appearances: [
-      { id: "skin_qing_m", name: "清流男俠客", rarity: "精", level: 1,
+      { id: "skin_qing_m", name: "剛毅", rarity: "普", level: 1,
         effect: { hp: 20, mdef: 2, eva: 1, aspd: 1, 'matk': 2 },
         price: 800, stackable: true,
-        icon: "https://i.ibb.co/2cZzXXXX/qing-m.png",
+        icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757379252/%E5%89%9B%E6%AF%85_sg4o6l.png",
         desc: "出身清流門的男俠客，劍眉星目、氣定神閒。身法靈巧，氣脈流轉。"
       },
-      { id: "skin_qing_f", name: "清流女俠客", rarity: "精", level: 1,
+      { id: "skin_qing_f", name: "霜霜", rarity: "普", level: 1,
         effect: { hp: 20, mdef: 2, eva: 1, aspd: 1, 'matk': 2 },
         price: 800, stackable: true,
-        icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757258391/%E6%B8%85%E6%B5%81%E5%A5%B3%E4%BF%A0%E5%AE%A2_hufn0b.png",
+        icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757379052/%E9%9C%9C%E9%9C%9C_xbxtrm.png",
         desc: "清流門女俠客，眉目如畫、劍膽琴心。真元溫潤，動如行雲。"
       },
-      { id: "skin_raiming", name: "雷鳴清", rarity: "稀", level: 3,
-        effect: { hp: 30, def: 2, aspd: 3, eva: 3 },
+      { id: "skin_qing_a", name: "忠海", rarity: "普", level: 2,
+        effect: { hp: 20, def: 1, aspd: 3, eva: 4 },
+        price: 2500, stackable: true,
+        icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757379818/%E5%BF%A0%E6%B5%B7_oo5orp.png",
+        desc: "出生於偏僻小山區的一位男俠客，輕功略優。"
+      },
+      { id: "skin_raiming", name: "妙青青", rarity: "精", level: 2,
+        effect: { hp: 30, def: 2, aspd: 3, eva: 2 },
+        grantSkills: ["Bluewave_Fist",],  // 裝備外觀後賦予技能
+        price: 5500, stackable: true,
+        icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757379822/%E5%A6%99%E9%9D%92%E9%9D%92_zhravi.png",
+        desc: "拳法女俠，家中絕學藍波拳"
+      },
+      { id: "skin_raiming1", name: "雷山明", rarity: "精", level: 2,
+        effect: { hp: 30, def: 1, aspd: 4, eva: 2 },
         grantSkills: ["thunder_palm", "thunder_drop"],  // 裝備外觀後賦予技能
-        price: 1600, stackable: true,
-        icon: "https://i.ibb.co/7tZZXXXX/raiming.png",
+        price: 5500, stackable: true,
+        icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757379818/%E5%BF%A0%E6%B5%B7_oo5orp.png",
         desc: "雷脈天賦者，電光縈身、步履如風。"
       }
     ],

@@ -113,9 +113,20 @@
   .gbtn{padding:5px 0; text-align:center; border-radius:10px; font-size: 12px;  font-weight:800; letter-spacing:2px; color:#fff; background:linear-gradient(#a6783e,#7f5626); border:1px solid #5e3d1a; box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 2px 0 rgba(0,0,0,.2);}
   .title{text-align:center; color:#c7d2fe; font-weight:900; letter-spacing:6px; padding-top:4px;}
   .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; padding-bottom:6px;}
-  .card{background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:6px; display:grid; grid-template-columns:52px 1fr; gap:10px; align-items:center;}
+  .card {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 6px;
+    padding: 6px;
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 10px;
+    height: 42px;
+    align-content: center;
+    align-items: center;
+  }
   .thumb{width:40px; height:40px; border-radius:10px; overflow:hidden; display:grid; place-items:center; background:#1e293b;}
-  .thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .thumb img{width:90%; height:90%; object-fit:cover; display:block;}
   .ctitle{font-weight:800; font-size: 12px; letter-spacing:1px;} .csub{font-size:12px; color:var(--muted);}
   .dock{padding:0 12px 10px;}
   .chatbox{background:#060a1a; border:1px solid rgba(255,255,255,.2); border-radius:10px; position:relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,.4);}
@@ -135,18 +146,44 @@
   .sheet{ position:relative; width:min(92vw, 520px); border-radius:16px; overflow:hidden; background:var(--panel-2); border:1px solid rgba(255,255,255,.12); box-shadow: var(--shadow); color:var(--text); }
   .sheet .sec-title{ background:rgba(255,255,255,.06); border-bottom:1px solid rgba(255,255,255,.08); text-align:center; font-weight:900; letter-spacing:4px; padding:8px 12px; position:relative; }
   .sheet .close{ position:absolute; right:10px; top:50%; transform:translateY(-50%); width:24px; height:24px; border-radius:999px; display:grid; place-items:center; background:#ef4444; color:#fff; font-weight:900; cursor:pointer; user-select:none; }
-  .sheet .body{ padding:12px; display:grid; gap:12px; }
+  .sheet .body{ padding:7px; display:grid; gap:2px; }
   .attr-list{ display:grid; gap:8px; }
-  .attr-row{ display:grid; grid-template-columns:70px 42px 1fr 40px; align-items:center; gap:8px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:6px 8px; }
-  .attr-name{ font-weight:700; }
+  .attr-row {
+    display: grid;
+    grid-template-columns: 70px 42px 1fr 30px;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 10px;
+    padding: 6px 8px;
+    height: 30px;  /* 新增固定高度 */
+  }
+  .attr-name {
+    font-weight: 700;
+    font-size: 12px;  /* 較小 */
+  }
   .attr-val{ font-variant-numeric: tabular-nums; text-align:right; }
   .attr-bar{ height:12px; background:#1f273a; border-radius:999px; overflow:hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -1px 0 rgba(0,0,0,.3); }
   .attr-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--accent2),var(--accent)); }
-  .attr-plus{ width:32px; height:26px; border-radius:8px; border:1px solid rgba(255,255,255,.18); background:linear-gradient(180deg,#22c55e,#16a34a); color:#fff; font-weight:900; cursor:pointer; display:grid; place-items:center; user-select:none; }
+  .attr-plus {
+    width: 22px;
+    height: 21px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,.18);
+    background: linear-gradient(180deg,#22c55e,#16a34a);
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    user-select: none;
+    align-content: center;
+  }
   .attr-plus.hide{ display:none; }
   .remain{ text-align:right; font-size:12px; color:#e2e8f0; }
   .kv{ display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; }
-  .kv .item{ display:flex; justify-content:space-between; gap:8px; padding:6px 8px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:8px; }
+  .kv .item{ display:flex; justify-content:space-between; gap:6px; padding:2px 10px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:8px; }
   .kv .k{ opacity:.85; font-size:12px; }
   .kv .v{ font-variant-numeric: tabular-nums; font-size:12px; }
 
@@ -221,21 +258,24 @@
   /* 讓屬性面板的外層彈窗限制高度，避免超出視口 */
 #attrModal .sheet{
   /* 原本就有 width/min… 可保留 */
-  max-height: min(86svh, 640px);      /* 手機優先：最高只到 86% 視口高 */
+  max-height: min(88svh, 640px);      /* 手機優先：最高只到 86% 視口高 */
   display: grid;
   grid-template-rows: auto 1fr;       /* 上：標題列；下：內容可捲動 */
   overflow: hidden;                    /* 捲動交給 body */
 }
 
 /* 標題列固定在最上方，永遠看得到 ✕ */
-#attrModal .sheet .sec-title{
-  position: sticky;
-  top: 0;                              /* 黏到頂端 */
-  z-index: 1;
-  padding-top: calc(8px + env(safe-area-inset-top, 0px));
-  background: rgba(255,255,255,.06);   /* 保留原底色 */
-  backdrop-filter: blur(2px);
+#attrModal .sheet .sec-title {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+    background: rgba(255,255,255,.06);
+    backdrop-filter: blur(2px);
+    height: 48px;        /* 新增高度 */
+    font-size: 16px;     /* 新增字體大小 */
 }
+
 
 /* 內容區域可獨立捲動；多到超過就出現滾動條 */
 #attrModal .sheet .body{
@@ -1573,6 +1613,17 @@ function bagUseConsumable(i){
     P.hp.max = hpMax;
     P.hp.cur = Math.min(P.hp.cur + it.effect.hp, hpMax);
   }
+
+    // ★ 補真元
+  if (it.effect?.mp){
+    var base  = derivedFrom(P);
+    var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
+    var mpMax = (base['真元上限'] || 0) + (bonus['真元上限'] || 0);
+    P.mp = P.mp || {cur:mpMax,max:mpMax};
+    P.mp.max = mpMax;
+    P.mp.cur = Math.min(P.mp.cur + it.effect.mp, mpMax);
+  }
+  
   it.count = (it.count||0) - 1;
   if (it.count <= 0) P.bag.consumables.splice(i,1);
   if (window.Auth && Auth.saveCharacter) {

@@ -89,7 +89,7 @@
     .back-btn{padding:5px 10px; min-width:76px; font-size:12px; border-radius:999px; border:1px solid rgba(255,255,255,.2); background:#111827; color:#fff; font-weight:800; cursor:pointer; letter-spacing:.5px;}
     .logout-btn{padding:5px 10px; min-width:76px; font-size:12px; border-radius:999px; border:1px solid rgba(255,255,255,.2); background:#ef4444; color:#fff; font-weight:800; cursor:pointer; letter-spacing:.5px;}
 
-    .divider{height:1px; background:rgba(255,255,255,.08); margin:6px 0;}
+    .divider{height:1px; background:rgba(255,255,255,.08); margin:1px 0;}
     .main{flex:1; display:flex; flex-direction:column; gap:10px; padding:8px 12px 10px; overflow:auto;}
 
     /* Bars（縮小字級＋更細能量條） */
@@ -137,12 +137,24 @@
 
     /* 進入/動作區 */
     .panel{background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:8px; display:grid; gap:8px;}
-    .btn{padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-weight:800; text-align:center; cursor:pointer; user-select:none;}
+    .btn {
+      padding: 3px 7px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: linear-gradient(135deg,var(--accent),var(--accent2));
+      color: #fff;
+      font-weight: 500;
+      font-size: 11px;  /* 新增字體大小 */
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
     .btn.ghost{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.2);}
     .btn[disabled]{opacity:.5; filter:grayscale(1); cursor:not-allowed;}
 
     .row{display:flex; gap:8px; flex-wrap:wrap;}
-    .hint{font-size:12px; color:#93c5fd; text-align:center;}
+    .hint{font-size:9px; color:#93c5fd; text-align:center;}
 
    /* === 地區情報（固定欄位・雙欄） === */
     .panel.info{ padding:6px 8px; }
@@ -267,7 +279,11 @@
 
 
     .who{display:flex; align-items:center; justify-content:space-between; gap:8px;}
-    .name{font-weight:900;}
+    .name {
+    font-weight: 900;
+    font-size: 8pt;
+    }
+
     .hpbar{height:6px; background:#1f273a; border-radius:999px; overflow:hidden;}
     .hpfill{height:100%; width:0%; background:linear-gradient(90deg,#ef4444,#b91c1c);}
     .atb{height:6px; background:#0b122b; border-radius:999px; overflow:hidden;}
@@ -300,6 +316,15 @@
       border-radius: 8px;
     }
 
+    /* 攻擊按鈕 */
+    #actAttack {
+    background: linear-gradient(45deg, #8b0000, #dc143c);
+    color: #ffd700;
+    border: 2px solid #4b0000;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }   
+
+
     /* 每條訊息底下留一點間距 */
     .log > div{ margin-bottom:4px; }
     /* 日誌分類顏色：呼應全域變數 ok/warn/hp 等 */
@@ -311,7 +336,7 @@
 
 
     .footrow{display:flex; gap:8px; justify-content:space-between; align-items:center;}
-    .locBadge{font-size:12px; color:#e2e8f0;}
+    .locBadge{font-size:10px; color:#e2e8f0;}
 
     /* ===== 受擊/浮字特效 ===== */
     .art{ position:relative; }            /* 讓 fx 可以絕對定位在立繪上 */
@@ -634,11 +659,12 @@ window.ELEM_MUL_WEAK   = 0.5;
 window.ELEM_MUL_NEUT   = 1.0;
 window.ELEM_MUL_DOUBLE_STRONG = 2.0;
 
-// 本源加成（同屬性 / 異屬性）；無元素不受影響
-window.STAB_SAME = 1.15;  // 同屬性略增
-window.STAB_DIFF = 0.95;  // 異屬性略減
-// 舊版相容
-window.STAB = window.STAB_SAME;
+  // 本源加成（同屬性 / 異屬性）；無元素不受影響
+  window.STAB_SAME = 1.15;   // 同屬性加成
+  window.STAB_DIFF = 1.0;   // 異屬性減成
+  // 舊版相容
+  window.STAB = window.STAB_SAME;
+
 
 // 計算相剋倍率；defElems 可為字串或陣列
 window.getElemMultiplier = function(atkElem, defElems){
@@ -2167,8 +2193,9 @@ qs('#btnBoss').onclick = function(){
     updateBattleBars();
     if(battle.e.hp <= 0){ endCheck(); return true; }
 
-    setTimeout(function(){ enemyTurn(); }, 400);
+    setTimeout(function(){ enemyAttack(); }, 400);
     return true;
+
   }
 
 

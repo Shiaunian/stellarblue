@@ -40,7 +40,7 @@
     // === 新增：火之靈、萊利會用到 ===
     fire_kiss: {
       id:'fire_kiss', name:'火吻', elem:'fire', type:'mag',
-      power:120, mp:15,
+      power:150, mp:15,
       desc:'造成120%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
       onHit:{
         burn:{ seconds:10, perSecondHP:-2,
@@ -53,14 +53,14 @@
     // === 新增：雷系（暫以 spirit 代表雷元素） ===
     thunder_palm: {
       id:'thunder_palm', name:'雷電掌', elem:'thunder', type:'phys',
-      power:120, mp:12,
-      desc:'對敵方造成「雷元素」120%物理傷害（暫以靈元素計）'
+      power:150, mp:12,
+      desc:'對敵方造成「雷元素」150%物理傷害'
     },
 
     thunder_drop: {
       id:'thunder_drop', name:'雷落', elem:'thunder', type:'phys',
-      power:140, mp:22,
-      desc:'對敵方造成「雷元素」140%物理傷害（暫以靈元素計）；若施放者自身亦為雷系，另行回復20點氣血（引擎支援後生效）'
+      power:180, mp:22,
+      desc:'對敵方造成「雷元素」180%物理傷害（暫以靈元素計）；若施放者自身亦為雷系，另行回復20點氣血（引擎支援後生效）'
     }
 
 
@@ -122,6 +122,7 @@
 
     // 5) 基礎傷害
     var base = Math.max(1, Math.round((ATK * power) - defEff));
+    base = Math.round(base * (0.9 + Math.random()*0.2));  // 技能亂數 ±10%
 
     // 6) 暴擊
     var cRate = clamp(safe(aD,'暴擊率',3), 0, 100);
@@ -129,6 +130,7 @@
     var isCrit = (Math.random()*100 < cRate);
     var out = base;
     if (isCrit) out = Math.round(base * (cDmg/100));
+
 
     // 7) 套元素倍率
     out = Math.round(out * elemMul);

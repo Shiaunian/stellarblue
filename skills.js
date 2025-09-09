@@ -30,17 +30,16 @@
         }
       }
     },
-
-        // === 藍波拳 ===
+    // === 藍波拳 ===
     ember: {
-      id:'Bluewave_Fist', name:'藍波拳', elem:'wind',
+      id:'Bluewave_Fist', name:'藍波拳', elem:'wind', type:'phys',
       power:110, mp:13,
-      desc:'對敵方造成「風元素」110%物理傷害（暫以靈元素計）',
+      desc:'對敵方造成「風元素」110%物理傷害',
     },
 
     // === 新增：火之靈、萊利會用到 ===
     fire_kiss: {
-      id:'fire_kiss', name:'火吻', elem:'fire',
+      id:'fire_kiss', name:'火吻', elem:'fire', type:'mag',
       power:120, mp:15,
       desc:'造成120%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
       onHit:{
@@ -50,17 +49,20 @@
       }
     },
 
+
     // === 新增：雷系（暫以 spirit 代表雷元素） ===
     thunder_palm: {
-      id:'thunder_palm', name:'雷電掌', elem:'thunder',
+      id:'thunder_palm', name:'雷電掌', elem:'thunder', type:'phys',
       power:120, mp:12,
       desc:'對敵方造成「雷元素」120%物理傷害（暫以靈元素計）'
     },
+
     thunder_drop: {
-      id:'thunder_drop', name:'雷落', elem:'thunder',
+      id:'thunder_drop', name:'雷落', elem:'thunder', type:'phys',
       power:140, mp:22,
       desc:'對敵方造成「雷元素」140%物理傷害（暫以靈元素計）；若施放者自身亦為雷系，另行回復20點氣血（引擎支援後生效）'
     }
+
 
   };
 
@@ -81,11 +83,18 @@
     if(!aD) aD = { '物理攻擊':10,'法術攻擊':10,'暴擊率':3,'暴擊傷害':150, '破甲':0,'法穿':0 };
     if(!dD) dD = { '物理防禦':8,'法術防禦':8 };
 
-    // 2) 判斷使用哪種攻擊面板（普攻/武技用物攻；法術用法攻）
-    var useMatk = (sk && sk.elem && sk.elem!=='none'); // 簡單規則：有元素就當法術
-    var ATK  = useMatk ? safe(aD,'法術攻擊',10) : safe(aD,'物理攻擊',10);
-    var DEF  = useMatk ? safe(dD,'法術防禦',8)   : safe(dD,'物理防禦',8);
-    var PEN  = useMatk ? safe(aD,'法穿',0)       : safe(aD,'破甲',0);
+    // 2) 判斷使用哪種攻擊面板（改用 type: 'phys'|'mag'；無 type 則保持舊規則）
+    var isMag = false;
+    if (sk && sk.type){
+      isMag = (sk.type === 'mag');
+    }else{
+      // 後相容：舊資料/舊技能仍以「有元素＝法術」判斷
+      isMag = (sk && sk.elem && sk.elem!=='none');
+    }
+    var ATK  = isMag ? safe(aD,'法術攻擊',10) : safe(aD,'物理攻擊',10);
+    var DEF  = isMag ? safe(dD,'法術防禦',8)   : safe(dD,'物理防禦',8);
+    var PEN  = isMag ? safe(aD,'法穿',0)       : safe(aD,'破甲',0);
+
 
     // 3) 相剋倍率（支援雙元素防禦；若 map.html 未掛 getElemMultiplier，退回舊表/1.0）
     var atkElem = (sk && sk.elem) ? sk.elem : 'none';

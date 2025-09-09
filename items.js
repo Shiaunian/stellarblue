@@ -31,9 +31,12 @@
     ],
     // ---- 飾品（Ornaments）----
     ornaments: [
-      { id: "jade_ring",   name: "翠玉戒指", rarity: "普", level: 1, effect: { mp: 30 }, price: 180, icon: "https://i.ibb.co/0q0ZBvX/ring-green.png", desc: "微弱靈氣的翠綠戒指，可微量增加真元。" },
-      { id: "ring_blood",  name: "血玉戒指", rarity: "普", level: 4, effect: { hp: 80, vit: 3 }, price: 360, icon: "https://i.ibb.co/VJSZrgq/ring-blood.png", desc: "注入氣血的紅玉戒指，增加生命與體魄。" },
-      { id: "ring_spirit", name: "魂晶戒指", rarity: "普", level: 6, effect: { mp: 100, int: 4 }, price: 600, icon: "https://i.ibb.co/gTQmz0z/ring-spirit.png", desc: "封存靈魂之力的戒指，大幅提升真元與悟性。" }
+      { id: "ring01",      name: "銀戒指", rarity: "普", level: 1, effect: { hp: 20 }, price: 150, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756981436/LV1_%E6%B8%85%E6%9C%A8%E8%80%B3%E7%92%B0_%E6%99%AE%E9%80%9A_wddgym.png", desc: "微弱靈氣的翠綠戒指，可微量增加真元。" },
+      { id: "ring02",      name: "銀戒指", rarity: "精", level: 1, effect: { hp: 25 }, price: 200, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756981437/LV1_%E6%B8%85%E6%9C%A8%E8%80%B3%E7%92%B0_%E7%B2%BE%E5%93%81_k15ryq.png", desc: "微弱靈氣的翠綠戒指，可微量增加真元。" },
+      { id: "ring03",      name: "銀戒指", rarity: "稀", level: 1, effect: { hp: 30 }, price: 250, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756981436/LV1_%E6%B8%85%E6%9C%A8%E8%80%B3%E7%92%B0_%E7%A8%80%E6%9C%89_eteazz.png", desc: "微弱靈氣的翠綠戒指，可微量增加真元。" },
+      { id: "jade_ring",   name: "翠玉戒指", rarity: "普", level: 5, effect: { mp: 80, int: 3 }, price: 600, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757394896/%E7%BF%A0%E7%8E%89%E6%88%92%E6%8C%87_vuqx3k.png", desc: "微弱靈氣的翠綠戒指，可微量增加真元。" },
+      { id: "ring_blood",  name: "血玉戒指", rarity: "普", level: 5, effect: { hp: 80, vit: 3 }, price: 600, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757394896/%E8%A1%80%E7%8E%89%E6%88%92%E6%8C%87_yerivc.png", desc: "注入氣血的紅玉戒指，增加生命與體魄。" },
+      { id: "ring_spirit", name: "魂晶戒指", rarity: "普", level: 5, effect: { eva: 3, int: 4 }, price: 600, icon: "https://i.ibb.co/gTQmz0z/ring-spirit.png", desc: "封存靈魂之力的戒指，大幅提升真元與悟性。" }
     ],
 
     // ---- 耳環（Earrings）----

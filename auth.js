@@ -6,8 +6,8 @@ const STORE_CHAR_PREFIX = 'rpg_character_';
 // 之後要改頭像，只需改這裡的 avatar，玩家下次登入就會拿到最新網址
 var ACCOUNTS = [
   { username: "0017", password: "0128", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756723857/%E5%BF%B5%E5%BF%B5_bmuc6s.png" },
-  { username: "9975", password: "0807", avatar: "https://example.com/avatars/9975.png" },
-  { username: "2817", password: "0428", avatar: "https://example.com/avatars/2817.png" },
+  { username: "little01", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757509864/%E6%B2%90%E6%B2%90_hmamju.png" },
+  { username: "little02", password: "5126", avatar: "https://example.com/avatars/2817.png" },
   { username: "9031", password: "1123", avatar: "https://example.com/avatars/9031.png" },
   { username: "7905", password: "0824", avatar: "https://example.com/avatars/7905.png" },
   { username: "0592", password: "0825", avatar: "https://example.com/avatars/0592.png" }
@@ -133,7 +133,7 @@ async createCharacter(name, element='none', gender='M', avatarOverride=''){
   character.bag.appearances.push({ id: startSkin, count: 1 });
 
   // ★ 管理員專屬配給（帳號 0017）
-  var isAdmin = (u && u.username === '0017');
+  var isAdmin = (u && u.username === '0017', 'little01', 'little02');
   if (isAdmin) {
     try {
   
@@ -141,6 +141,7 @@ async createCharacter(name, element='none', gender='M', avatarOverride=''){
       character.bag.appearances.push({ id: 'skin_qing_m', count: 1 });
       character.bag.appearances.push({ id: 'skin_qing_f', count: 1 });
       character.bag.appearances.push({ id: 'skin_raiming', count: 1 });
+      character.bag.appearances.push({ id: 'skin_ice_asuna', count: 1 });
 
       // 稀有的青銅短劍 x1（武器需帶耐久）
       if (window.ItemDB && ItemDB.getDef) {

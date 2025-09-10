@@ -47,79 +47,70 @@
 
 
 
-  // ===== 戰力估算：所有能力值合成（含裝備加成；HP/5、MP/10）=====
-  function computePower(p){
-    try{
-      var base  = (typeof derivedFrom === 'function') ? derivedFrom(p) : {};
-      var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
-      var final = {};
-      var k;
+// ===== 戰力估算（基礎衍生 + 該玩家自身裝備加成；HP/5、MP/10）=====
+function computePower(p){
+  function safe(v,d){ return (v==null?d:v); }
+  try{
+    var base = (typeof derivedFrom === 'function') ? (derivedFrom(p) || {}) : {};
 
-      // 合併 base + bonus（不用展開運算子）
-      for (k in base){ if (base.hasOwnProperty(k)){ final[k] = safe(base[k],0) + safe(bonus[k],0); } }
-      for (k in bonus){ if (bonus.hasOwnProperty(k) && !final.hasOwnProperty(k)){ final[k] = safe(bonus[k],0); } }
+    // ✅ 只在有 Equip.getBonusesFor(player) 時才取；沒有就當 0，避免算錯
+    var bonus = (window.Equip && typeof Equip.getBonusesFor === 'function')
+      ? (Equip.getBonusesFor(p) || {})
+      : {};
 
-      // 將所有能力值累加；HP/MP 依既定縮放避免淹沒其他能力
-      var score = 0;
-      for (k in final){
-        if (!final.hasOwnProperty(k)) continue;
-        var v = Number(final[k] || 0);
-        if (isNaN(v)) continue;
-        if (k.indexOf('氣血上限') !== -1){ score += Math.floor(v/5); }
-        else if (k.indexOf('真元上限') !== -1){ score += Math.floor(v/10); }
-        else { score += v; }
-      }
-      if (score < 0) score = 0;
-      return score;
-    }catch(_){ return 0; }
-  }
+    var final = {}, k;
+    for (k in base){ if (Object.prototype.hasOwnProperty.call(base,k)) final[k] = safe(base[k],0); }
+    for (k in bonus){ if (Object.prototype.hasOwnProperty.call(bonus,k)) final[k] = (final[k]||0) + safe(bonus[k],0); }
 
+    var score = 0;
+    for (k in final){
+      if (!Object.prototype.hasOwnProperty.call(final,k)) continue;
+      var v = Number(final[k] || 0);
+      if (isNaN(v)) continue;
+      if (k.indexOf('氣血上限') !== -1) score += Math.floor(v/5);
+      else if (k.indexOf('真元上限') !== -1) score += Math.floor(v/10);
+      else score += v;
+    }
+    return Math.max(0, score|0);
+  }catch(_){ return 0; }
+}
 
-  // ===== 數據整形（補 avatar）=====
+// ===== 數據整形（補 avatar 與上限）=====
 function normalizePlayer(username, data){
+  function safe(v,d){ return (v==null?d:v); }
   var p = data || {};
   var name = p.name || username || '(未命名)';
-  var elem = p.element || 'none';
-  var gender = (p.gender === 'F') ? 'F' : 'M';
 
-  // 頭像：玩家自帶 > Auth.defaultAvatar() > 預設
   var fallbackAvatar = (window.Auth && typeof Auth.defaultAvatar==='function')
     ? (Auth.defaultAvatar() || 'https://picsum.photos/seed/xian/64')
     : 'https://picsum.photos/seed/xian/64';
-  var avatar = p.avatar || fallbackAvatar;
+  p.avatar = p.avatar || fallbackAvatar;
 
-  // 重算上限（避免缺欄位時顯示不準）
+  // 重新計上限（基礎 + 該玩家自身裝備加成）
   try{
-    var base  = (typeof derivedFrom === 'function') ? derivedFrom(p) : {};
-    var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
+    var base  = (typeof derivedFrom === 'function') ? (derivedFrom(p) || {}) : {};
+    var bonus = (window.Equip && typeof Equip.getBonusesFor === 'function')
+      ? (Equip.getBonusesFor(p) || {})
+      : {};
     var hpMax = safe(base['氣血上限'],0) + safe(bonus['氣血上限'],0);
     var mpMax = safe(base['真元上限'],0) + safe(bonus['真元上限'],0);
     p.hp = p.hp || { cur:hpMax, max:hpMax };
     p.mp = p.mp || { cur:mpMax, max:mpMax };
     p.hp.max = hpMax; p.mp.max = mpMax;
   }catch(_){}
-  var lv  = safe(p.level,1);
-  var exp = (p.exp && p.exp.cur!=null) ? p.exp.cur : 0;
-  var pow = computePower(p);
-
-  // 更新時間（優先 _updatedAt）
-  var ts = safe(p._updatedAt, 0);
-  if (!ts && p.logs && p.logs.lastEnterCave) { ts = p.logs.lastEnterCave; }
-  if (!ts && p.logs && p.logs.lastMap) { ts = p.logs.lastMap; }
-  if (!ts) ts = 0;
 
   return {
     username: username || '',
-    name: name,
-    element: elem,
-    gender: gender,        // ★ 新增
-    avatar: avatar,
-    level: lv,
-    exp: exp,
-    power: pow,
+    name,
+    element: p.element || 'none',
+    gender: (p.gender === 'F') ? 'F' : 'M',
+    avatar: p.avatar,
+    level: safe(p.level,1),
+    exp: (p.exp && p.exp.cur!=null) ? p.exp.cur : 0,
+    power: computePower(p),
     hpMax: safe(p.hp && p.hp.max, 0),
     mpMax: safe(p.mp && p.mp.max, 0),
-    updatedAt: ts
+    updatedAt: safe(p._updatedAt, 0)
   };
 }
 

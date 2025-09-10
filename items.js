@@ -101,6 +101,13 @@
         price: 5500, stackable: true,
         icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757379818/%E5%BF%A0%E6%B5%B7_oo5orp.png",
         desc: "雷脈天賦者，電光縈身、步履如風。"
+      },
+      { id: "skin_ice_asuna", name: "修仙亞絲娜", rarity: "稀", level: 2,
+        effect: { hp: 40, atk: 5, def: 3, aspd: 5, eva: 3 },
+        grantSkills: ["ice_shard", "blizzard"],  // 裝備外觀後賦予技能
+        price: 8000, stackable: true,
+        icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757510184/%E4%BF%AE%E4%BB%99%E4%BA%9E%E7%B5%B2%E5%A8%9C_iyrl5i.png",
+        desc: "從現實世界穿越過來的橫溝，是一位冰系使用者。"
       }
     ],
 

@@ -193,23 +193,21 @@ function onClick(e){
     }
   }
   // ★ 新增：角色外觀（character）— 卸下時回收至外觀背包
-  else if (part === 'character') {
-    const cur = P.equip && P.equip.character;
-    if (cur){
-      backToBag('appearance', cur);
-      P.equip.character = null;
-      api.log('已卸下角色外觀 → 回到外觀背包');
+else if (part === 'character') {
+  const cur = P.equip && P.equip.character;
+  if (cur){
+    backToBag('appearance', cur);
+    P.equip.character = null;
+
+    // 🆕 卸下外觀時，同步移除所有外觀技能 + 同步地圖技能清單 + 重算畫面
+    if (window.Appearance && Appearance.removeAppearanceSkills) {
+      Appearance.removeAppearanceSkills(P);
+      Appearance.syncSkillsPanel && Appearance.syncSkillsPanel();
     }
+
+    api.log('已卸下角色外觀 → 回到外觀背包');
   }
-  else if (part === 'medals') {
-    const arr = P.equip?.medals || [];
-    const cur = arr[idx];
-    if (cur) {
-      backToBag('medal', cur);
-      arr[idx] = null;
-      api.log('已卸下勳章 → 暫放背包(hidden)');
-    }
-  }
+}
 
   api.save(); render(); api.recalc();
 }
@@ -369,87 +367,107 @@ function onClick(e){
 
 
 /* 對外：回傳所有裝備帶來的加成（讓主程式加到能力值） */
-  function getBonuses(){
-    var P = api.getPlayer && api.getPlayer(); if(!P) return {};
-    var sum = {};
+/* 對外：回傳裝備加成（共用核心演算法） */
+// --- 核心：計算「指定玩家」的裝備加成 ---
+function _calcBonusesFor(P){
+  if(!P) return {};
+  var sum = {};
 
-    function convert(raw){
-      if(!raw) return null;
-      var out = {};
-      for (var k in raw){
-        if(!Object.prototype.hasOwnProperty.call(raw,k)) continue;
-        var v = raw[k] || 0;
-        if (k === 'hp')       { out['氣血上限'] = (out['氣血上限']||0) + v; }
-        else if (k === 'mp')  { out['真元上限'] = (out['真元上限']||0) + v; }
-        else if (k === 'def') { out['物理防禦'] = (out['物理防禦']||0) + v; }
-        else if (k === 'mdef'){ out['法術防禦'] = (out['法術防禦']||0) + v; }
-        else { out[k] = (out[k]||0) + v; }
-      }
-      return out;
+  function convert(raw){
+    if(!raw) return null;
+    var out = {};
+    for (var k in raw){
+      if(!Object.prototype.hasOwnProperty.call(raw,k)) continue;
+      var v = raw[k] || 0;
+      if (k === 'hp')       { out['氣血上限'] = (out['氣血上限']||0) + v; }
+      else if (k === 'mp')  { out['真元上限'] = (out['真元上限']||0) + v; }
+      else if (k === 'def') { out['物理防禦'] = (out['物理防禦']||0) + v; }
+      else if (k === 'mdef'){ out['法術防禦'] = (out['法術防禦']||0) + v; }
+      else { out[k] = (out[k]||0) + v; }
     }
-
-    function addMap(m){
-      if(!m) return;
-      for (var k in m){
-        if(!Object.prototype.hasOwnProperty.call(m,k)) continue;
-        var v = m[k] || 0;
-        sum[k] = (sum[k]||0) + v;
-      }
-    }
-
-    function norm(it, kind){
-      if(!it) return null;
-      if(typeof it === 'string'){
-        var g;
-        if (kind === 'weapon') g = 'weapons';
-        else if (kind === 'medal') g = 'medals';
-        else if (kind === 'character') g = 'appearances';
-        else g = kind;
-        var d = window.ItemDB && ItemDB.getDef(g, it);
-        if (d) return d;
-        return null;
-      }
-      return it;
-    }
-
-    // 武器
-    var w = norm(P.equip && P.equip.weapon, 'weapon');
-    if (w){
-      if (w.bonus) addMap(convert(w.bonus));
-      else if (w.effect) addMap(convert(w.effect));
-      else if (Array.isArray(w.dmg)){
-        var avg = Math.round(((w.dmg[0]||0)+(w.dmg[1]||0))/2) + (w.plus||0)*2;
-        addMap({'物理攻擊': avg});
-      }
-    }
-
-    // 單格：披風/護甲/鞋子
-    var single = ['cloak','armor','shoes'];
-    for (var i=0;i<single.length;i++){
-      var k = single[i];
-      var it = norm(P.equip && P.equip[k], k);
-      if (it) addMap(convert(it.bonus || it.effect));
-    }
-
-    // ★ 外觀（character）：單一欄位
-    var ch = norm(P.equip && P.equip.character, 'character');
-    if (ch) addMap(convert(ch.bonus || ch.effect));
-
-    // 陣列：耳環/戒指/勳章
-    var arr, i2, it2;
-
-    arr = (P.equip && P.equip.earrings) || [];
-    for (i2=0;i2<arr.length;i2++){ it2 = norm(arr[i2],'earrings'); addMap(convert(it2 && (it2.bonus || it2.effect))); }
-
-    arr = (P.equip && P.equip.rings) || [];
-    for (i2=0;i2<arr.length;i2++){ it2 = norm(arr[i2],'rings'); addMap(convert(it2 && (it2.bonus || it2.effect))); }
-
-    arr = (P.equip && P.equip.medals) || [];
-    for (i2=0;i2<arr.length;i2++){ it2 = norm(arr[i2],'medal');  addMap(convert(it2 && (it2.bonus || it2.effect))); }
-
-    return sum;
+    return out;
   }
 
-  window.Equip = { mount, open, close, render, getBonuses, equipWeapon, equipMedal, equipOrnament };
+  function addMap(m){
+    if(!m) return;
+    for (var k in m){
+      if(!Object.prototype.hasOwnProperty.call(m,k)) continue;
+      var v = m[k] || 0;
+      sum[k] = (sum[k]||0) + v;
+    }
+  }
+
+  function norm(it, kind){
+    if(!it) return null;
+    if(typeof it === 'string'){
+      var g;
+      if (kind === 'weapon') g = 'weapons';
+      else if (kind === 'medal') g = 'medals';
+      else if (kind === 'character') g = 'appearances';
+      else g = kind;
+      var d = window.ItemDB && ItemDB.getDef(g, it);
+      if (d) return d;
+      return null;
+    }
+    return it;
+  }
+
+  // 武器
+  var w = norm(P.equip && P.equip.weapon, 'weapon');
+  if (w){
+    if (w.bonus) addMap(convert(w.bonus));
+    else if (w.effect) addMap(convert(w.effect));
+    else if (Array.isArray(w.dmg)){
+      var avg = Math.round(((w.dmg[0]||0)+(w.dmg[1]||0))/2) + (w.plus||0)*2;
+      addMap({'物理攻擊': avg});
+    }
+  }
+
+  // 單格：披風/護甲/鞋子
+  var single = ['cloak','armor','shoes'];
+  for (var i=0;i<single.length;i++){
+    var k = single[i];
+    var it = norm(P.equip && P.equip[k], k);
+    if (it) addMap(convert(it.bonus || it.effect));
+  }
+
+  // 外觀（character）
+  var ch = norm(P.equip && P.equip.character, 'character');
+  if (ch) addMap(convert(ch.bonus || ch.effect));
+
+  // 陣列：耳環/戒指/勳章
+  var arr, i2, it2;
+
+  arr = (P.equip && P.equip.earrings) || [];
+  for (i2=0;i2<arr.length;i2++){ it2 = norm(arr[i2],'earrings'); addMap(convert(it2 && (it2.bonus || it2.effect))); }
+
+  arr = (P.equip && P.equip.rings) || [];
+  for (i2=0;i2<arr.length;i2++){ it2 = norm(arr[i2],'rings'); addMap(convert(it2 && (it2.bonus || it2.effect))); }
+
+  arr = (P.equip && P.equip.medals) || [];
+  for (i2=0;i2<arr.length;i2++){ it2 = norm(arr[i2],'medal');  addMap(convert(it2 && (it2.bonus || it2.effect))); }
+
+  return sum;
+}
+
+// --- 對外 API ---
+// 1) 舊版：用當前登入者
+function getBonuses(){
+  var P = api.getPlayer && api.getPlayer();
+  return _calcBonusesFor(P);
+}
+
+// 2) 新增：針對「任意玩家」計算（給排行榜等用）
+function getBonusesFor(player){
+  return _calcBonusesFor(player);
+}
+
+window.Equip = {
+  mount, open, close, render,
+  getBonuses,            // 既有：目前玩家
+  getBonusesFor,         // 新增：指定玩家
+  equipWeapon, equipMedal, equipOrnament
+};
+
 })();
 

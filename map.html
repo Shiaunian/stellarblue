@@ -380,6 +380,57 @@
       30%, 50%, 70% { transform: translateX(-4px); }
       40%, 60% { transform: translateX(4px); }
     } 
+
+    /* === 技能橫幅 & 施放時的畫面滑動 === */
+    .skill-banner{
+      position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+      display: grid; place-items: center;
+    }
+    .skill-banner::before{
+      content:''; position:absolute; inset:-10%;
+      background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.08) 50%, transparent 70%);
+      transform: translateX(-60%);
+      animation: skillSweep 900ms ease-out forwards;
+      mix-blend-mode: screen;
+    }
+    .skill-banner .wrap{
+      padding: 8px 14px; border-radius: 12px;
+      background: rgba(14,21,54,.45);
+      border: 1px solid rgba(255,255,255,.25);
+      backdrop-filter: blur(2px);
+      text-align: center; letter-spacing: .2em;
+      text-shadow: 0 1px 0 rgba(0,0,0,.6), 0 0 10px rgba(255,255,255,.15);
+      font-weight: 900; color: #eaf2ff;
+      opacity: 0; transform: translateY(-12px) scale(.98);
+      animation: bannerIn 900ms ease-out forwards;
+    }
+    .skill-banner .title{ font-size: 12px; opacity:.85; margin-bottom: 4px; }
+    .skill-banner .name{ font-size: 22px; }
+    .skill-banner .elem-pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:2px 8px; margin-top:6px; border-radius:999px; font-size:12px;
+      border:1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08);
+    }
+    .skill-banner .elem-pill.wind{ background: var(--elem-water); color:#0b1024; } /* 風色系你可自行改 */
+
+    @keyframes bannerIn{
+      0%{ opacity:0; transform: translateY(-14px) scale(.98); }
+      40%{ opacity:1; transform: translateY(0) scale(1.02); }
+      100%{ opacity:1; transform: translateY(0) scale(1.0); }
+    }
+    @keyframes skillSweep{
+      to{ transform: translateX(60%); }
+    }
+    /* 施放瞬間讓整個 App 有點位移（相機平移感） */
+    .app.pan{
+      animation: camPan 420ms cubic-bezier(.2,.8,.2,1);
+    }
+    @keyframes camPan{
+      0%{ transform: translateX(0); }
+      35%{ transform: translateX(-10px); }
+      100%{ transform: translateX(0); }
+    }
+
   </style>
 </head>
 <body>
@@ -654,8 +705,8 @@ window.ELEM_WEAK = {
 };
 
 // 倍率常數（可微調）
-window.ELEM_MUL_STRONG = 1.5;
-window.ELEM_MUL_WEAK   = 0.5;
+window.ELEM_MUL_STRONG = 1.2;
+window.ELEM_MUL_WEAK   = 0.8;
 window.ELEM_MUL_NEUT   = 1.0;
 window.ELEM_MUL_DOUBLE_STRONG = 2.0;
 
@@ -727,32 +778,41 @@ const PLAYER_IMG_URL = 'https://picsum.photos/seed/xian-hero/400/600';
 
 /* ===== 地圖資料（大地圖 -> 小地圖） ===== */
 const MAPS = [
-  { id:'forest', name:'青木山脈', lv:'1-4', small:[
-    { id:'slime_cave',  name:'萊姆洞窟', lv:'1-3',
-      monsters:['slime_young','slime','slime_king'], boss:'slime_boss' },
-    { id:'woodland',    name:'火林洞',   lv:'2-4',
-      monsters:['wood_wisp','Fire_Spirit','laily'] },
-    { id:'moss_vale',   name:'苔石谷',   lv:'2-4',
-      monsters:['slime','stone_golem'],  boss:'stone_golem_boss' },
-  ]},
-  { id:'tundra', name:'雪原台地', lv:'3-5', small:[
-    { id:'snowfield',   name:'雪原狩場', lv:'3-4',
-      monsters:['snow_wolf','ice_thorn'], boss:'ice_bear_boss' },
-    { id:'ice_cave',    name:'寒晶洞穴', lv:'4-5',
-      monsters:['ice_bear','ice_thorn'] },
-  ]},
-  { id:'ruins', name:'幽怨遺跡', lv:'5-7', small:[
-    { id:'spirit_hall', name:'靈侍大殿', lv:'4-6',
-      monsters:['spirit_acolyte','wraith'], boss:'spirit_acolyte_boss' },
-    { id:'shadow_pit',  name:'影翼深坑', lv:'4-6',
-      monsters:['shadow_bat','wraith'],     boss:'shadow_bat_boss' },
-  ]},
-  { id:'canyon', name:'磐石峽谷', lv:'3-6', small:[
-    { id:'beetle_ridge', name:'雷角嶺',  lv:'5-6',
-      monsters:['brass_beetle','thunder_beetle'], boss:'thunder_beetle_boss' },
-    { id:'bog',          name:'泥潭窪地',lv:'3-5',
-      monsters:['bog_tortoise','stone_golem'],    boss:'ancient_tortoise_boss' },
-  ]},
+{ id:'forest', name:'青木山脈', lv:'1-10', small:[
+  { id:'slime_cave',  name:'萊姆洞窟', lv:'1-3',
+    monsters:['slime_young','slime','slime_king'], 
+    boss:'slime_boss', killsRequired: 8 },
+  { id:'woodland',    name:'火林洞',   lv:'4-7',
+    monsters:['wood_wisp','Fire_Spirit','laily',"fire_orb"], 
+    boss:'flame_master', killsRequired: 12 },
+  { id:'moss_vale',   name:'苔石谷',   lv:'2-4',
+    monsters:['slime','stone_golem'],  
+    boss:'stone_golem_boss', killsRequired: 10 },
+]},
+{ id:'tundra', name:'雪原台地', lv:'3-5', small:[
+  { id:'snowfield',   name:'雪原狩場', lv:'3-4',
+    monsters:['snow_wolf','ice_thorn'], 
+    boss:'ice_bear_boss', killsRequired: 10 },
+  { id:'ice_cave',    name:'寒晶洞穴', lv:'4-5',
+    monsters:['ice_bear','ice_thorn'], 
+    boss:'ice_cave_boss', killsRequired: 12 },  // ★ 加上 boss
+]},
+{ id:'ruins', name:'幽怨遺跡', lv:'5-7', small:[
+  { id:'spirit_hall', name:'靈侍大殿', lv:'4-6',
+    monsters:['spirit_acolyte','wraith'], 
+    boss:'spirit_acolyte_boss', killsRequired: 15 },
+  { id:'shadow_pit',  name:'影翼深坑', lv:'4-6',
+    monsters:['shadow_bat','wraith'],     
+    boss:'shadow_bat_boss', killsRequired: 15 },
+]},
+{ id:'canyon', name:'磐石峽谷', lv:'3-6', small:[
+  { id:'beetle_ridge', name:'雷角嶺',  lv:'5-6',
+    monsters:['brass_beetle','thunder_beetle'], 
+    boss:'thunder_beetle_boss', killsRequired: 18 },
+  { id:'bog',          name:'泥潭窪地',lv:'3-5',
+    monsters:['bog_tortoise','stone_golem'],    
+    boss:'ancient_tortoise_boss', killsRequired: 14 },
+]},
 ];
 
 
@@ -786,11 +846,6 @@ function loadPlayer(){
     const d=derivedFrom(c); 
     c.hp = { cur:d['氣血上限'], max:d['氣血上限'] }; 
   }
-  // ★ 副地圖進度（萊姆洞窟）
-  c.mapProg = c.mapProg || {};
-  c.mapProg.slime_cave = c.mapProg.slime_cave || { kills:0, bossReady:false };
-
-  return c;
 }
 
 async function savePlayer(){
@@ -837,7 +892,9 @@ async function savePlayer(){
 }
 
 
-// （已移除：使用 stats.js 的 global.derivedFrom，避免數值不一致）
+
+
+
 
 
 
@@ -1059,42 +1116,60 @@ function setLocBadge(){
   qs('#locBadge').textContent = entered ? `${locTxt}（已進入）` : locTxt;
 }
 
-function getSlimeProg(){
-  P.mapProg = P.mapProg || {};
-  P.mapProg.slime_cave = P.mapProg.slime_cave || { kills:0, bossReady:false };
-  return P.mapProg.slime_cave;
-}
+
 
 function updateBossUI(){
   const hint = qs('#slimeQuestHint');
   const btnBoss = qs('#btnBoss');
   if(!hint || !btnBoss) return;
 
-  if(curSmall !== 'slime_cave'){
+  // 找到當前小地圖
+  var big = null, area = null, i, j;
+  for (i = 0; i < MAPS.length; i++){
+    if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
+  }
+  if (big && big.small){
+    for (j = 0; j < big.small.length; j++){
+      if (big.small[j].id === curSmall){ area = big.small[j]; break; }
+    }
+  }
+
+  if(!area || !area.boss || !entered){
     hint.style.display = 'none';
     btnBoss.style.display = 'none';
     return;
   }
 
-  const prog = getSlimeProg();
-  // 只有已進入該區時才顯示提示
-  if(!entered){
-    hint.style.display = 'none';
-    btnBoss.style.display = 'none';
-    return;
+  P.mapProg = P.mapProg || {};
+  var progKey = area.id;
+  var prog = P.mapProg[progKey] || { kills:0, bossReady:false, bossDefeated:false };
+  var requiredKills = area.killsRequired || 10;
+
+  // ★ 修正：當擊殺數達標時，重新啟用 BOSS（不管之前是否擊敗過）
+  if(prog.kills >= requiredKills){
+    prog.bossReady = true;
+    // 不重置 bossDefeated，保留歷史記錄
   }
 
-  // 顯示當前進度
+  // 顯示邏輯：只要 bossReady 就能挑戰
   if(prog.bossReady){
-    hint.textContent = `萊姆洞窟：討伐已達 10/10 → 可以挑戰 BOSS（未擊敗前，擊殺數不再累加）`;
+    var statusPrefix = prog.bossDefeated ? '重新挑戰' : '首次挑戰';
+    hint.textContent = `${area.name}：討伐已達 ${prog.kills}/${requiredKills} → 可以${statusPrefix} BOSS！`;
     hint.style.display = 'block';
     btnBoss.style.display = 'inline-block';
+    btnBoss.textContent = statusPrefix + ' BOSS';
+    btnBoss.style.background = '#b91c1c';
   }else{
-    hint.textContent = `萊姆洞窟：史萊姆討伐進度 ${prog.kills}/10（達 10/10 將出現 BOSS 按鈕）`;
+    var statusText = prog.bossDefeated 
+      ? `${area.name}：BOSS 已擊敗，需重新累積討伐進度 ${prog.kills}/${requiredKills}`
+      : `${area.name}：怪物討伐進度 ${prog.kills}/${requiredKills}（達成後將出現 BOSS）`;
+    
+    hint.textContent = statusText;
     hint.style.display = 'block';
     btnBoss.style.display = 'none';
   }
 }
+
 
 function updateActionPanel(){
   const btnEnter   = qs('#btnEnter');
@@ -1251,7 +1326,7 @@ function startBattle(){
     pen  : pickD('破甲',        0)
   };
 
-battle = {
+  battle = {
     enemy: enemy,
     enemyStats: eStats,
     p:{
@@ -1717,7 +1792,7 @@ async function endCheck(){
     var eImg = document.getElementById('eImg');
     if(eImg){ eImg.classList.add('fade-out'); }
 
-    // 1.5) 若在萊姆洞窟，累積擊殺數，達 10/10 顯示 BOSS
+
     try{
       // 找當前的小地圖
       var big=null, area=null, i,j;
@@ -1725,24 +1800,49 @@ async function endCheck(){
       if(big && big.small){
         for(j=0;j<big.small.length;j++){ if(big.small[j].id===curSmall){ area=big.small[j]; break; } }
       }
-      if(area && area.id==='slime_cave'){
+      
+      // ★ 通用多地圖處理
+      if(area && area.boss){
         P.mapProg = P.mapProg || {};
-        var prog = P.mapProg.slime_cave || { kills:0, bossReady:false };
-        // 只有未出現 BOSS 前才累積
-        if(!prog.bossReady){
+        var progKey = area.id;
+        var prog = P.mapProg[progKey] || { kills:0, bossReady:false, bossDefeated:false };
+        
+        // 取得該地圖需要的擊殺數（預設 10）
+        var requiredKills = area.killsRequired || 10;
+        
+        // 檢查是否為 BOSS 戰
+        var isBossKill = (battle.enemy && battle.enemy.id === area.boss);
+        
+        if(isBossKill){
+          // ★ BOSS 被擊敗 - 重置進度，需重新累積
+          prog.bossDefeated = true;
+          prog.bossReady = false;    // ← 關鍵：重置為 false
+          prog.kills = 0;            // ← 關鍵：重置擊殺數
+          log('🎉 恭喜！你擊敗了 ' + area.name + ' 的 BOSS！需重新累積討伐進度才能再次挑戰。', 'ok');
+          
+        }else if(!prog.bossReady){
+
+          // ★ 一般怪物，累積擊殺數
           prog.kills = (prog.kills|0) + 1;
-          if(prog.kills >= 10){
-            prog.kills = 10;    // 封頂
+          
+          if(prog.kills >= requiredKills){
+            prog.kills = requiredKills;    // 封頂
             prog.bossReady = true;
-            log('萊姆洞窟 BOSS 已出現！','ok');
+            log(area.name + ' BOSS 已出現！可以挑戰了！','ok');
           }else{
-            log('萊姆洞窟討伐進度：' + prog.kills + '/10');
+            log(area.name + ' 討伐進度：' + prog.kills + '/' + requiredKills);
           }
-          P.mapProg.slime_cave = prog;
-          updateBossUI();
         }
+        
+        // 儲存進度
+        P.mapProg[progKey] = prog;
+        
+        // 更新 UI
+        if(typeof updateBossUI === 'function') updateBossUI();
       }
-    }catch(_){}
+    }catch(_e){
+      console.error('地圖進度更新錯誤:', _e);
+    }
 
     // 2) 掉落（MonsterDB）
     (function resolveDrops(monId){
@@ -1998,18 +2098,109 @@ qs('#btnBoss').onclick = function(){
 
   qs('#btnLeaveBattle').onclick = leaveBattle;
 
-  // ====== 技能選單（動態建立覆蓋層）======
-  function openSkillMenu(){
-    if(!battle || battle.over){ return; }
-    if(!(battle.p && battle.p.atb >= 100)){ log('尚未輪到你行動'); return; }
+// ====== 技能系統函數 ======
+function getAvailableSkills(){
+  // 以 Game.getPlayer() 優先，否則用 P
+  var pl = (window.Game && typeof Game.getPlayer === 'function') ? Game.getPlayer() : P;
+  var out = new Set();
 
-    var skills = (P && Array.isArray(P.skills)) ? P.skills : [];
+  function addId(raw){
+    if(!raw) return;
+    var s = String(raw).trim();
+    if(!s) return;
+    out.add(s);
+  }
+  function addFromArray(arr){
+    for(var i=0;i<arr.length;i++){
+      var v = arr[i];
+      if(typeof v === 'string'){ addId(v); }
+      else if(v && (v.id || v.skillId || v.key)){ addId(v.id || v.skillId || v.key); }
+      else if(v && typeof v === 'object'){
+        // 兼容 [{name:'xxx', id:'xxx'}] or [{sid:'xxx'}]
+        addId(v.sid || v.name || v.title);
+      }
+    }
+  }
+  function addFromObject(obj){
+    var ks = Object.keys(obj||{});
+    for(var i=0;i<ks.length;i++){
+      var k = ks[i]; var v = obj[k];
+      var learned =
+        v === true || v === 1 || v === '1' ||
+        (v && (v.learned || v.unlocked || v.acquired || v.level > 0 || v.state === 'learned'));
+      if(learned) addId(k);
+      // 兼容 { k: { id:'xxx', learned:true } } 的怪格式
+      if(v && (v.id || v.skillId) && (v.learned || v.unlocked || v.acquired || v.level > 0)){
+        addId(v.id || v.skillId);
+      }
+    }
+  }
+  function collect(x){
+    if(!x) return;
+    if(Array.isArray(x)) return addFromArray(x);
+    if(typeof x === 'string') return addId(x);
+    if(typeof x === 'object') return addFromObject(x);
+  }
+
+  // 主要來源
+  collect(pl && pl.skills);
+
+  // 常見別名/其他存放點
+  collect(pl && pl.skillsLearned);
+  collect(pl && pl.skillsUnlocked);
+  collect(pl && pl.skillSet);
+  collect(pl && pl.skillMap);
+  collect(pl && pl.skillIds);
+
+  // 外觀/裝備可能掛的地方
+  collect(pl && pl.appearance && pl.appearance.skills);
+  collect(pl && pl.equip && pl.equip.skills);
+  collect(pl && pl.equip && pl.equip.character && pl.equip.character.skills);
+
+  // 最後輸出去重後的陣列
+  return Array.from(out);
+}
+
+
+function renderSkillsPanel(){
+// 🆕 野外地圖技能選單同步函數
+// 當外觀系統更新技能時會呼叫此函數，重新整理技能選單
+console.log('🎯 野外地圖技能選單已同步更新');
+
+// 如果當前有技能選單開啟，重新渲染
+var existingMenu = document.querySelector('[data-skill-menu="true"]');
+if (existingMenu) {
+  try {
+    document.body.removeChild(existingMenu);
+    // 延遲一點重新開啟，讓 DOM 有時間清理
+    setTimeout(function() {
+      if (battle && !battle.over && battle.p && battle.p.atb >= ATB_MAX) {
+        openSkillMenu();
+      }
+    }, 100);
+  } catch(_) {}
+}
+}
+
+
+  // ====== 技能選單（動態建立覆蓋層）======
+
+function openSkillMenu(){
+  if(!battle || battle.over){ return; }
+  // 🆕 與 updateCmdEnabled 的邏輯一致：必須滿 ATB_MAX 才能行動/開單
+  if(!(battle.p && typeof ATB_MAX === 'number' && battle.p.atb >= ATB_MAX)){
+    log('尚未輪到你行動'); 
+    return;
+  }
+
+    var skills = getAvailableSkills();
     // 建立覆蓋層（沿用 useItem 的簡易樣式風格）
     var menu = document.createElement('div');
     menu.style.position='fixed';
     menu.style.left='0'; menu.style.top='0';
     menu.style.right='0'; menu.style.bottom='0';
     menu.style.zIndex='9999';
+    menu.setAttribute('data-skill-menu', 'true');
 
     var mask = document.createElement('div');
     mask.style.position='absolute'; mask.style.left='0'; mask.style.top='0';
@@ -2048,8 +2239,22 @@ qs('#btnBoss').onclick = function(){
     }else{
       for(var i=0;i<skills.length;i++){
         var sid = skills[i];
-        var sk  = (window.SkillDB && SkillDB.get) ? SkillDB.get(sid) : null;
-        if(!sk) continue;
+        var sk = null;
+        if(window.SkillDB && typeof SkillDB.get === 'function'){
+          var key = String(sid).trim();
+          sk = SkillDB.get(key) || SkillDB.get(key.toLowerCase()) || SkillDB.get(key.toUpperCase());
+        }
+        if(!sk){
+          console.warn('[skills] 找不到技能定義：', sid);
+          continue;
+        }
+
+        // 🆕 檢查技能來源並添加標記
+        var skillSource = '';
+        if (P && P.skills && typeof P.skills === 'object' && P.skills[sid] && P.skills[sid].source === 'appearance') {
+          skillSource = '（外觀技能）';
+        }
+
 
         var row = document.createElement('div');
         row.style.display='grid';
@@ -2085,7 +2290,7 @@ qs('#btnBoss').onclick = function(){
 
         var sub = document.createElement('div');
         var elemText = (window.ELEMENT_LABEL && sk.elem) ? (ELEMENT_LABEL[sk.elem] || sk.elem) : '';
-        var desc = (sk.desc || '') + (elemText ? ('　[屬性：' + elemText + ']') : '');
+        var desc = (sk.desc || '') + (elemText ? ('　[屬性：' + elemText + ']') : '') + skillSource;
         sub.textContent = desc;
         sub.style.opacity='0.85';
         sub.style.fontSize='13px';
@@ -2127,76 +2332,117 @@ qs('#btnBoss').onclick = function(){
     document.body.appendChild(menu);
   }
 
-  // ====== 施放技能（扣 MP、計算傷害、進入敵方回合）======
-  function useSkill(sid){
-    if(!battle || battle.over) return false;
-    if(!(battle.p && battle.p.atb >= 100)){ log('尚未輪到你行動'); return false; }
+  /* === 技能橫幅：施放時顯示透明警示＆畫面輕微滑動 === */
+function showSkillBanner(skillName, elemKey){
+  try{
+    // 風格：元素中文名
+    var elabel = (window.ELEMENT_LABEL && ELEMENT_LABEL[elemKey]) ? ELEMENT_LABEL[elemKey] : '無';
+    // 外層
+    var host = document.createElement('div');
+    host.className = 'skill-banner';
+    host.innerHTML =
+      '<div class="wrap">'+
+        '<div class="title">使 出 技 能</div>'+
+        '<div class="name">'+ (skillName||'—') +'</div>'+
+        '<div class="elem-pill '+(elemKey||'none')+'">'+ elabel +'</div>'+
+      '</div>';
+    document.body.appendChild(host);
 
-    var sk  = (window.SkillDB && SkillDB.get) ? SkillDB.get(sid) : null;
-    if(!sk){ log('未知技能：' + sid, 'warn'); return false; }
+    // 畫面滑動（相機微移）
+    var app = document.querySelector('.app');
+    if(app){ app.classList.add('pan'); setTimeout(function(){ app.classList.remove('pan'); }, 420); }
 
-    // ── MP（真元）以物件 {cur,max} 為準；若是舊資料/異常則容錯
-    var need = sk.mp || 0;
-    var curMp = 0, mpMax = 0;
-    if (P && P.mp && typeof P.mp === 'object') {
-      curMp = +((P.mp.cur!=null)?P.mp.cur:0);
-      mpMax = +((P.mp.max!=null)?P.mp.max:0);
-    } else if (P && typeof P.mp === 'number') {
-      // 兼容舊存檔：把數字轉成 {cur,max}
-      curMp = P.mp|0;
-      mpMax = Math.max(curMp, mpMax|0);
-      P.mp = { cur: curMp, max: mpMax||curMp };
-    }
+    // 自動移除
+    setTimeout(function(){ try{ document.body.removeChild(host); }catch(_){ } }, 950);
+  }catch(_){}
+}
 
-    if(curMp < need){ log('真元不足（需要 ' + need + '）','warn'); return false; }
 
-    // ── 扣 MP（同步到戰鬥狀態與 UI）
-    var after = Math.max(0, curMp - need);
-    if (P && P.mp && typeof P.mp === 'object') {
-      P.mp.cur = after;
-      if (mpMax>0) P.mp.max = mpMax;              // 保持上限
-    }
-    if (battle.p){
-      battle.p.mp = after;
-      // 若有 mpMax/條件，保持一致（大多在進場時已計算）
-      if (typeof battle.p.mpMax === 'number' && mpMax>0) battle.p.mpMax = mpMax;
-    }
+// ====== 施放技能（扣 MP、計算傷害、進入敵方回合）======
+function useSkill(sid){
+  if(!battle || battle.over) return false;
+  if(!(battle.p && battle.p.atb >= ATB_MAX)){ log('尚未輪到你行動'); return false; }
 
-    // ── 傷害計算（由 skills.js 提供）
-    var r = (window.SkillDB && SkillDB.calcDamage) ? SkillDB.calcDamage(P, battle.enemy, sid) : null;
-    var dmg = 0, isCrit=false;
-    if(r){
-      dmg = Math.max(1, Math.floor(r.dmg || r.damage || 0));
-      isCrit = !!r.isCrit;
-    }
+  var sk  = (window.SkillDB && SkillDB.get) ? SkillDB.get(sid) : null;
+  if(!sk){ log('未知技能：' + sid, 'warn'); return false; }
 
-    // 造成傷害
-    battle.e.hp = Math.max(0, (battle.e.hp|0) - dmg);
-
-    // 日誌
-    var name = sk.name || sid;
-    log('你施放【' + name + '】對 ' + (battle.e.name||'敵人') + ' 造成 ' + dmg + ' 點傷害' + (isCrit ? '（暴擊）' : '') + '。');
-
-    // ★雷落額外效果：玩家本身是雷（spirit）時，回復 20 HP（原樣保留）
-    if(sid === 'thunder_drop' && P && P.element === 'spirit'){
-      var heal = 20;
-      var maxHp = (battle.p && battle.p.hpMax) ? battle.p.hpMax : ((P.hp && P.hp.max) ? P.hp.max : 0);
-      var curHp = (battle.p && typeof battle.p.hp === 'number') ? battle.p.hp : ((P.hp && P.hp.cur) ? P.hp.cur : 0);
-      curHp = Math.min(maxHp, curHp + heal);
-      if(battle.p) battle.p.hp = curHp;
-      if(P && P.hp){ P.hp.cur = curHp; P.hp.max = maxHp; }
-      log('雷落追加效果：你回復 ' + heal + ' 點氣血。','ok');
-    }
-
-    // 重置我方 ATB，輪到敵方
-    battle.p.atb = 0;
-    updateBattleBars();
-    if(battle.e.hp <= 0){ endCheck(); return true; }
-
-    setTimeout(function(){ enemyAttack(); }, 400);
-    return true;
-
+  // ── MP（真元）檢查
+  var need = sk.mp || 0;
+  var curMp = 0, mpMax = 0;
+  if (P && P.mp && typeof P.mp === 'object') {
+    curMp = +((P.mp.cur!=null)?P.mp.cur:0);
+    mpMax = +((P.mp.max!=null)?P.mp.max:0);
+  } else if (P && typeof P.mp === 'number') {
+    curMp = P.mp|0;
+    mpMax = Math.max(curMp, mpMax|0);
+    P.mp = { cur: curMp, max: mpMax||curMp };
   }
+
+  if(curMp < need){ log('真元不足（需要 ' + need + '）','warn'); return false; }
+
+  // ── 扣除 MP
+  var after = Math.max(0, curMp - need);
+  if (P && P.mp && typeof P.mp === 'object') {
+    P.mp.cur = after;
+    if (mpMax > 0) P.mp.max = mpMax;
+  }
+  if (battle.p){
+    battle.p.mp = after;
+    if (typeof battle.p.mpMax === 'number' && mpMax > 0) battle.p.mpMax = mpMax;
+  }
+
+  // ★ 技能橫幅（透明警示＋畫面滑動）
+  if (typeof showSkillBanner === 'function') {
+    showSkillBanner(sk.name, sk.elem);
+  }
+
+
+  // ── 🔥 簡化的技能傷害計算（只用威力）
+  if (!P._live) refreshLive();
+  var baseDamage = P._live['物理攻擊'] || 10;
+
+  // 技能威力直接作為倍率使用
+  var skillMultiplier = (sk.power || 100) / 100; // 120 -> 1.2倍，150 -> 1.5倍
+
+  // 計算技能傷害
+  var skillDamage = baseDamage * skillMultiplier;
+
+  // 暴擊判定 (10% 機率)
+  var isCrit = Math.random() < 0.1;
+  if (isCrit) {
+    skillDamage *= 1.5;
+  }
+
+  // 隨機變動 (±20%)
+  var dmg = Math.max(1, Math.floor(skillDamage * (0.8 + Math.random() * 0.4)));
+
+  // 造成傷害
+  battle.e.hp = Math.max(0, (battle.e.hp|0) - dmg);
+
+  // 顯示戰鬥訊息
+  var name = sk.name || sid;
+  var criticalText = isCrit ? '（暴擊）' : '';
+  log('你施放【' + name + '】對 ' + (battle.e.name||'敵人') + ' 造成 ' + dmg + ' 點傷害' + criticalText + '。');
+
+  // ★雷落額外效果（保持原有邏輯）
+  if(sid === 'thunder_drop' && P && P.element === 'spirit'){
+    var heal = 20;
+    var maxHp = (battle.p && battle.p.hpMax) ? battle.p.hpMax : ((P.hp && P.hp.max) ? P.hp.max : 0);
+    var curHp = (battle.p && typeof battle.p.hp === 'number') ? battle.p.hp : ((P.hp && P.hp.cur) ? P.hp.cur : 0);
+    curHp = Math.min(maxHp, curHp + heal);
+    if(battle.p) battle.p.hp = curHp;
+    if(P && P.hp){ P.hp.cur = curHp; P.hp.max = maxHp; }
+    log('雷落追加效果：你回復 ' + heal + ' 點氣血。','ok');
+  }
+
+  // 重置我方 ATB，輪到敵方
+  battle.p.atb = 0;
+  updateBattleBars();
+  if(battle.e.hp <= 0){ endCheck(); return true; }
+
+  setTimeout(function(){ enemyAttack(); }, 400);
+  return true;
+}
 
 
 /* ===== 啟動（以 API 為主，必要時用本地較新快取）===== */

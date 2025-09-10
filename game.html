@@ -132,10 +132,19 @@
   .chatbox{background:#060a1a; border:1px solid rgba(255,255,255,.2); border-radius:10px; position:relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,.4);}
   .corner-btn{position:absolute; width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-top:12px solid #fff; right:10px;}
   .corner-btn.top{top:-6px;} .corner-btn.bottom{bottom:-6px; transform:rotate(180deg);}
-  .log{height:92px; overflow:auto; padding:8px 10px; font-size:12px;} .log .item{line-height:1.5} .log .ok{color:var(--ok)} .log .warn{color:var(--warn)} .log .muted{color:var(--muted)}
+  .log{height:92px; overflow:auto; padding:8px 10px; font-size:10px;} .log .item{line-height:1.5} .log .ok{color:var(--ok)} .log .warn{color:var(--warn)} .log .muted{color:var(--muted)}
   .speak{display:flex; gap:8px; border-top:1px solid rgba(255,255,255,.1); padding:8px; background:#0a1024; border-radius:0 0 10px 10px;}
-  .speak input{flex:1; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:#fff; color:#111;}
-  .speak button{padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-weight:700;}
+  .speak input {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.15);
+    background: #fff;
+    color: #111;
+    height: 27px;  /* 新增這行來設定高度 */
+  }
+
+  .speak button{padding:3px 14px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-weight:700;}
 
   /* Modal、Bag 與邏輯相關樣式保持原樣（從 v4 完整版沿用） */
   .stage, .log { overscroll-behavior: contain; }
@@ -1926,15 +1935,21 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // 初始化外觀系統
-  if (window.Appearance && Appearance.mount) {
-    Appearance.mount({
-      getPlayer: function(){ return Game.getPlayer(); },
-      save:      function(){ return Game.save && Game.save(); },
-      recalc:    function(){ return Game.recalc && Game.recalc(); },
-      log:       function(t){ return Game.log ? Game.log(t) : console.log(t); }
-    });
-  }
+  // 再啟動遊戲
+  if (window.Game && Game.start) { Game.start(char); }
+
+  // 延遲初始化外觀系統，確保玩家資料已載入
+  setTimeout(function(){
+    if (window.Appearance && Appearance.mount) {
+      Appearance.mount({
+        getPlayer: function(){ return Game.getPlayer(); },
+        save:      function(){ return Game.save && Game.save(); },
+        recalc:    function(){ return Game.recalc && Game.recalc(); },
+        log:       function(t){ return Game.log ? Game.log(t) : console.log(t); }
+      });
+      console.log('✅ 外觀系統已掛載');
+    }
+  }, 200);
 
   // 再啟動遊戲
   if (window.Game && Game.start) { Game.start(char); }

@@ -20,7 +20,7 @@ const DB = {
 // === 原有普通怪（保留原圖） ===
 slime_young:{        
   id:'slime_young', name:'萊姆幼體', level:1, element:'none',   // 怪物ID/怪物名稱/等級/屬性（無屬性）
-  img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756700521/%E8%90%8A%E5%A7%86%E5%B9%BC%E9%AB%94_vbpjcf.png', imgMirror:false,   // 是否水平翻轉圖片
+  img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757507487/%E8%90%8A%E5%A7%86%E5%B9%BC%E9%AB%94_mrsay6.png', imgMirror:false,   // 是否水平翻轉圖片
   // 新版能力值（主用 stats；extra 裝你新增的細項，保持相容不報錯）
   stats:{ hp:92, mp:41, atk:10,  matk:2,  def:0,  mdef:0,  acc:60, eva:5, crit:3, aspd:1.00 },  // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
   extra:{ critDmg:50, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },         // 額外屬性：暴擊傷害/速度/回復魔力/回復生命/物理穿透/魔法穿透
@@ -38,7 +38,7 @@ slime_young:{
 
   slime:{
     id:'slime', name:'萊姆成體', level:2, element:'none',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756701712/%E8%90%8A%E5%A7%86%E6%88%90%E9%AB%94_gog4wl.png', imgMirror:false,
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757507487/%E8%90%8A%E5%A7%86%E6%88%90%E9%AB%94_zqui1l.png', imgMirror:false,
     appear:{ minPlayerLevel:2 }, // 出現條件：角色達到 2 等
     stats:{ hp:98, mp:41, atk:12,  matk:2,  def:1,  mdef:1,  acc:61, eva:5, crit:3, aspd:1.00 },
     extra:{ critDmg:51, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },
@@ -56,7 +56,7 @@ slime_young:{
 
   slime_king:{
     id:'slime_king', name:'史萊姆', level:3, element:'none',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756701968/%E5%8F%B2%E8%90%8A%E5%A7%86_llcjhj.png', imgMirror:false,
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757508388/%E5%8F%B2%E8%90%8A%E5%A7%86_xlo0qz.png', imgMirror:false,
     appear:{ minPlayerLevel:4 }, // 出現條件：角色達到 4 等
     stats:{ hp:105, mp:41, atk:14,  matk:2,  def:2,  mdef:1,  acc:62, eva:6, crit:3, aspd:1.00 },
     extra:{ critDmg:52, recover_mp:2, recover_hp:1, armorPen:1, magicPen:0 },
@@ -76,8 +76,7 @@ slime_young:{
   /* === 新增：木幽火（wood_wisp） === */
   wood_wisp:{
     id:'wood_wisp', name:'木幽火', level:4, element:'fire',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756917890/%E6%9C%A8%E5%B9%BD%E7%81%AB_c2r0th.png', imgMirror:false,
-    appear:{ minPlayerLevel:4 }, // 角色達到 4 等出現
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757512929/%E6%9C%A8%E5%B9%BD%E7%81%AB_azpqyy.png', imgMirror:false,
     stats:{ hp:120, mp:50, atk:11,  matk:5,  def:2,  mdef:3,  acc:62, eva:6, crit:3, aspd:1.00 },
     extra:{ critDmg:52, recover_mp:3, recover_hp:1, armorPen:0, magicPen:1 },
     skills:[
@@ -108,8 +107,7 @@ slime_young:{
   /* === 新增：火之靈（Fire_Spirit）=== */
   Fire_Spirit:{
     id:'Fire_Spirit', name:'火之靈', level:4, element:'fire',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756962118/%E7%81%AB%E4%B9%8B%E9%9D%88_fzypz6.png', imgMirror:false,
-    appear:{ minPlayerLevel:4 }, // 角色達到 4 等出現
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757512930/%E7%81%AB%E4%B9%8B%E9%9D%88_qgsyug.png', imgMirror:false,
     stats:{ hp:130, mp:40, atk:10,  matk:8,  def:2,  mdef:4,  acc:63, eva:8, crit:3, aspd:1.10 },
     extra:{ critDmg:53, recover_mp:3, recover_hp:1, armorPen:0, magicPen:1 },
     ai:{ pattern:'smart', note:'先 1~2 次普攻，之後只要有 MP 優先用技能' },
@@ -137,9 +135,34 @@ slime_young:{
   /* === 新增：萊利（laily）=== */
   laily:{
     id:'laily', name:'萊利', level:5, element:'fire',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757000187/%E8%90%8A%E5%88%A9_fvefjw.png', imgMirror:false,
-    appear:{ minPlayerLevel:5 }, // 角色達到 5 等出現
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757513124/%E8%90%8A%E5%88%A9_nmxv1h.png', imgMirror:false,
     stats:{ hp:140, mp:45, atk:13,  matk:6,  def:3,  mdef:4,  acc:65, eva:8, crit:4, aspd:1.10 },
+    extra:{ critDmg:55, recover_mp:3, recover_hp:1, armorPen:1, magicPen:1 },
+    skills:[
+      {
+        id:'fire_kiss', name:'火吻', elem:'fire', kind:'magic', power:120, mp:15,
+        desc:'造成120%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
+        onHit:{
+          burn:{ seconds:10, perSecondHP:-2,
+            chanceBase:0.10, vsHigher5:0.05, vsFire:0.00, vsGrass:0.15
+          }
+        }
+      }
+    ],
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',     name:'靈石',   min:25, max:28, chance:1.00},
+      {type:'material',  id:'fire_seed', name:'火種',   min:1,  max:2,  chance:0.60},
+      {type:'consumable',id:'hp_small',  name:'小氣血丹', min:1, max:1, chance:0.60},
+      {type:'accessory', id:'jade_ring', name:'翠玉戒指', min:1, max:1, chance:0.80}
+    ]
+  },
+  /* === 聚火靈=== */
+  fire_orb:{
+    id:'fire_orb', name:'聚火靈', level:6, element:'fire',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757513832/%E8%81%9A%E7%81%AB%E9%9D%88_yaenqp.png', imgMirror:false,
+    stats:{ hp:160, mp:50, atk:15,  matk:7,  def:4,  mdef:5,  acc:67, eva:10, crit:5, aspd:1.00 },
     extra:{ critDmg:55, recover_mp:3, recover_hp:1, armorPen:1, magicPen:1 },
     skills:[
       {
@@ -165,7 +188,7 @@ slime_young:{
 
   // ★ 原有 BOSS（保留原圖）
   slime_boss: {
-    id:'slime_boss', name:'萊姆王', level:3, element:'none',
+    id:'slime_boss', name:'萊姆王', level:3, element:'none',rank: 'boss',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756707781/%E5%8F%B2%E8%90%8A%E7%8E%8B_kzopon.png', imgMirror:false,
     scales:{}, 
     stats:{ hp:415, mp:60, atk:21, matk:22, def:9, mdef:12, acc:85, eva:6, crit:5, aspd:1.10 },
@@ -178,11 +201,11 @@ slime_young:{
     ]
   },
 
-  thorn_fox:{
-    id:'thorn_fox', name:'荊棘毒狐', level:3, element:'wood',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756830089/%E8%8D%8A%E6%A3%98%E6%AF%92%E7%8B%90_ibbaqp.png', imgMirror:false,
-    scales:{ '命中率':1.05, '閃避':1.10, '行動條速度':1.10 },
-    stats:{ hp:180, mp:49, atk:17, matk:11, def:10, mdef:8, acc:85, eva:9, crit:6, aspd:1.15 },
+  flame_master:{
+    id:'flame_master', name:'炎使者', level:6, element:'fire',rank: 'boss',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757518547/%E7%82%8E%E4%BD%BF%E8%80%85_gpdouc.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:550, mp:110, atk:27, matk:25, def:14, mdef:15, acc:87, eva:10, crit:6, aspd:1.50 },
     drops:[
       {type:'currency',  id:'stone',       name:'靈石',      min:10, max:22, chance:1.00},
       {type:'material',  id:'fox_tail',    name:'靈狐尾',    min:1,  max:1,  chance:0.40},
@@ -190,7 +213,7 @@ slime_young:{
     ]
   },
   stone_golem:{
-    id:'stone_golem', name:'石像守衛', level:4, element:'earth',
+    id:'stone_golem', name:'石像守衛', level:4, element:'earth',rank: 'boss',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756917889/%E7%9F%B3%E5%83%8F%E5%AE%88%E8%A1%9B_dqcolr.png', imgMirror:false,
     scales:{ '氣血上限':1.20, '物理防禦':1.20, '行動條速度':0.80 },
     stats:{ hp:300, mp:39, atk:25, matk:10, def:23, mdef:14, acc:82, eva:4, crit:3, aspd:0.90 },
@@ -201,7 +224,7 @@ slime_young:{
     ]
   },
   wraith:{
-    id:'wraith', name:'幽怨亡靈', level:5, element:'dark',
+    id:'wraith', name:'幽怨亡靈', level:5, element:'dark',rank: 'boss',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756917889/%E5%B9%BD%E6%80%A8%E4%BA%A1%E9%9D%88_ac6oug.png', imgMirror:false,
     scales:{ '法術攻擊':1.15, '法術防禦':1.10, '行動條速度':0.95 },
     stats:{ hp:270, mp:110, atk:20, matk:30, def:13, mdef:25, acc:88, eva:9, crit:7, aspd:1.10 },
@@ -212,7 +235,7 @@ slime_young:{
     ]
   },
   snow_wolf:{
-    id:'snow_wolf', name:'雪原狼', level:3, element:'water',
+    id:'snow_wolf', name:'雪原狼', level:3, element:'water',rank: 'boss',
     img:'https://picsum.photos/seed/snowwolf/500/500', imgMirror:false,
     scales:{ '命中率':1.05, '閃避':1.05, '行動條速度':1.05 },
     stats:{ hp:178, mp:41, atk:16, matk:10, def:10, mdef:8, acc:84, eva:8, crit:5, aspd:1.12 },
@@ -223,7 +246,7 @@ slime_young:{
     ]
   },
   ice_bear:{
-    id:'ice_bear', name:'冰原巨熊', level:4, element:'water',
+    id:'ice_bear', name:'冰原巨熊', level:4, element:'water',rank: 'boss',
     img:'https://picsum.photos/seed/icebear/500/500', imgMirror:false,
     scales:{ '氣血上限':1.10, '物理攻擊':1.10, '物理防禦':1.10, '行動條速度':0.90 },
     stats:{ hp:318, mp:30, atk:25, matk:10, def:22, mdef:12, acc:80, eva:3, crit:3, aspd:0.95 },
@@ -234,7 +257,7 @@ slime_young:{
     ]
   },
   ice_thorn:{
-    id:'ice_thorn', name:'寒棘', level:4, element:'water',
+    id:'ice_thorn', name:'寒棘', level:4, element:'water',rank: 'boss',
     img:'https://picsum.photos/seed/icethorn/500/500', imgMirror:false,
     scales:{ '法術攻擊':1.05, '法術防禦':1.05, '行動條速度':0.95 },
     stats:{ hp:264, mp:65, atk:19, matk:23, def:15, mdef:19, acc:87, eva:7, crit:5, aspd:1.06 },

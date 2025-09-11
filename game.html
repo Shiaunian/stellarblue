@@ -510,13 +510,13 @@
 const qs = s=>document.querySelector(s);
 
 // ★ 改用 stats.js 提供的工具函數
-const clamp = GameUtils.clamp;
-const pct = GameUtils.pct;
-const fmt = GameUtils.fmt;
-const fmtCompact = GameUtils.fmtCompact;
 
-// ★ 改用 stats.js 提供的元素標籤（基礎版）
-const ELEMENT_LABEL = ELEMENT_LABEL_BASIC;
+const clamp = (v,min,max) => GameUtils.clamp(v,min,max);
+const pct = (cur,max) => GameUtils.pct(cur,max);
+const fmt = (n) => GameUtils.fmt(n);
+const fmtCompact = (n) => GameUtils.fmtCompact(n);
+
+
 
 /* ===== 屬性/定義 ===== */
 // ★ 改用 stats.js 提供的基礎屬性定義
@@ -1366,10 +1366,11 @@ function openBagAction(type, idx){
     qs('#actLeft').innerHTML   = buildDetailHTML('consumable', it, def);
     qs('#actRight').textContent = subRight;
 
-btnsHtml = ''
-  + '<button class="opx primary" data-op="equip" data-type="weapon" data-idx="'+idx+'">裝備</button>'
-  + '<button class="opx"         data-op="sell"  data-type="weapon" data-idx="'+idx+'">販賣</button>'
-  + '<button class="opx"         data-op="throw" data-type="weapon" data-idx="'+idx+'">丟棄</button>';
+    btnsHtml = ''
+      + '<button class="opx primary" data-op="use"   data-type="consumable" data-idx="'+idx+'">使用</button>'
+      + '<button class="opx"         data-op="sell"  data-type="consumable" data-idx="'+idx+'">販賣</button>'
+      + '<button class="opx"         data-op="throw" data-type="consumable" data-idx="'+idx+'">丟棄</button>';
+
 
 
   } else if (type === 'material') {
@@ -1389,8 +1390,10 @@ btnsHtml = ''
     qs('#actRight').textContent = subRight;
 
     btnsHtml = ''
-      + '<button class="opx" data-op="sell"  data-type="material" data-idx="'+idx+'">販賣</button>'
-      + '<button class="opx" data-op="throw" data-type="material" data-idx="'+idx+'">丟棄</button>';
+      + '<button class="opx"         data-op="sell"  data-type="material" data-idx="'+idx+'">販賣</button>'
+      + '<button class="opx"         data-op="throw" data-type="material" data-idx="'+idx+'">丟棄</button>';
+
+
 
   } else if (type === 'weapon') {
     const w   = (P.bag.weapons || [])[idx]; if (!w) return;
@@ -1413,9 +1416,12 @@ btnsHtml = ''
     qs('#actLeft').innerHTML   = buildDetailHTML('weapon', w, def);
     qs('#actRight').textContent = subRight;
 
-    btnsHtml = ''
-      + '<button class="opx primary" data-op="equip" data-type="ornament" data-idx="'+idx+'">裝備</button>'
-      + '<button class="opx"         data-op="throw" data-type="ornament" data-idx="'+idx+'">丟棄</button>';
+  // ✅ 正確
+  btnsHtml = ''
+    + '<button class="opx primary" data-op="equip" data-type="weapon" data-idx="'+idx+'">裝備</button>'
+    + '<button class="opx"         data-op="sell"  data-type="weapon" data-idx="'+idx+'">販賣</button>'
+    + '<button class="opx"         data-op="throw" data-type="weapon" data-idx="'+idx+'">丟棄</button>';
+
 
 
   } else if (type === 'ornament') {

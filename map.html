@@ -653,122 +653,10 @@ const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const pct=(cur,max)=> (max>0? clamp(Math.round(cur/max*100),0,100) : 0);
 const fmt=(n)=> new Intl.NumberFormat('zh-Hant').format(n);
 
-/* ===== 元素＆相剋表（18屬性版） ===== */
-const ELEMENT_LABEL = {
-  none:'無', fire:'火', water:'水', grass:'草',
-  thunder:'雷', body:'體', poison:'毒', earth:'土',
-  wind:'風', mind:'超', bug:'蟲', rock:'岩',
-  soul:'魂', ice:'冰', dragon:'龍', dark:'暗',
-  steel:'鋼', demon:'妖'
-};
+/* ===== 元素系統（已移至 stats.js） ===== */
+// 所有元素相關函數都在 stats.js 中定義
+// 這裡只需要確保能正常使用即可
 
-// 攻擊方「剋制」與「被剋制」清單
-window.ELEM_STRONG = {
-  none: [],
-  fire:    ['grass','ice','bug','steel'],
-  water:   ['fire','earth','rock'],
-  grass:   ['water','earth','rock'],
-  thunder: ['wind','water'],
-  body:    ['dark','ice','rock','steel','none'],
-  poison:  ['grass','demon'],
-  earth:   ['fire','thunder','poison','rock','steel'],
-  wind:    ['grass','body','bug'],
-  mind:    ['body','poison'],
-  bug:     ['mind','grass','dark'],
-  rock:    ['fire','ice','bug','wind'],
-  soul:    ['soul','mind'],
-  ice:     ['dragon','wind','grass','earth'],
-  dragon:  ['dragon'],
-  dark:    ['soul','mind'],
-  steel:   ['demon','rock','ice'],
-  demon:   ['dark','dragon','body']
-};
-window.ELEM_WEAK = {
-  none:    ['body'], // 無元素被體剋
-  fire:    ['water','earth','rock'],
-  water:   ['thunder','grass'],
-  grass:   ['fire','ice','poison','wind','bug'],
-  thunder: ['earth'],
-  body:    ['wind','mind','demon'],
-  poison:  ['earth','mind'],
-  earth:   ['water','grass','ice'],
-  wind:    ['thunder','ice','rock'],
-  mind:    ['bug','soul','dark'],
-  bug:     ['fire','wind','rock'],
-  rock:    ['water','grass','body','earth','steel'],
-  soul:    ['soul','dark'],
-  ice:     ['fire','body','rock','steel'],
-  dragon:  ['ice','dragon','demon'],
-  dark:    ['body','bug','demon'],
-  steel:   ['火'.replace('火','fire'),'body','earth'], // 註：等價 fire/body/earth
-  demon:   ['poison','steel']
-};
-
-// 倍率常數（可微調）
-window.ELEM_MUL_STRONG = 1.2;
-window.ELEM_MUL_WEAK   = 0.8;
-window.ELEM_MUL_NEUT   = 1.0;
-window.ELEM_MUL_DOUBLE_STRONG = 2.0;
-
-  // 本源加成（同屬性 / 異屬性）；無元素不受影響
-  window.STAB_SAME = 1.15;   // 同屬性加成
-  window.STAB_DIFF = 1.0;   // 異屬性減成
-  // 舊版相容
-  window.STAB = window.STAB_SAME;
-
-
-// 計算相剋倍率；defElems 可為字串或陣列
-window.getElemMultiplier = function(atkElem, defElems){
-  if (!atkElem || atkElem==='none') return 1.0; // 無元素攻擊一律中性
-
-  var defs = Array.isArray(defElems) ? defElems.slice(0) : [defElems];
-  var cleaned = [];
-  for (var i=0;i<defs.length;i++){ if(defs[i] && defs[i]!=='none') cleaned.push(defs[i]); }
-  if (cleaned.length===0) return 1.0;
-
-  var strong = window.ELEM_STRONG[atkElem] || [];
-  var weak   = window.ELEM_WEAK[atkElem]   || [];
-
-  var s=0,w=0,i=0;
-  for(i=0;i<cleaned.length;i++){
-    var d = cleaned[i];
-    var j=0,hitS=false,hitW=false;
-    for(j=0;j<strong.length;j++){ if(strong[j]===d){ hitS=true; break; } }
-    for(j=0;j<weak.length;j++){ if(weak[j]===d){ hitW=true; break; } }
-    if (hitS) s=s+1;
-    if (hitW) w=w+1;
-  }
-
-  if (s>=2) return window.ELEM_MUL_DOUBLE_STRONG; // 兩個都被剋制
-  if (s>=1 && w>=1) return window.ELEM_MUL_NEUT;  // 一剋一抵
-  if (s>=1) return window.ELEM_MUL_STRONG;        // 一剋一無關
-  if (w>=1) return window.ELEM_MUL_WEAK;
-  return window.ELEM_MUL_NEUT;
-};
-
-// 舊函式相容：單/雙防禦元素都可
-function elemMult(atkElem, defElemOrElems){
-  return window.getElemMultiplier(atkElem, defElemOrElems);
-}
-
-// 顯示相剋說明（摘要）
-function elemRelationText(atk){
-  var strong = window.ELEM_STRONG[atk] || [];
-  var weak   = window.ELEM_WEAK[atk]   || [];
-  var s = strong.map(function(k){ return ELEMENT_LABEL[k]||k; }).join('、');
-  var w = weak.map(function(k){ return ELEMENT_LABEL[k]||k; }).join('、');
-  return '攻克：' + (s||'無') + '；弱於：' + (w||'無');
-}
-
-// 將元素對應關係轉成易讀的片語（固定顯示，×1.00 也會寫出來）
-function elemRelationText(atkElem, defElem, elemMul, stabMul){
-  // 只有克制/受克才顯示；相同或中性不顯示
-  var m = (typeof elemMul === 'number') ? elemMul : 1;
-  if (m === 1) return '';
-  var label = (m > 1) ? '克制' : '受克';
-  var pct   = Math.round(Math.abs(m - 1) * 100);
-  return '（' + label + ' ' + (m>1?'+':'-') + pct + '%）';
-}
 
 
 // 玩家預設立繪（若沒有 avatar 才用這張）
@@ -1610,16 +1498,33 @@ function enemyAttack(){
     var hpRate = Math.max(0, battle.e.hp) / Math.max(1, battle.e.hpMax);
     var useChance = (typeof s.chance==='number'?s.chance:0) + ((hpRate < 0.5) ? (typeof s.lowHpBonus==='number'?s.lowHpBonus:0) : 0);
     if (Math.random() < useChance){
-      var magic = calcMagicDamageFromEnemy(s.elem || 'none');
-      battle.p.hp = clamp(battle.p.hp - magic.dmg, 0, battle.p.hpMax);
-      showHit('player', magic.dmg, false, 'hit');
-      var rel2 = elemRelationText(magic.atkElem, magic.defElem, magic.elemMul, magic.stabMul);
-      log(E.name + ' 施放「' + s.name + '」，對你造成 ' + magic.dmg + ' 法術傷害 ' + rel2);
+      // 🌟 添加技能預告訊息
+      log('💀 ' + E.name + ' 準備施放「' + s.name + '」！', 'warn');
+      
+      // ★ 敵人技能橫幅效果（與玩家相同）
+      if (typeof showSkillBanner === 'function') {
+        showSkillBanner('敵人施放：' + s.name, s.elem);
+      }
+      
+      var damage;
+      if (s.kind === 'physical') {
+        damage = calcPhysicalDamageFromEnemy(s.elem || 'none', s.power || 100);
+        showHit('player', damage.dmg, false, 'hit');
+        var rel2 = elemRelationText(damage.atkElem, damage.defElem, damage.elemMul, damage.stabMul);
+        log(E.name + ' 施放「' + s.name + '」，對你造成 ' + damage.dmg + ' 物理傷害 ' + rel2);
+      } else {
+        damage = calcMagicDamageFromEnemy(s.elem || 'none', s.power || 100);
+        showHit('player', damage.dmg, false, 'hit');
+        var rel2 = elemRelationText(damage.atkElem, damage.defElem, damage.elemMul, damage.stabMul);
+        log(E.name + ' 施放「' + s.name + '」，對你造成 ' + damage.dmg + ' 法術傷害 ' + rel2);
+      }
+      battle.p.hp = clamp(battle.p.hp - damage.dmg, 0, battle.p.hpMax);
       applyDotToPlayer(s.dps|0, s.duration|0, s.name);
       endCheck();
       updateBattleBars();
       return;
     }
+
   }
   var r = calcDamage(false);
   if (r.miss){
@@ -1635,23 +1540,52 @@ function enemyAttack(){
   updateBattleBars();
 }
 
-function calcMagicDamageFromEnemy(atkElem){
+
+// ★ 新增：敵人物理技能傷害計算
+function calcPhysicalDamageFromEnemy(atkElem, power){
   atkElem = atkElem || 'none';
+  power = power || 100;
   var eS = battle.enemyStats || {};
-  var matk = Math.max(1, eS.matk || 8);
-  var mpen = Math.max(0, eS.mpen || 0);
+  var atk = Math.max(1, eS.atk || 8);
+  var pen = Math.max(0, eS.pen || 0);
   if (!P._live) refreshLive();
-  var pMdef0  = Math.max(0, (P._live['法術防禦']||0));
-  var effMdef = Math.max(0, pMdef0 - mpen);
-  var base = Math.max(1, matk - effMdef);
+  var pDef0  = Math.max(0, (P._live['物理防禦']||0));
+  var effDef = Math.max(0, pDef0 - pen);
+  
+  // 套用技能威力
+  var base = Math.max(1, (atk * power / 100) - effDef);
   base = Math.round(base * (0.9 + Math.random()*0.2));
   var out = Math.max(1, Math.round(base));
+  
   var defElem = (P && (P.element||P.elem)) ? (P.element||P.elem) : 'none';
   var elemMul = elemMult(atkElem, defElem);
   var stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
   out = Math.max(1, Math.round(out * elemMul * stabMul));
   return { dmg: out, atkElem:atkElem, defElem:defElem, elemMul:elemMul, stabMul:stabMul };
 }
+
+function calcMagicDamageFromEnemy(atkElem, power){
+  atkElem = atkElem || 'none';
+  power = power || 100;
+  var eS = battle.enemyStats || {};
+  var matk = Math.max(1, eS.matk || 8);
+  var mpen = Math.max(0, eS.mpen || 0);
+  if (!P._live) refreshLive();
+  var pMdef0  = Math.max(0, (P._live['法術防禦']||0));
+  var effMdef = Math.max(0, pMdef0 - mpen);
+  
+  // 套用技能威力
+  var base = Math.max(1, (matk * power / 100) - effMdef);
+  base = Math.round(base * (0.9 + Math.random()*0.2));
+  var out = Math.max(1, Math.round(base));
+  
+  var defElem = (P && (P.element||P.elem)) ? (P.element||P.elem) : 'none';
+  var elemMul = elemMult(atkElem, defElem);
+  var stabMul = (atkElem!=='none') ? (window.STAB||1) : 1;
+  out = Math.max(1, Math.round(out * elemMul * stabMul));
+  return { dmg: out, atkElem:atkElem, defElem:defElem, elemMul:elemMul, stabMul:stabMul };
+}
+
 
 function applyDotToPlayer(dps, seconds, label){
   dps = dps|0; seconds = seconds|0; label = label || '持續傷害';

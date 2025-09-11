@@ -24,7 +24,9 @@ slime_young:{
   // 新版能力值（主用 stats；extra 裝你新增的細項，保持相容不報錯）
   stats:{ hp:92, mp:41, atk:10,  matk:2,  def:0,  mdef:0,  acc:60, eva:5, crit:3, aspd:1.00 },  // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
   extra:{ critDmg:50, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },         // 額外屬性：暴擊傷害/速度/回復魔力/回復生命/物理穿透/魔法穿透
-  skills:[], // 無技能
+  skills:[
+    { id:'dash', name:'衝撞', elem:'none', kind:'physical', power:110, mp:6, desc:'造成120%無屬性物理傷害', chance: 0.30, lowHpBonus: 0.20 }
+  ],
       // 額外經驗：+5；若玩家等級超過10等則不給（僅註記，不影響相容）
   xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
   drops:[
@@ -42,7 +44,9 @@ slime_young:{
     appear:{ minPlayerLevel:2 }, // 出現條件：角色達到 2 等
     stats:{ hp:98, mp:41, atk:12,  matk:2,  def:1,  mdef:1,  acc:61, eva:5, crit:3, aspd:1.00 },
     extra:{ critDmg:51, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },
-    skills:[], // 無
+    skills:[
+      { id:'dash', name:'衝撞', elem:'none', kind:'physical', power:110, mp:6, desc:'造成120%無屬性物理傷害', chance: 0.30, lowHpBonus: 0.20 }
+    ],
         // 額外經驗：+5；若玩家等級超過10等則不給（僅註記，不影響相容）
     xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
@@ -53,7 +57,6 @@ slime_young:{
     ]
   },
 
-
   slime_king:{
     id:'slime_king', name:'史萊姆', level:3, element:'none',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757508388/%E5%8F%B2%E8%90%8A%E5%A7%86_xlo0qz.png', imgMirror:false,
@@ -61,7 +64,7 @@ slime_young:{
     stats:{ hp:105, mp:41, atk:14,  matk:2,  def:2,  mdef:1,  acc:62, eva:6, crit:3, aspd:1.00 },
     extra:{ critDmg:52, recover_mp:2, recover_hp:1, armorPen:1, magicPen:0 },
     skills:[
-      { id:'dash', name:'高速衝撞', elem:'none', kind:'physical', power:120, mp:6, desc:'造成120%無屬性物理傷害' }
+      { id:'dash', name:'高速衝撞', elem:'none', kind:'physical', power:120, mp:10, desc:'造成120%無屬性物理傷害', chance: 0.35, lowHpBonus: 0.25 }
     ],
     // 額外經驗：+5；若玩家等級超過10等則不給（僅註記，不影響相容）
     xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
@@ -83,7 +86,7 @@ slime_young:{
       {
         id:'ember', name:'火苗', elem:'fire', kind:'magic', power:110, mp:12,
         desc:'造成110%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
-        // 狀態與例外條件（先存資料，實作可在戰鬥流程讀取）
+        chance: 0.25, lowHpBonus: 0.20,
         onHit:{
           burn:{ seconds:10, perSecondHP:-2,
             chanceBase:0.10,   // 一般 10%
@@ -94,6 +97,7 @@ slime_young:{
         }
       }
     ],
+
     // 額外經驗 +5；若玩家等級 > 10 不給
     xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
@@ -115,6 +119,7 @@ slime_young:{
       {
         id:'fire_kiss', name:'火吻', elem:'fire', kind:'magic', power:120, mp:15,
         desc:'造成120%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
+        chance: 0.30, lowHpBonus: 0.25,
         onHit:{
           burn:{ seconds:10, perSecondHP:-2,
             chanceBase:0.10, vsHigher5:0.05, vsFire:0.00, vsGrass:0.15
@@ -142,6 +147,7 @@ slime_young:{
       {
         id:'fire_kiss', name:'火吻', elem:'fire', kind:'magic', power:120, mp:15,
         desc:'造成120%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
+        chance: 0.30, lowHpBonus: 0.25,
         onHit:{
           burn:{ seconds:10, perSecondHP:-2,
             chanceBase:0.10, vsHigher5:0.05, vsFire:0.00, vsGrass:0.15
@@ -168,6 +174,7 @@ slime_young:{
       {
         id:'fire_kiss', name:'火吻', elem:'fire', kind:'magic', power:120, mp:15,
         desc:'造成120%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
+        chance: 0.30, lowHpBonus: 0.25,
         onHit:{
           burn:{ seconds:10, perSecondHP:-2,
             chanceBase:0.10, vsHigher5:0.05, vsFire:0.00, vsGrass:0.15
@@ -189,15 +196,16 @@ slime_young:{
   // ★ 原有 BOSS（保留原圖）
   slime_boss: {
     id:'slime_boss', name:'萊姆王', level:3, element:'none',rank: 'boss',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756707781/%E5%8F%B2%E8%90%8A%E7%8E%8B_kzopon.png', imgMirror:false,
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756707781/%E5%8F%B2%E8%90%8A%E7%8E%8B_kzopon.png', imgMirror:false,  
     scales:{}, 
-    stats:{ hp:415, mp:60, atk:21, matk:22, def:9, mdef:12, acc:85, eva:6, crit:5, aspd:1.10 },
+    stats:{ hp:250, mp:60, atk:21, matk:22, def:9, mdef:12, acc:85, eva:6, crit:5, aspd:1.00 },  // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
+    extra:{ critDmg:50, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },    // 額外屬性：暴擊傷害/回復魔力/回復生命/物理穿透/魔法穿透
     skills: [
-      { id:'slime_wave', name:'萊姆波動', kind:'magic_dot', elem:'none', dps:4, duration:5, chance:0.25, lowHpBonus:0.35 }
+      { id:'slime_wave', name:'萊姆波動', kind:'magic_dot', elem:'none', dps:4, duration:5, chance:0.25, lowHpBonus:0.35 } 
     ],
     drops:[
-      {type:'currency',  id:'stone',       name:'靈石',       min:28, max:40, chance:1.00},
-      {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:3,  max:4,  chance:1.00},
+      {type:'currency',  id:'stone',       name:'靈石',       min:70, max:125, chance:1.00},
+      {type:'material',  id:'slime_jelly', name:'萊姆核心', min:3,  max:4,  chance:0.05},
     ]
   },
 
@@ -206,12 +214,16 @@ slime_young:{
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757518547/%E7%82%8E%E4%BD%BF%E8%80%85_gpdouc.png', imgMirror:false,
     scales:{},
     stats:{ hp:550, mp:110, atk:27, matk:25, def:14, mdef:15, acc:87, eva:10, crit:6, aspd:1.50 },
+    skills:[
+      { id:'flame_burst', name:'烈焰爆發', elem:'fire', kind:'magic_dot', dps:8, duration:6, chance:0.40, lowHpBonus:0.35 }
+    ],
     drops:[
       {type:'currency',  id:'stone',       name:'靈石',      min:10, max:22, chance:1.00},
       {type:'material',  id:'fox_tail',    name:'靈狐尾',    min:1,  max:1,  chance:0.40},
       {type:'material',  id:'thorn_shard', name:'荊棘碎片',  min:1,  max:3,  chance:0.70},
     ]
   },
+
   stone_golem:{
     id:'stone_golem', name:'石像守衛', level:4, element:'earth',rank: 'boss',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756917889/%E7%9F%B3%E5%83%8F%E5%AE%88%E8%A1%9B_dqcolr.png', imgMirror:false,

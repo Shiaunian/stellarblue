@@ -107,7 +107,10 @@
 </div>`);
       document.body.appendChild(node);
 
-      document.addEventListener('click', onClick, true);
+    const modal = document.getElementById('eqModal');
+    if (modal) {
+      modal.addEventListener('click', onClick);
+    }
       document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') close(); });
     }
 

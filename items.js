@@ -108,6 +108,13 @@
         price: 8000, stackable: true,
         icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757510184/%E4%BF%AE%E4%BB%99%E4%BA%9E%E7%B5%B2%E5%A8%9C_iyrl5i.png",
         desc: "從現實世界穿越過來的橫溝，是一位冰系使用者。"
+      },
+      { id: "night_yu", name: "夜神宇", rarity: "稀", level: 3,
+        effect: { hp: 80, atk: 6, def: 3, aspd: 10, eva: 3, 'matk': 3 },
+        grantSkills: ["psychic", "telekinesis","mind_blast"],  // 裝備外觀後賦予技能
+        price: 18000, stackable: true,
+        icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757691625/%E5%A4%9C%E7%A5%9E%E5%AE%87_drztxi.png",
+        desc: "自現代都市的普通青年，在一次神秘的時空異象中意外穿越到異世界。跨越位面的過程中，他的身體承受了巨大的時空能量衝擊，因此覺醒了前所未有的超能力。"
       }
     ],
 

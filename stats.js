@@ -49,68 +49,95 @@ function derivedFrom(player){
   return out;
 }
 
-// ===== 🔥 新增：傷害計算函數 =====
-function calcDamage(attacker, defender, skillData) {
-  // 取得攻擊者和防禦者的屬性
-  var attackerStats = derivedFrom(attacker);
-  var defenderStats = derivedFrom(defender);
+// ===== 🎯 新增：相對速度 ATB 計算函數 =====
+function calculateATBStep(playerSpeed, enemySpeed, targetType) {
+  // 遊戲節奏設定
+  var IDEAL_ACTION_TIME = 3.5; // 3.5秒一次行動
+  var TICK_INTERVAL = 60; // 60ms per tick
+  var IDEAL_TICKS = (IDEAL_ACTION_TIME * 1000) / TICK_INTERVAL;
   
-  // 預設為物理攻擊
-  var damageType = (skillData && skillData.type) ? skillData.type : 'physical';
-  var skillPower = (skillData && skillData.power) ? skillData.power : 1.0;
+  // 計算基礎增長
+  var baseStep = Math.round(1000 / IDEAL_TICKS);
   
-  var damage = 0;
-  var isCritical = false;
+  // 速度比例（確保最小值）
+  var totalSpeed = Math.max(playerSpeed + enemySpeed, 100);
+  var targetSpeed = (targetType === 'player') ? playerSpeed : enemySpeed;
+  var speedRatio = targetSpeed / totalSpeed;
   
-  if (damageType === 'physical') {
-    // 物理傷害計算
-    var attack = attackerStats['物理攻擊'];
-    var defense = defenderStats['物理防禦'];
-    var penetration = attackerStats['破甲'];
-    
-    // 計算有效防禦力（破甲減少防禦）
-    var effectiveDefense = Math.max(0, defense - penetration);
-    
-    // 基礎傷害 = 攻擊力 * 技能倍率 - 有效防禦
-    damage = Math.max(1, Math.floor((attack * skillPower) - effectiveDefense));
-    
-  } else if (damageType === 'magical') {
-    // 法術傷害計算
-    var magicAttack = attackerStats['法術攻擊'];
-    var magicDefense = defenderStats['法術防禦'];
-    var magicPenetration = attackerStats['法穿'];
-    
-    // 計算有效法防
-    var effectiveMagicDefense = Math.max(0, magicDefense - magicPenetration);
-    
-    // 基礎法術傷害
-    damage = Math.max(1, Math.floor((magicAttack * skillPower) - effectiveMagicDefense));
-  }
+  // 最終增長值（*2.2 讓差距更明顯）
+  var step = Math.max(1, Math.round(baseStep * speedRatio * 2.2));
   
-  // 暴擊判定
-  var criticalChance = attackerStats['暴擊率'];
-  var criticalRoll = Math.random() * 100;
-  
-  if (criticalRoll < criticalChance) {
-    isCritical = true;
-    var criticalDamage = attackerStats['暴擊傷害'];
-    damage = Math.floor(damage * (100 + criticalDamage) / 100);
-  }
-  
-  // 隨機浮動 ±10%
-  var randomFactor = 0.9 + (Math.random() * 0.2);
-  damage = Math.floor(damage * randomFactor);
-  
-  // 最少傷害為1
-  damage = Math.max(1, damage);
-  
-  return {
-    damage: damage,
-    isCritical: isCritical,
-    damageType: damageType
-  };
+  return step;
 }
 
+// ===== 🔥 修正：傷害計算函數 =====
+function calcDamage(attacker, defender, skillData) {
+// 取得攻擊者和防禦者的屬性
+var attackerStats = derivedFrom(attacker);
+var defenderStats = derivedFrom(defender);
+
+// 預設為物理攻擊
+var damageType = (skillData && skillData.type) ? skillData.type : 'physical';
+
+// 🔥 修正：技能威力處理（110 -> 1.1倍）
+var skillPower = 1.0;
+if (skillData && typeof skillData.power === 'number') {
+  skillPower = skillData.power / 100; // 110 -> 1.1
+} else if (skillData && typeof skillData.power === 'string') {
+  skillPower = parseFloat(skillData.power) / 100;
+}
+
+var damage = 0;
+var isCritical = false;
+
+if (damageType === 'physical') {
+  // 物理傷害計算
+  var attack = attackerStats['物理攻擊'];
+  var defense = defenderStats['物理防禦'];
+  var penetration = attackerStats['破甲'];
+  
+  // 計算有效防禦力（破甲減少防禦）
+  var effectiveDefense = Math.max(0, defense - penetration);
+  
+  // 基礎傷害 = 攻擊力 * 技能倍率 - 有效防禦
+  damage = Math.max(1, Math.floor((attack * skillPower) - effectiveDefense));
+  
+} else if (damageType === 'magical') {
+  // 法術傷害計算
+  var magicAttack = attackerStats['法術攻擊'];
+  var magicDefense = defenderStats['法術防禦'];
+  var magicPenetration = attackerStats['法穿'];
+  
+  // 計算有效法防
+  var effectiveMagicDefense = Math.max(0, magicDefense - magicPenetration);
+  
+  // 基礎法術傷害
+  damage = Math.max(1, Math.floor((magicAttack * skillPower) - effectiveMagicDefense));
+}
+
+// 暴擊判定
+var criticalChance = attackerStats['暴擊率'];
+var criticalRoll = Math.random() * 100;
+
+if (criticalRoll < criticalChance) {
+  isCritical = true;
+  var criticalDamage = attackerStats['暴擊傷害'];
+  damage = Math.floor(damage * (100 + criticalDamage) / 100);
+}
+
+// 隨機浮動 ±10%
+var randomFactor = 0.9 + (Math.random() * 0.2);
+damage = Math.floor(damage * randomFactor);
+
+// 最少傷害為1
+damage = Math.max(1, damage);
+
+return {
+  damage: damage,
+  isCritical: isCritical,
+  damageType: damageType
+};
+}
 // ===== 🎯 新增：命中判定函數 =====
 function calcHitChance(attacker, defender) {
   var attackerStats = derivedFrom(attacker);
@@ -157,6 +184,8 @@ global.derivedFrom = derivedFrom;
 global.calcDamage = calcDamage;
 global.calcHitChance = calcHitChance;
 global.calculateBattleResult = calculateBattleResult;
+global.calculateATBStep = calculateATBStep;
+
 // ===== 自動回復系統（基於角色屬性） =====
 window.AutoRecovery = (function(){
   var timers = { hp: null, mp: null, sta: null, stone: null };

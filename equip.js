@@ -310,7 +310,7 @@ else if (part === 'character') {
     api.save(); render(); api.recalc(); return true;
   }
 
-  // ★新增：飾品（戒指/耳飾/披風/護甲/鞋）裝備（修正：雙槽正規化）
+// ★新增：飾品（戒指/耳飾/披風/護甲/鞋）裝備（修正：雙槽正規化）
   function equipOrnament(o){
     const P = api.getPlayer && api.getPlayer(); if(!P || !o) return false;
     P.equip = P.equip || {};
@@ -331,23 +331,30 @@ else if (part === 'character') {
     var copy = JSON.parse(JSON.stringify(o));
 
     if (kind==='rings' || kind==='earrings'){
-      // —— 重要：將舊存檔可能的 [] / 單槽陣列正規化成 [null,null] —— //
+      // ★ 關鍵：舊存檔若不是陣列，可能是單一值（字串或物件）→ 保留到第 1 槽
       var arr = P.equip[kind];
       if (!Array.isArray(arr)) {
+        var prev = arr || null;
         arr = [null, null];
+        if (prev){
+          try { arr[0] = (typeof prev === 'string') ? prev : JSON.parse(JSON.stringify(prev)); }
+          catch(_){ arr[0] = prev; }
+        }
       } else {
         // 將缺少的索引補成 null，並固定長度為 2
         if (typeof arr[0] === 'undefined') arr[0] = null;
         if (typeof arr[1] === 'undefined') arr[1] = null;
-        // 保險：避免多於 2 格的非預期情況
         if (arr.length > 2) arr.length = 2;
       }
       P.equip[kind] = arr;
 
-      // 不允許同 ID 重複裝備
+      // 不允許同 ID 重複裝備（同時支援舊格式字串與新格式物件）
       for (var i=0;i<2;i++){
-        if (arr[i] && arr[i].id === copy.id){
-          api.log('不可重複裝備相同飾品'); 
+        if (arr[i] && (
+             (typeof arr[i] === 'string' && arr[i] === copy.id) ||
+             (typeof arr[i] === 'object' && arr[i].id === copy.id)
+           )){
+          api.log('不可重複裝備相同飾品');
           return false;
         }
       }
@@ -379,17 +386,45 @@ function _calcBonusesFor(P){
   function convert(raw){
     if(!raw) return null;
     var out = {};
+
     for (var k in raw){
       if(!Object.prototype.hasOwnProperty.call(raw,k)) continue;
       var v = raw[k] || 0;
-      if (k === 'hp')       { out['氣血上限'] = (out['氣血上限']||0) + v; }
-      else if (k === 'mp')  { out['真元上限'] = (out['真元上限']||0) + v; }
-      else if (k === 'def') { out['物理防禦'] = (out['物理防禦']||0) + v; }
-      else if (k === 'mdef'){ out['法術防禦'] = (out['法術防禦']||0) + v; }
-      else { out[k] = (out[k]||0) + v; }
+
+      // --- 直接對應到中文面板鍵（「最終面板」就該長這些） ---
+      if (k === 'hp')        { out['氣血上限']   = (out['氣血上限']||0)   + v; }
+      else if (k === 'mp')   { out['真元上限']   = (out['真元上限']||0)   + v; }
+      else if (k === 'def')  { out['物理防禦']   = (out['物理防禦']||0)   + v; }
+      else if (k === 'mdef') { out['法術防禦']   = (out['法術防禦']||0)   + v; }
+      else if (k === 'atk')  { out['物理攻擊']   = (out['物理攻擊']||0)   + v; } // 供外觀/飾品使用
+      else if (k === 'matk') { out['法術攻擊']   = (out['法術攻擊']||0)   + v; }
+      else if (k === 'aspd') { out['行動條速度'] = (out['行動條速度']||0) + v; }
+      else if (k === 'eva')  { out['閃避']       = (out['閃避']||0)       + v; }
+      else if (k === 'acc')  { out['命中率']     = (out['命中率']||0)     + v; }
+      else if (k === 'crit') { out['暴擊率']     = (out['暴擊率']||0)     + v; }
+      else if (k === 'critDmg' || k === 'crd') { out['暴擊傷害'] = (out['暴擊傷害']||0) + v; }
+      else if (k === 'pen')  { out['破甲']       = (out['破甲']||0)       + v; }
+      else if (k === 'mpen') { out['法穿']       = (out['法穿']||0)       + v; }
+      else if (k === 'rmp')  { out['回氣/回合']  = (out['回氣/回合']||0)  + v; }
+      else if (k === 'rhp')  { out['回血/回合']  = (out['回血/回合']||0)  + v; }
+
+      // --- 主屬性（影響衍生公式）：先收進 __ATTR__，稍後由 finalDerived() 套入 A.* 再推導 ---
+      else if (k === 'str' || k === 'int' || k === 'vit' || k === 'dex' || k === 'wis' || k === 'luk' || k === 'agi'){
+        // 註：若資料使用 agi 表示敏捷，統一視為 dex
+        var key = (k === 'agi') ? 'dex' : k;
+        if (!out['__ATTR__']) out['__ATTR__'] = {};
+        out['__ATTR__'][key] = (out['__ATTR__'][key]||0) + v;
+      }
+
+      // --- 其他未知鍵，保留（方便日後擴充，例如抗性 res: {ice:10} 等） ---
+      else {
+        out[k] = (out[k]||0) + v;
+      }
     }
+
     return out;
   }
+
 
   function addMap(m){
     if(!m) return;

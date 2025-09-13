@@ -84,7 +84,7 @@ slime_young:{
     extra:{ critDmg:52, recover_mp:3, recover_hp:1, armorPen:0, magicPen:1 },
     skills:[
       {
-        id:'ember', name:'火苗', elem:'fire', kind:'magic', power:110, mp:12,
+        id:'ember', name:'火苗', elem:'fire', kind:'magical', power:110, mp:12,
         desc:'造成110%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
         chance: 0.25, lowHpBonus: 0.20,
         onHit:{
@@ -117,7 +117,7 @@ slime_young:{
     ai:{ pattern:'smart', note:'先 1~2 次普攻，之後只要有 MP 優先用技能' },
     skills:[
       {
-        id:'fire_kiss', name:'火吻', elem:'fire', kind:'magic', power:120, mp:15,
+        id:'fire_kiss', name:'火吻', elem:'fire', kind:'magical', power:120, mp:15,
         desc:'造成120%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
         chance: 0.30, lowHpBonus: 0.25,
         onHit:{
@@ -145,7 +145,7 @@ slime_young:{
     extra:{ critDmg:55, recover_mp:3, recover_hp:1, armorPen:1, magicPen:1 },
     skills:[
       {
-        id:'fire_kiss', name:'火吻', elem:'fire', kind:'magic', power:120, mp:15,
+        id:'fire_kiss', name:'火吻', elem:'fire', kind:'magical', power:120, mp:15,
         desc:'造成120%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
         chance: 0.30, lowHpBonus: 0.25,
         onHit:{
@@ -172,7 +172,7 @@ slime_young:{
     extra:{ critDmg:55, recover_mp:3, recover_hp:1, armorPen:1, magicPen:1 },
     skills:[
       {
-        id:'fire_kiss', name:'火吻', elem:'fire', kind:'magic', power:120, mp:15,
+        id:'fire_kiss', name:'火吻', elem:'fire', kind:'magical', power:120, mp:15,
         desc:'造成120%火屬性法術傷害；命中後有機率灼燒10秒（每秒-2HP）',
         chance: 0.30, lowHpBonus: 0.25,
         onHit:{
@@ -201,7 +201,7 @@ slime_young:{
     stats:{ hp:250, mp:60, atk:21, matk:22, def:9, mdef:12, acc:85, eva:6, crit:5, aspd:1.00 },  // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
     extra:{ critDmg:50, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },    // 額外屬性：暴擊傷害/回復魔力/回復生命/物理穿透/魔法穿透
     skills: [
-      { id:'slime_wave', name:'萊姆波動', kind:'magic_dot', elem:'none', dps:4, duration:5, chance:0.25, lowHpBonus:0.35 } 
+      { id:'slime_wave', name:'萊姆波動', kind:'magical', elem:'none', dps:4, duration:5, chance:0.25, lowHpBonus:0.35 } 
     ],
     drops:[
       {type:'currency',  id:'stone',       name:'靈石',       min:70, max:125, chance:1.00},
@@ -209,20 +209,21 @@ slime_young:{
     ]
   },
 
-  flame_master:{
-    id:'flame_master', name:'炎使者', level:6, element:'fire',rank: 'boss',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757518547/%E7%82%8E%E4%BD%BF%E8%80%85_gpdouc.png', imgMirror:false,
-    scales:{},
-    stats:{ hp:550, mp:110, atk:27, matk:25, def:14, mdef:15, acc:87, eva:10, crit:6, aspd:1.50 },
-    skills:[
-      { id:'flame_burst', name:'烈焰爆發', elem:'fire', kind:'magic_dot', dps:8, duration:6, chance:0.40, lowHpBonus:0.35 }
-    ],
-    drops:[
-      {type:'currency',  id:'stone',       name:'靈石',      min:10, max:22, chance:1.00},
-      {type:'material',  id:'fox_tail',    name:'靈狐尾',    min:1,  max:1,  chance:0.40},
-      {type:'material',  id:'thorn_shard', name:'荊棘碎片',  min:1,  max:3,  chance:0.70},
-    ]
-  },
+flame_master:{
+  id:'flame_master', name:'炎使者', level:6, element:'fire',rank: 'boss',
+  img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757518547/%E7%82%8E%E4%BD%BF%E8%80%85_gpdouc.png', imgMirror:false,
+  scales:{},
+  stats:{ hp:550, mp:110, atk:27, matk:25, def:14, mdef:15, acc:87, eva:10, crit:6, aspd:1.50 },
+  skills:[
+    { id:'flame_burst', chance: 0.40, lowHpBonus: 0.35 },  // 🔥 改為引用模式
+    { id:'fire_kiss', chance: 0.35, lowHpBonus: 0.30 }
+  ],
+  drops:[
+    {type:'currency',  id:'stone',       name:'靈石',      min:10, max:22, chance:1.00},
+    {type:'material',  id:'fox_tail',    name:'靈狐尾',    min:1,  max:1,  chance:0.40},
+    {type:'material',  id:'thorn_shard', name:'荊棘碎片',  min:1,  max:3,  chance:0.70},
+  ]
+},
 
   stone_golem:{
     id:'stone_golem', name:'石像守衛', level:4, element:'earth',rank: 'boss',
@@ -288,7 +289,7 @@ slime_young:{
     scales:{ '法術攻擊':1.15, '行動條速度':1.10 },
     stats:{ hp:160, mp:70, atk:10, matk:24, def:8, mdef:12, acc:86, eva:7, crit:6, aspd:1.18 },
     skills:[
-      { id:'burn_flame', name:'燃灼', kind:'magic_dot', elem:'fire', dps:5, duration:4, chance:0.30 }
+      { id:'burn_flame', name:'燃灼', kind:'magical', elem:'fire', dps:5, duration:4, chance:0.30 }
     ],
     drops:[
       {type:'currency', id:'stone', name:'靈石', min:12, max:20, chance:1.00},
@@ -327,7 +328,7 @@ slime_young:{
     scales:{ '真元上限':1.20, '法術防禦':1.15 },
     stats:{ hp:240, mp:120, atk:14, matk:26, def:12, mdef:24, acc:86, eva:7, crit:7, aspd:1.00 },
     skills:[
-      { id:'mind_leech', name:'噬心', kind:'magic_dot', elem:'spirit', dps:6, duration:4, chance:0.25 }
+      { id:'mind_leech', name:'噬心', kind:'magical', elem:'spirit', dps:6, duration:4, chance:0.25 }
     ],
     drops:[
       {type:'currency', id:'stone', name:'靈石', min:14, max:28, chance:1.00},

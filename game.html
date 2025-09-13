@@ -501,7 +501,7 @@
 <script src="auth.js"></script>
 <script src="equip.js"></script>
 <script src="rank.js"></script>
-<script src="appearance.js"></script>
+<script src="appearance.js?v=dev1"></script>
 <script>
 
 
@@ -511,10 +511,10 @@ const qs = s=>document.querySelector(s);
 
 // ★ 改用 stats.js 提供的工具函數
 
-const clamp = (v,min,max) => GameUtils.clamp(v,min,max);
-const pct = (cur,max) => GameUtils.pct(cur,max);
-const fmt = (n) => GameUtils.fmt(n);
-const fmtCompact = (n) => GameUtils.fmtCompact(n);
+const clamp = function(v,min,max){ return GameUtils.clamp(v,min,max); };
+const pct = function(cur,max){ return GameUtils.pct(cur,max); };
+const fmt = function(n){ return GameUtils.fmt(n); };
+const fmtCompact = function(n){ return GameUtils.fmtCompact(n); };
 
 
 
@@ -613,20 +613,28 @@ window.Game = (()=>{
   }
 
   function renderDerived(){
-    const P = state.player; if(!P) return;
-    const base  = derivedFrom(P);
-    const bonus = (window.Equip && Equip.getBonuses) ? Equip.getBonuses() : {};
-    const final = {};
-    for(const k of Object.keys(base)) final[k] = (base[k]||0) + (bonus[k]||0);
+    var P = state.player; if(!P) return;
+    var base  = (window.derivedFrom && typeof window.derivedFrom === 'function') ? derivedFrom(P) : {};
+    var bonus = (window.Equip && Equip.getBonuses) ? Equip.getBonuses() : {};
+    var final = {};
+    var keys = Object.keys(base);
+    for(var i = 0; i < keys.length; i++){
+      var k = keys[i];
+      final[k] = (base[k]||0) + (bonus[k]||0);
+    }
 
-    const box = qs('#statList'); if(!box) return;
+    var box = qs('#statList'); if(!box) return;
     box.innerHTML = '';
-    for(const [k,v] of Object.entries(final)){
-      const item = document.createElement('div'); item.className='item';
-      item.innerHTML = `<div class="k">${k}</div><div class="v">${v}</div>`;
+    var entries = Object.keys(final);
+    for(var j = 0; j < entries.length; j++){
+      var k = entries[j];
+      var v = final[k];
+      var item = document.createElement('div'); item.className='item';
+      item.innerHTML = '<div class="k">' + k + '</div><div class="v">' + v + '</div>';
       box.appendChild(item);
     }
   }
+
 
   function updatePlusButtons(){
     const remain = state.player?.unspentPoints ?? 0;
@@ -1951,21 +1959,21 @@ function bagEquipOrnament(i){
   var list = P.bag.ornaments || [];
   var o = list[i]; if(!o) return;
   
-// 此處應該繼續飾品裝備的邏輯...
+// 此處應該繼續飾品裝備的邏輯.
 
 
-// 判定飾品種類
-var kind = '';
-if (window.ItemDB && ItemDB.getDef){
-  if (ItemDB.getDef('ornaments', o.id)) kind = 'rings'; // ornaments 視為「戒指」
-  else if (ItemDB.getDef('rings',    o.id)) kind = 'rings';
-  else if (ItemDB.getDef('earrings', o.id)) kind = 'earrings';
-  else if (ItemDB.getDef('cloaks',   o.id)) kind = 'cloak';
-  else if (ItemDB.getDef('armors',   o.id)) kind = 'armor';
-  else if (ItemDB.getDef('boots',    o.id)) kind = 'shoes';
-  else if (ItemDB.getDef('medals',   o.id)) kind = 'medals';
-}
-if (!kind) { log('無法辨識飾品種類'); return; }
+ // 判定飾品種類
+ var kind = '';
+ if (window.ItemDB && ItemDB.getDef){
+   if (ItemDB.getDef('ornaments', o.id)) kind = 'rings'; // ornaments 視為「戒指」
+   else if (ItemDB.getDef('rings',    o.id)) kind = 'rings';
+   else if (ItemDB.getDef('earrings', o.id)) kind = 'earrings';
+   else if (ItemDB.getDef('cloaks',   o.id)) kind = 'cloak';
+   else if (ItemDB.getDef('armors',   o.id)) kind = 'armor';
+   else if (ItemDB.getDef('boots',    o.id)) kind = 'shoes';
+   else if (ItemDB.getDef('medals',   o.id)) kind = 'medals';
+ }
+ if (!kind) { log('無法辨識飾品種類'); return; }
 
 
     // 裝備欄保底初始化
@@ -1976,7 +1984,11 @@ if (!kind) { log('無法辨識飾品種類'); return; }
 
     if (kind==='rings' || kind==='earrings' || kind==='medals'){
       var cap = (kind==='medals') ? 5 : 2;
-      var arr = Array.isArray(P.equip[kind]) ? P.equip[kind] : (P.equip[kind] = new Array(cap).fill(null));
+
+      // ★ 關鍵修正：不論舊存檔內容如何，都先正規化到固定長度並填 null
+      var arr = Array.isArray(P.equip[kind]) ? P.equip[kind] : (P.equip[kind] = new Array(cap));
+      for (var j2=0;j2<cap;j2++){ if (typeof arr[j2] === 'undefined') arr[j2] = null; }
+      if (arr.length > cap) arr.length = cap;
 
       // 不允許同 ID 重複裝備
       for (var t=0;t<arr.length;t++){ if(arr[t] && arr[t].id===copy.id){ log('不可重複裝備相同飾品'); return; } }
@@ -2002,6 +2014,7 @@ if (!kind) { log('無法辨識飾品種類'); return; }
     if (window.Auth && Auth.saveCharacter) Auth.saveCharacter(P);
     render(P); renderBag('ornament');
   }
+
 
   // === 材料：販賣 / 丟棄 ===
 
@@ -2155,7 +2168,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // 初始化外觀系統
+  // 先啟動遊戲（使 Game.getPlayer() 有值）
+  if (window.Game && Game.start) { Game.start(char); }
+
+  // 再初始化外觀系統（此時 mount 內的 render() 才拿得到玩家）
   if (window.Appearance && Appearance.mount) {
     Appearance.mount({
       getPlayer: function(){ return Game.getPlayer(); },
@@ -2165,8 +2181,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // 再啟動遊戲
-  if (window.Game && Game.start) { Game.start(char); }
 
   // 啟動自動回復系統
   if (window.AutoRecovery) {

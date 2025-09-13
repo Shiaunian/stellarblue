@@ -138,7 +138,7 @@ async createCharacter(name, element='none', gender='M', avatarOverride=''){
     try {
   
       // 額外外觀
-      character.bag.appearances.push({ id: 'skin_qing_m', count: 1 });
+      character.bag.appearances.push({ id: 'night_yu', count: 1 });
       character.bag.appearances.push({ id: 'skin_qing_f', count: 1 });
       character.bag.appearances.push({ id: 'skin_raiming', count: 1 });
       character.bag.appearances.push({ id: 'skin_ice_asuna', count: 1 });

@@ -94,8 +94,9 @@ return d.firstChild;
 function mount(opts){ 
 api = Object.assign(api, opts||{}); 
 ensureModal(); 
-render(); 
+// 首次不立即 render，等 open() 或其他流程呼叫後再 render
 }
+
 
 function open(){ 
 var m=document.getElementById('apModal'); 

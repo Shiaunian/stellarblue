@@ -22,8 +22,9 @@ slime_young:{
   id:'slime_young', name:'萊姆幼體', level:1, element:'none',   // 怪物ID/怪物名稱/等級/屬性（無屬性）
   img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757507487/%E8%90%8A%E5%A7%86%E5%B9%BC%E9%AB%94_mrsay6.png', imgMirror:false,   // 是否水平翻轉圖片
   // 新版能力值（主用 stats；extra 裝你新增的細項，保持相容不報錯）
-  stats:{ hp:92, mp:41, atk:10,  matk:2,  def:0,  mdef:0,  acc:60, eva:5, crit:3, aspd:1.00 },  // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
-  extra:{ critDmg:50, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },         // 額外屬性：暴擊傷害/速度/回復魔力/回復生命/物理穿透/魔法穿透
+  stats:{ hp:78, mp:32, atk:2,  matk:0,  def:0,  mdef:0,  acc:68, eva:4, crit:2, aspd:1.05 },
+  // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
+  extra:{ critDmg:50, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },         // 額外屬性：暴擊傷害/回復魔力/回復生命/物理穿透/魔法穿透
   skills:[
     { id:'dash', name:'衝撞', elem:'none', kind:'physical', power:110, mp:6, desc:'造成120%無屬性物理傷害', chance: 0.30, lowHpBonus: 0.20 }
   ],
@@ -42,7 +43,7 @@ slime_young:{
     id:'slime', name:'萊姆成體', level:2, element:'none',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757507487/%E8%90%8A%E5%A7%86%E6%88%90%E9%AB%94_zqui1l.png', imgMirror:false,
     appear:{ minPlayerLevel:2 }, // 出現條件：角色達到 2 等
-    stats:{ hp:98, mp:41, atk:12,  matk:2,  def:1,  mdef:1,  acc:61, eva:5, crit:3, aspd:1.00 },
+    stats:{ hp:93, mp:32, atk:5,  matk:0,  def:1,  mdef:0,  acc:69, eva:4, crit:2, aspd:1.06 },
     extra:{ critDmg:51, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },
     skills:[
       { id:'dash', name:'衝撞', elem:'none', kind:'physical', power:110, mp:6, desc:'造成120%無屬性物理傷害', chance: 0.30, lowHpBonus: 0.20 }
@@ -61,7 +62,7 @@ slime_young:{
     id:'slime_king', name:'史萊姆', level:3, element:'none',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757508388/%E5%8F%B2%E8%90%8A%E5%A7%86_xlo0qz.png', imgMirror:false,
     appear:{ minPlayerLevel:4 }, // 出現條件：角色達到 4 等
-    stats:{ hp:105, mp:41, atk:14,  matk:2,  def:2,  mdef:1,  acc:62, eva:6, crit:3, aspd:1.00 },
+    stats:{ hp:98, mp:34, atk:6,  matk:2,  def:1,  mdef:0,  acc:71, eva:6, crit:2, aspd:1.08 },
     extra:{ critDmg:52, recover_mp:2, recover_hp:1, armorPen:1, magicPen:0 },
     skills:[
       { id:'dash', name:'高速衝撞', elem:'none', kind:'physical', power:120, mp:10, desc:'造成120%無屬性物理傷害', chance: 0.35, lowHpBonus: 0.25 }
@@ -80,7 +81,7 @@ slime_young:{
   wood_wisp:{
     id:'wood_wisp', name:'木幽火', level:4, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757512929/%E6%9C%A8%E5%B9%BD%E7%81%AB_azpqyy.png', imgMirror:false,
-    stats:{ hp:120, mp:50, atk:11,  matk:5,  def:2,  mdef:3,  acc:62, eva:6, crit:3, aspd:1.00 },
+    stats:{ hp:103, mp:42, atk:7,  matk:2,  def:2,  mdef:2,  acc:72, eva:6, crit:2, aspd:1.09 },
     extra:{ critDmg:52, recover_mp:3, recover_hp:1, armorPen:0, magicPen:1 },
     skills:[
       {
@@ -112,7 +113,7 @@ slime_young:{
   Fire_Spirit:{
     id:'Fire_Spirit', name:'火之靈', level:4, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757512930/%E7%81%AB%E4%B9%8B%E9%9D%88_qgsyug.png', imgMirror:false,
-    stats:{ hp:130, mp:40, atk:10,  matk:8,  def:2,  mdef:4,  acc:63, eva:8, crit:3, aspd:1.10 },
+    stats:{ hp:103, mp:42, atk:7,  matk:2,  def:2,  mdef:2,  acc:72, eva:6, crit:2, aspd:1.09 },
     extra:{ critDmg:53, recover_mp:3, recover_hp:1, armorPen:0, magicPen:1 },
     ai:{ pattern:'smart', note:'先 1~2 次普攻，之後只要有 MP 優先用技能' },
     skills:[
@@ -141,7 +142,7 @@ slime_young:{
   laily:{
     id:'laily', name:'萊利', level:5, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757513124/%E8%90%8A%E5%88%A9_nmxv1h.png', imgMirror:false,
-    stats:{ hp:140, mp:45, atk:13,  matk:6,  def:3,  mdef:4,  acc:65, eva:8, crit:4, aspd:1.10 },
+    stats:{ hp:119, mp:43, atk:10,  matk:2,  def:4,  mdef:3,  acc:73, eva:7, crit:3, aspd:1.09 },
     extra:{ critDmg:55, recover_mp:3, recover_hp:1, armorPen:1, magicPen:1 },
     skills:[
       {
@@ -168,7 +169,7 @@ slime_young:{
   fire_orb:{
     id:'fire_orb', name:'聚火靈', level:6, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757513832/%E8%81%9A%E7%81%AB%E9%9D%88_yaenqp.png', imgMirror:false,
-    stats:{ hp:160, mp:50, atk:15,  matk:7,  def:4,  mdef:5,  acc:67, eva:10, crit:5, aspd:1.00 },
+    stats:{ hp:124, mp:44, atk:11,  matk:4,  def:5,  mdef:4,  acc:75, eva:8, crit:3, aspd:1.12 },
     extra:{ critDmg:55, recover_mp:3, recover_hp:1, armorPen:1, magicPen:1 },
     skills:[
       {

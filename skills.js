@@ -370,16 +370,17 @@ function list(){ return Object.keys(DB).map(function(k){ return DB[k]; }); }
  if (!aD) aD = { '物理攻擊':10,'法術攻擊':10,'暴擊率':3,'暴擊傷害':150, '破甲':0,'法穿':0 };
 
  var dD = null;
- // 優先用敵人戰鬥面板（battle.enemyStats -> 中文鍵）
- if (typeof window.battle === 'object' && window.battle && defender === window.battle.enemy && window.battle.enemyStats) {
-   var es = window.battle.enemyStats;
-   dD = {
-     '物理防禦': (es.def||0),
-     '法術防禦': (es.mdef||0),
-     '命中率'  : (es.acc||0),
-     '閃避'    : (es.eva||0)
-   };
- } else if (defender && defender._live && typeof defender._live === 'object') {
+  // 優先用敵人戰鬥面板（battle.enemyStats -> 中文鍵；英文字段後備）
+  if (typeof window.battle === 'object' && window.battle && defender === window.battle.enemy && window.battle.enemyStats) {
+    var es = window.battle.enemyStats;
+    dD = {
+      '物理防禦': (es['物理防禦']!=null ? es['物理防禦'] : (es.def||0)),
+      '法術防禦': (es['法術防禦']!=null ? es['法術防禦'] : (es.mdef||0)),
+      '命中率'  : (es['命中率']!=null   ? es['命中率']   : (es.acc||0)),
+      '閃避'    : (es['閃避']!=null     ? es['閃避']     : (es.eva||0))
+    };
+  } else if (defender && defender._live && typeof defender._live === 'object') {
+
    dD = defender._live;
  } else if (typeof window.derivedFrom === 'function') {
    dD = window.derivedFrom(defender);

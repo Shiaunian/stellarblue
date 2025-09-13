@@ -284,9 +284,17 @@
     font-size: 8pt;
     }
 
-    .hpbar{height:6px; background:#1f273a; border-radius:999px; overflow:hidden;}
+    .bar{position:relative; height:10px; border-radius:999px; overflow:hidden;}
+    .bartxt{position:absolute; inset:0; display:grid; place-items:center; font-size:8px; font-weight:800; color:#fff; text-shadow:0 0 1px rgba(0,0,0,.85); pointer-events:none;}
+
+
+    .hpbar{background:#1f273a;}
     .hpfill{height:100%; width:0%; background:linear-gradient(90deg,#ef4444,#b91c1c);}
-    .atb{height:6px; background:#0b122b; border-radius:999px; overflow:hidden;}
+
+    .mpbar{background:#111827;}
+    .mpfill{height:100%; width:0%; background:linear-gradient(90deg,#60a5fa,#2563eb);}
+
+    .atb{background:#0b122b;}
     .atbfill{height:100%; width:0%; background:linear-gradient(90deg,#22d3ee,#8b5cf6);}
     .srow{display:flex; gap:10px; font-size:12px; color:#cbd5e1;}
     .cmd{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
@@ -430,6 +438,17 @@
       35%{ transform: translateX(-10px); }
       100%{ transform: translateX(0); }
     }
+    .bar-num{
+    position: relative;
+    top: -14px;        /* 往上疊到條裡面（視條高度調整） */
+    text-align: center;
+    font-size: 8px;   /* 比一般字小 */
+    color: #fff;
+    font-weight: 700;
+    text-shadow: 0 0 2px #000; /* 黑邊，避免亮色條上看不清 */
+    pointer-events: none;      /* 避免擋點擊 */
+  }
+
 
   </style>
 </head>
@@ -572,8 +591,18 @@
             </div>
             <div class="fx" id="pFx"></div>
           </div>
-          <div class="hpbar"><div id="pHp" class="hpfill"></div></div>
-          <div class="atb"><div id="pATB" class="atbfill"></div></div>
+          <div class="hpbar bar">
+            <div id="pHp" class="hpfill"></div>
+            <div id="pHpTxt" class="bartxt"></div>
+          </div>
+          <div class="mpbar bar">
+            <div id="pMp" class="mpfill"></div>
+            <div id="pMpTxt" class="bartxt"></div>
+          </div>
+          <div class="atb bar">
+            <div id="pATB" class="atbfill"></div>
+            <div id="pAtbTxt" class="bartxt"></div>
+          </div>
         </div>
         <div class="box">
           <div class="who">
@@ -589,8 +618,18 @@
             </div>
             <div class="fx" id="eFx"></div>
           </div>
-          <div class="hpbar"><div id="eHp" class="hpfill"></div></div>
-          <div class="atb"><div id="eATB" class="atbfill"></div></div>
+          <div class="hpbar bar">
+            <div id="eHp" class="hpfill"></div>
+            <div id="eHpTxt" class="bartxt"></div>
+          </div>
+          <div class="mpbar bar">
+            <div id="eMp" class="mpfill"></div>
+            <div id="eMpTxt" class="bartxt"></div>
+          </div>
+          <div class="atb bar">
+            <div id="eATB" class="atbfill"></div>
+            <div id="eAtbTxt" class="bartxt"></div>
+          </div>
         </div>
         </div>
         <div class="cmd">

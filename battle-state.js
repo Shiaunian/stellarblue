@@ -185,7 +185,43 @@ function startBattle(enemy, area, playerData) {
   var battleSection = document.querySelector('#battleSection');
   if (mapSection) mapSection.style.display = 'none';
   if (battleSection) battleSection.classList.add('show');
-  
+
+  // === 新增：BOSS 標誌（只處理 UI，不影響戰鬥邏輯） ===
+  try {
+    var badge = document.getElementById('bossBadge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.id = 'bossBadge';
+      badge.textContent = 'BOSS';
+      badge.style.display = 'none';
+      badge.style.marginLeft = '6px';
+      badge.style.padding = '2px 6px';
+      badge.style.borderRadius = '9999px';
+      badge.style.background = '#dc2626';
+      badge.style.color = '#fff';
+      badge.style.fontWeight = '900';
+      badge.style.fontSize = '12px';
+      // 儘量插在敵人名稱旁 (#eName)，沒有就掛到 battleSection
+      var nameEl = document.querySelector('#eName');
+      if (nameEl && nameEl.parentNode) {
+        if (nameEl.nextSibling) {
+          nameEl.parentNode.insertBefore(badge, nameEl.nextSibling);
+        } else {
+          nameEl.parentNode.appendChild(badge);
+        }
+      } else if (battleSection) {
+        battleSection.appendChild(badge);
+      }
+    }
+    var isBoss = false;
+    if (enemy && enemy.rank === 'boss') {
+      isBoss = true;
+    } else if (window.MonsterDB && MonsterDB.rankOf && enemy && enemy.id) {
+      try { isBoss = (MonsterDB.rankOf(enemy.id) === 'boss'); } catch (_e) {}
+    }
+    badge.style.display = isBoss ? 'inline-block' : 'none';
+  } catch (_ignore) {}
+
   if (loop) { clearInterval(loop); loop = null; }
 
   // 玩家衍生值快照
@@ -213,11 +249,32 @@ var eStats = {
   '命中率': (enemy.stats && typeof enemy.stats.acc === 'number') ? enemy.stats.acc : 75,
   '閃避': (enemy.stats && typeof enemy.stats.eva === 'number') ? enemy.stats.eva : 5,
   '暴擊率': (enemy.stats && typeof enemy.stats.crit === 'number') ? Math.min(100, enemy.stats.crit) : 3,
-  '暴擊傷害': 150, // 預設暴擊傷害倍率
-  '行動條速度': (enemy.stats && typeof enemy.stats.aspd === 'number') ? Math.round(100 * enemy.stats.aspd) : 100,
-  '破甲': (enemy.extra && typeof enemy.extra.armorPen === 'number') ? enemy.extra.armorPen : 0,
-  '法穿': 0 // 預設法術穿透
+  // 🔁 改用衍生表 / extra 來帶入暴擊傷害（避免固定 150）
+  '暴擊傷害': (function(){
+    var fromDerived = pickD('暴擊傷害', null);
+    if (typeof fromDerived === 'number') return fromDerived;
+    var extraCrd = (enemy.extra && typeof enemy.extra.critDmg === 'number') ? enemy.extra.critDmg : null;
+    if (typeof extraCrd === 'number') return Math.max(100, extraCrd);
+    return 150;
+  })(),
+  // 🔁 行動條速度統一採衍生表（避免與 battle.e.speed 脫鉤）
+  '行動條速度': pickD('行動條速度', (enemy.stats && typeof enemy.stats.aspd === 'number') ? Math.round(100 * enemy.stats.aspd) : 100),
+  '破甲': (enemy.extra && typeof enemy.extra.armorPen === 'number') ? enemy.extra.armorPen : pickD('破甲', 0),
+  '法穿': (enemy.extra && typeof enemy.extra.magicPen === 'number') ? enemy.extra.magicPen : pickD('法穿', 0)
 };
+// === 補齊英文字段鏡像（提供 skills.js / 其他相容讀取）===
+eStats.atk     = eStats['物理攻擊'];
+eStats.matk    = eStats['法術攻擊'];
+eStats.def     = eStats['物理防禦'];
+eStats.mdef    = eStats['法術防禦'];
+eStats.acc     = eStats['命中率'];
+eStats.eva     = eStats['閃避'];
+eStats.crit    = eStats['暴擊率'];
+eStats.critdmg = eStats['暴擊傷害'];
+eStats.aspd    = eStats['行動條速度'];
+eStats.pen     = eStats['破甲'];
+eStats.mpen    = eStats['法穿'];
+
 
 
   // 初始化戰鬥狀態
@@ -237,6 +294,8 @@ var eStats = {
     e: {
       hp: pickD('氣血上限', 100),
       hpMax: pickD('氣血上限', 100),
+      mp: pickD('真元上限', 0),
+      mpMax: pickD('真元上限', 0),
       atb: 0,
       speed: pickD('行動條速度', 100),
       statusEffects: [],
@@ -247,12 +306,14 @@ var eStats = {
     dotTimers: []
   };
 
+
   console.log('🎮 戰鬥開始:', enemy.name, 'vs', playerData.name);
   
   // 開始 ATB 循環
   loop = setInterval(tickATB, 60);
   return true;
 }
+
 
 // ===== ATB 系統 tick =====
 function tickATB() {
@@ -443,17 +504,20 @@ function recalculateStats(target) {
 function getEnemyStatKey(stat) {
   var mapping = {
     '物理攻擊': 'atk',
-    '法術攻擊': 'matk', 
+    '法術攻擊': 'matk',
     '物理防禦': 'def',
     '法術防禦': 'mdef',
     '命中率': 'acc',
     '閃避': 'eva',
     '暴擊率': 'crit',
+    '暴擊傷害': 'critdmg',
     '行動條速度': 'aspd',
-    '破甲': 'pen'
+    '破甲': 'pen',
+    '法穿': 'mpen'
   };
   return mapping[stat];
 }
+
 
 function getEffectiveSpeed(target) {
   if (!battle) return 100;
@@ -578,20 +642,41 @@ function updateBattleBars() {
   
   var pHpEl = document.querySelector('#pHp');
   var eHpEl = document.querySelector('#eHp');
+  var pMpEl = document.querySelector('#pMp');
+  var eMpEl = document.querySelector('#eMp');
   var pATBEl = document.querySelector('#pATB');
   var eATBEl = document.querySelector('#eATB');
   var btStateEl = document.querySelector('#btState');
 
+  // 寬度
   if (pHpEl) pHpEl.style.width = pct(battle.p.hp, battle.p.hpMax) + '%';
   if (eHpEl) eHpEl.style.width = pct(battle.e.hp, battle.e.hpMax) + '%';
+  if (pMpEl) pMpEl.style.width = pct(battle.p.mp || 0, battle.p.mpMax || 0) + '%';
+  if (eMpEl) eMpEl.style.width = pct(battle.e.mp || 0, battle.e.mpMax || 0) + '%';
   if (pATBEl) pATBEl.style.width = pct(battle.p.atb, ATB_MAX) + '%';
   if (eATBEl) eATBEl.style.width = pct(battle.e.atb, ATB_MAX) + '%';
-  
+
+  // 數字
+  var pHpTxt = document.querySelector('#pHpTxt');
+  var eHpTxt = document.querySelector('#eHpTxt');
+  var pMpTxt = document.querySelector('#pMpTxt');
+  var eMpTxt = document.querySelector('#eMpTxt');
+  var pAtbTxt = document.querySelector('#pAtbTxt');
+  var eAtbTxt = document.querySelector('#eAtbTxt');
+
+  if (pHpTxt) pHpTxt.textContent = (battle.p.hp|0) + '/' + (battle.p.hpMax|0);
+  if (eHpTxt) eHpTxt.textContent = (battle.e.hp|0) + '/' + (battle.e.hpMax|0);
+  if (pMpTxt) pMpTxt.textContent = ((battle.p.mp|0)) + '/' + ((battle.p.mpMax|0));
+  if (eMpTxt) eMpTxt.textContent = ((battle.e.mp|0)) + '/' + ((battle.e.mpMax|0));
+  if (pAtbTxt) pAtbTxt.textContent = (battle.p.atb|0) + '/' + ATB_MAX;
+  if (eAtbTxt) eAtbTxt.textContent = (battle.e.atb|0) + '/' + ATB_MAX;
+
   if (btStateEl) {
     btStateEl.textContent = battle.over ? '戰鬥結束' : 
       (battle.p.atb >= ATB_MAX ? '輪到你行動' : '等待行動條…');
   }
 
+  // 同步到全域 P（不改你原本的流程）
   if (window.P && window.P.hp) {
     window.P.hp.cur = battle.p.hp;
     window.P.hp.max = battle.p.hpMax;
@@ -600,11 +685,12 @@ function updateBattleBars() {
     window.P.mp.cur = battle.p.mp || window.P.mp.cur || 0;
     window.P.mp.max = battle.p.mpMax || window.P.mp.max || 0;
   }
-  
+
   if (typeof window.renderBars === 'function') {
     window.renderBars();
   }
 }
+
 
 function updateCmdEnabled() {
   if (!battle) return;

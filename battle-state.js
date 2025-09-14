@@ -3,6 +3,9 @@ window.BattleState = (function(){
 
 // 戰鬥狀態變數
 const ATB_MAX = 1000;
+// 全域 ATB 速度縮放（預設 0.10 ≈ 舊版 sp/10 體感）
+// 需要更慢可調 0.08；更快可調 0.12~0.15
+const ATB_SPEED_SCALE = 0.08;
 let battle = null;
 let loop = null;
 
@@ -275,8 +278,6 @@ eStats.aspd    = eStats['行動條速度'];
 eStats.pen     = eStats['破甲'];
 eStats.mpen    = eStats['法穿'];
 
-
-
   // 初始化戰鬥狀態
   battle = {
     enemy: enemy,
@@ -330,21 +331,10 @@ function tickATB() {
 
   var spP = getEffectiveSpeed('player');
   var spE = getEffectiveSpeed('enemy');
-  
-  // ★ 添加調試信息
-  if (Math.random() < 0.01) { // 1% 機率顯示調試信息
-    console.log('🐛 速度調試:', {
-      playerSpeed: spP,
-      enemySpeed: spE,
-      playerATB: battle.p.atb,
-      enemyATB: battle.e.atb
-    });
-  }
-  
-  // 🎯 使用相對速度系統
-  var pStep = playerDisabled ? 0 : (window.calculateATBStep ? window.calculateATBStep(spP, spE, 'player') : Math.max(1, Math.round(spP / 10)));
-  var eStep = enemyDisabled ? 0 : (window.calculateATBStep ? window.calculateATBStep(spP, spE, 'enemy') : Math.max(1, Math.round(spE / 10)));
 
+  // ✨ 改為「絕對速度累積 × 全域縮放」
+  var pStep = playerDisabled ? 0 : Math.max(1, Math.round(spP * ATB_SPEED_SCALE));
+  var eStep = enemyDisabled ? 0 : Math.max(1, Math.round(spE * ATB_SPEED_SCALE));
 
   battle.p.atb = clamp(battle.p.atb + pStep, 0, ATB_MAX);
   battle.e.atb = clamp(battle.e.atb + eStep, 0, ATB_MAX);
@@ -455,7 +445,7 @@ function canUseSkills(target) {
 // ===== 屬性重新計算 =====
 function recalculateStats(target) {
   if (!battle) return;
-  
+
   var targetData = (target === 'player') ? battle.p : battle.e;
   var originalStats = targetData.originalStats;
   var modifiedStats = JSON.parse(JSON.stringify(originalStats));
@@ -493,6 +483,13 @@ function recalculateStats(target) {
     }
   } else {
     Object.keys(modifiedStats).forEach(function(stat) {
+      // 速度要同步寫兩個欄位：aspd（數值鍵）與「行動條速度」（中文鍵）
+      if (stat === '行動條速度') {
+        var v = Math.max(0, Math.round(modifiedStats['行動條速度']));
+        battle.enemyStats['行動條速度'] = v; // ATB 會讀這個
+        battle.enemyStats['aspd'] = v;       // 保持數值欄位同步
+        return;
+      }
       var enemyStatKey = getEnemyStatKey(stat);
       if (enemyStatKey && battle.enemyStats[enemyStatKey] !== undefined) {
         battle.enemyStats[enemyStatKey] = Math.max(0, Math.round(modifiedStats[stat]));
@@ -518,21 +515,50 @@ function getEnemyStatKey(stat) {
   return mapping[stat];
 }
 
-
 function getEffectiveSpeed(target) {
   if (!battle) return 100;
-  
+
+  // 取 baseSpeed：玩家用 originalStats['行動條速度']；敵人用 e.originalStats['行動條速度']
+  var baseSpeed = 100;
   if (target === 'player') {
-    return (window.P && window.P._live && typeof window.P._live['行動條速度'] === 'number') 
-      ? window.P._live['行動條速度'] : 100;
+    // 若 originalStats 缺失則回退 _live
+    baseSpeed = (battle.p && battle.p.originalStats && typeof battle.p.originalStats['行動條速度'] === 'number')
+      ? battle.p.originalStats['行動條速度']
+      : ((window.P && window.P._live && typeof window.P._live['行動條速度'] === 'number') ? window.P._live['行動條速度'] : 100);
   } else {
-    // ★ 修正：現在使用中文鍵值
-    return (battle.enemyStats && typeof battle.enemyStats['行動條速度'] === 'number') 
-      ? battle.enemyStats['行動條速度'] : 100;
+    baseSpeed = (battle.e && battle.e.originalStats && typeof battle.e.originalStats['行動條速度'] === 'number')
+      ? battle.e.originalStats['行動條速度']
+      : ((battle.enemyStats && typeof battle.enemyStats['行動條速度'] === 'number') ? battle.enemyStats['行動條速度'] : 100);
   }
+
+  // 乘法疊加所有對「行動條速度」生效的 buff/debuff
+  // 規則：finalSpeed = baseSpeed × Π(1 + modifier)
+  var mult = 1.0;
+  var list = (target === 'player') ? (battle.p.statusEffects || []) : (battle.e.statusEffects || []);
+  for (var i = 0; i < list.length; i++) {
+    var se = list[i];
+    var def = (window.BattleState && BattleState.getStatusEffects) ? BattleState.getStatusEffects()[se.id] : null;
+    if (!def || !def.statModifier) continue;
+    if (def.statModifier['行動條速度'] != null) {
+      var stacks = se.stacks || 1;
+      // 每層同乘一次（例如 +0.3 疊 2 層 → ×1.3×1.3）
+      for (var s = 0; s < stacks; s++) {
+        mult = mult * (1 + def.statModifier['行動條速度']);
+      }
+    }
+  }
+
+  // 安全上下限（避免過慢/過快）
+  // 你規格：最低 base×0.2、最高 base×2.5
+  var minSpeed = Math.max(1, Math.floor(baseSpeed * 0.2));
+  var maxSpeed = Math.max(minSpeed, Math.floor(baseSpeed * 2.5));
+
+  var out = Math.round(baseSpeed * mult);
+  if (out < minSpeed) out = minSpeed;
+  if (out > maxSpeed) out = maxSpeed;
+
+  return out;
 }
-
-
 
 // ===== 狀態效果 tick 處理 =====
 function processStatusTick() {

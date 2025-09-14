@@ -22,7 +22,7 @@ slime_young:{
   id:'slime_young', name:'萊姆幼體', level:1, element:'none',   // 怪物ID/怪物名稱/等級/屬性（無屬性）
   img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757507487/%E8%90%8A%E5%A7%86%E5%B9%BC%E9%AB%94_mrsay6.png', imgMirror:false,   // 是否水平翻轉圖片
   // 新版能力值（主用 stats；extra 裝你新增的細項，保持相容不報錯）
-  stats:{ hp:78, mp:32, atk:2,  matk:0,  def:0,  mdef:0,  acc:68, eva:4, crit:2, aspd:1.05 },
+  stats:{ hp:78, mp:32, atk:2,  matk:0,  def:0,  mdef:0,  acc:68, eva:4, crit:2, aspd:1.00 },
   // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
   extra:{ critDmg:50, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },         // 額外屬性：暴擊傷害/回復魔力/回復生命/物理穿透/魔法穿透
   skills:[
@@ -43,7 +43,7 @@ slime_young:{
     id:'slime', name:'萊姆成體', level:2, element:'none',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757507487/%E8%90%8A%E5%A7%86%E6%88%90%E9%AB%94_zqui1l.png', imgMirror:false,
     appear:{ minPlayerLevel:2 }, // 出現條件：角色達到 2 等
-    stats:{ hp:93, mp:32, atk:5,  matk:0,  def:1,  mdef:0,  acc:69, eva:4, crit:2, aspd:1.06 },
+    stats:{ hp:93, mp:32, atk:5,  matk:0,  def:1,  mdef:0,  acc:69, eva:4, crit:2, aspd:1.00 },
     extra:{ critDmg:51, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },
     skills:[
       { id:'dash', name:'衝撞', elem:'none', kind:'physical', power:110, mp:6, desc:'造成120%無屬性物理傷害', chance: 0.30, lowHpBonus: 0.20 }
@@ -62,7 +62,7 @@ slime_young:{
     id:'slime_king', name:'史萊姆', level:3, element:'none',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757508388/%E5%8F%B2%E8%90%8A%E5%A7%86_xlo0qz.png', imgMirror:false,
     appear:{ minPlayerLevel:4 }, // 出現條件：角色達到 4 等
-    stats:{ hp:98, mp:34, atk:6,  matk:2,  def:1,  mdef:0,  acc:71, eva:6, crit:2, aspd:1.08 },
+    stats:{ hp:98, mp:34, atk:6,  matk:2,  def:1,  mdef:0,  acc:71, eva:6, crit:2, aspd:1.00 },
     extra:{ critDmg:52, recover_mp:2, recover_hp:1, armorPen:1, magicPen:0 },
     skills:[
       { id:'dash', name:'高速衝撞', elem:'none', kind:'physical', power:120, mp:10, desc:'造成120%無屬性物理傷害', chance: 0.35, lowHpBonus: 0.25 }
@@ -81,7 +81,7 @@ slime_young:{
   wood_wisp:{
     id:'wood_wisp', name:'木幽火', level:4, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757512929/%E6%9C%A8%E5%B9%BD%E7%81%AB_azpqyy.png', imgMirror:false,
-    stats:{ hp:103, mp:42, atk:7,  matk:2,  def:2,  mdef:2,  acc:72, eva:6, crit:2, aspd:1.09 },
+    stats:{ hp:103, mp:42, atk:7,  matk:2,  def:2,  mdef:2,  acc:72, eva:6, crit:2, aspd:1.05 },
     extra:{ critDmg:52, recover_mp:3, recover_hp:1, armorPen:0, magicPen:1 },
     skills:[
       {
@@ -113,7 +113,7 @@ slime_young:{
   Fire_Spirit:{
     id:'Fire_Spirit', name:'火之靈', level:4, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757512930/%E7%81%AB%E4%B9%8B%E9%9D%88_qgsyug.png', imgMirror:false,
-    stats:{ hp:103, mp:42, atk:7,  matk:2,  def:2,  mdef:2,  acc:72, eva:6, crit:2, aspd:1.09 },
+    stats:{ hp:103, mp:42, atk:7,  matk:2,  def:2,  mdef:2,  acc:72, eva:6, crit:2, aspd:1.10 },
     extra:{ critDmg:53, recover_mp:3, recover_hp:1, armorPen:0, magicPen:1 },
     ai:{ pattern:'smart', note:'先 1~2 次普攻，之後只要有 MP 優先用技能' },
     skills:[
@@ -142,7 +142,7 @@ slime_young:{
   laily:{
     id:'laily', name:'萊利', level:5, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757513124/%E8%90%8A%E5%88%A9_nmxv1h.png', imgMirror:false,
-    stats:{ hp:119, mp:43, atk:10,  matk:2,  def:4,  mdef:3,  acc:73, eva:7, crit:3, aspd:1.09 },
+    stats:{ hp:119, mp:43, atk:10,  matk:2,  def:4,  mdef:3,  acc:73, eva:7, crit:3, aspd:1.15 },
     extra:{ critDmg:55, recover_mp:3, recover_hp:1, armorPen:1, magicPen:1 },
     skills:[
       {
@@ -192,6 +192,48 @@ slime_young:{
       {type:'accessory', id:'jade_ring', name:'翠玉戒指', min:1, max:1, chance:0.80}
     ]
   },
+    stone_golem:{
+    id:'stone_golem', name:'石像守衛', level:7, element:'rock',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757827138/%E7%9F%B3%E5%83%8F%E5%AE%88%E8%A1%9B_zbn95l.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:170, mp:60, atk:16, matk:10, def:12, mdef:14, acc:60, eva:1, crit:5, aspd:1.00 },
+      // 能力值生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
+    xpBonus:{ extra:15, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    winter_spirit:{
+    id:'stone_golem', name:'冰霜妖', level:8, element:'ice',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757826863/%E5%86%B0%E9%9C%9C%E5%A6%96_vljrns.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:188, mp:110, atk:12, matk:17, def:11, mdef:19, acc:70, eva:1, crit:6, aspd:1.20 },
+      // 能力值生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
+    xpBonus:{ extra:20, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    winter_spirit:{
+    id:'inferno_wolf', name:'地獄狼', level:8, element:'fire',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757827949/%E5%9C%B0%E7%8D%84%E7%8B%BC_pkukuz.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:210, mp:70, atk:16, matk:11, def:12, mdef:13, acc:70, eva:4, crit:7, aspd:1.30 },
+      // 能力值生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
+    xpBonus:{ extra:25, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
 
 
   // ★ 原有 BOSS（保留原圖）
@@ -199,7 +241,7 @@ slime_young:{
     id:'slime_boss', name:'萊姆王', level:3, element:'none',rank: 'boss',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756707781/%E5%8F%B2%E8%90%8A%E7%8E%8B_kzopon.png', imgMirror:false,  
     scales:{}, 
-    stats:{ hp:250, mp:60, atk:21, matk:22, def:9, mdef:12, acc:85, eva:6, crit:5, aspd:1.00 },  // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
+    stats:{ hp:250, mp:60, atk:21, matk:22, def:9, mdef:12, acc:85, eva:6, crit:5, aspd:1.10 },  // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
     extra:{ critDmg:50, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },    // 額外屬性：暴擊傷害/回復魔力/回復生命/物理穿透/魔法穿透
     skills: [
       { id:'slime_wave', name:'萊姆波動', kind:'magical', elem:'none', dps:4, duration:5, chance:0.25, lowHpBonus:0.35 } 
@@ -214,7 +256,7 @@ flame_master:{
   id:'flame_master', name:'炎使者', level:6, element:'fire',rank: 'boss',
   img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757518547/%E7%82%8E%E4%BD%BF%E8%80%85_gpdouc.png', imgMirror:false,
   scales:{},
-  stats:{ hp:550, mp:110, atk:27, matk:25, def:14, mdef:15, acc:87, eva:10, crit:6, aspd:1.50 },
+  stats:{ hp:550, mp:110, atk:27, matk:25, def:14, mdef:15, acc:87, eva:10, crit:6, aspd:1.30 },
   skills:[
     { id:'flame_burst', chance: 0.40, lowHpBonus: 0.35 },  // 🔥 改為引用模式
     { id:'fire_kiss', chance: 0.35, lowHpBonus: 0.30 }
@@ -226,17 +268,7 @@ flame_master:{
   ]
 },
 
-  stone_golem:{
-    id:'stone_golem', name:'石像守衛', level:4, element:'earth',rank: 'boss',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756917889/%E7%9F%B3%E5%83%8F%E5%AE%88%E8%A1%9B_dqcolr.png', imgMirror:false,
-    scales:{ '氣血上限':1.20, '物理防禦':1.20, '行動條速度':0.80 },
-    stats:{ hp:300, mp:39, atk:25, matk:10, def:23, mdef:14, acc:82, eva:4, crit:3, aspd:0.90 },
-    drops:[
-      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
-      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
-      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
-    ]
-  },
+
   wraith:{
     id:'wraith', name:'幽怨亡靈', level:5, element:'dark',rank: 'boss',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756917889/%E5%B9%BD%E6%80%A8%E4%BA%A1%E9%9D%88_ac6oug.png', imgMirror:false,

@@ -55,20 +55,22 @@ function calculateATBStep(playerSpeed, enemySpeed, targetType) {
   var IDEAL_ACTION_TIME = 3.5; // 3.5秒一次行動
   var TICK_INTERVAL = 60; // 60ms per tick
   var IDEAL_TICKS = (IDEAL_ACTION_TIME * 1000) / TICK_INTERVAL;
-  
+
   // 計算基礎增長
   var baseStep = Math.round(1000 / IDEAL_TICKS);
-  
+
   // 速度比例（確保最小值）
   var totalSpeed = Math.max(playerSpeed + enemySpeed, 100);
   var targetSpeed = (targetType === 'player') ? playerSpeed : enemySpeed;
   var speedRatio = targetSpeed / totalSpeed;
-  
-  // 最終增長值（*2.2 讓差距更明顯）
-  var step = Math.max(1, Math.round(baseStep * speedRatio * 2.2));
-  
+
+  // 最終增長值（不倍增，避免視覺誤差）
+  var step = Math.max(1, Math.round(baseStep * speedRatio));
+
   return step;
 }
+
+
 
 // ===== 🔥 修正：傷害計算函數 =====
 function calcDamage(attacker, defender, skillData) {

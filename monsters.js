@@ -234,6 +234,20 @@ slime_young:{
       
     ]
   },
+    winter_spirit9:{
+    id:'inferno_wolf9', name:'菁英地獄狼', level:9, element:'fire',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757827949/%E5%9C%B0%E7%8D%84%E7%8B%BC_pkukuz.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:235, mp:76, atk:19, matk:12, def:13, mdef:14, acc:72, eva:4, crit:7, aspd:1.30 },
+      // 能力值生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
+    xpBonus:{ extra:25, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
 
 
   // ★ 原有 BOSS（保留原圖）
@@ -268,12 +282,15 @@ flame_master:{
   ]
 },
 
-
-  wraith:{
-    id:'wraith', name:'幽怨亡靈', level:5, element:'dark',rank: 'boss',
-    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756917889/%E5%B9%BD%E6%80%A8%E4%BA%A1%E9%9D%88_ac6oug.png', imgMirror:false,
-    scales:{ '法術攻擊':1.15, '法術防禦':1.10, '行動條速度':0.95 },
-    stats:{ hp:270, mp:110, atk:20, matk:30, def:13, mdef:25, acc:88, eva:9, crit:7, aspd:1.10 },
+  ice_flame_fox:{
+    id:'ice_flame_fox', name:'冰焰狐', level:10, element:'fire',rank: 'boss',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757845184/%E7%81%AB%E7%8B%90%E5%86%B0%E5%A6%96_ropah6.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:650, mp:170, atk:34, matk:19, def:20, mdef:14, acc:88, eva:11, crit:7, aspd:1.30 },
+    skills:[
+      { id:'ice_shard', chance: 0.40, lowHpBonus: 0.35 },  // 🔥 改為引用模式
+      { id:'glacier_prison', chance: 0.35, lowHpBonus: 0.30 }
+    ],
     drops:[
       {type:'currency',  id:'stone',        name:'靈石',    min:16, max:30, chance:1.00},
       {type:'material',  id:'ghost_essence',name:'幽魂精華',min:1,  max:2,  chance:0.45},

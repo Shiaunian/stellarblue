@@ -29,7 +29,7 @@ slime_young:{
     { id:'dash', name:'衝撞', elem:'none', kind:'physical', power:110, mp:6, desc:'造成120%無屬性物理傷害', chance: 0.30, lowHpBonus: 0.20 }
   ],
       // 額外經驗：+5；若玩家等級超過10等則不給（僅註記，不影響相容）
-  xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+  xpBonus:{ extra:20, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
   drops:[
     {type:'currency',  id:'stone',       name:'靈石',       min:6,  max:14, chance:1.00},      // 掉落貨幣：靈石，數量6-14，機率100%
     {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},      // 掉落素材：史萊姆凝膠，數量1，機率60%
@@ -49,7 +49,7 @@ slime_young:{
       { id:'dash', name:'衝撞', elem:'none', kind:'physical', power:110, mp:6, desc:'造成120%無屬性物理傷害', chance: 0.30, lowHpBonus: 0.20 }
     ],
         // 額外經驗：+5；若玩家等級超過10等則不給（僅註記，不影響相容）
-    xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    xpBonus:{ extra:20, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
       {type:'currency',  id:'stone',       name:'靈石',       min:10, max:15, chance:1.00},
       {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},
@@ -68,7 +68,7 @@ slime_young:{
       { id:'dash', name:'高速衝撞', elem:'none', kind:'physical', power:120, mp:10, desc:'造成120%無屬性物理傷害', chance: 0.35, lowHpBonus: 0.25 }
     ],
     // 額外經驗：+5；若玩家等級超過10等則不給（僅註記，不影響相容）
-    xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    xpBonus:{ extra:20, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
       {type:'currency',  id:'stone',       name:'靈石',       min:15, max:20, chance:1.00},
       {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},
@@ -81,7 +81,7 @@ slime_young:{
   wood_wisp:{
     id:'wood_wisp', name:'木幽火', level:4, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757512929/%E6%9C%A8%E5%B9%BD%E7%81%AB_azpqyy.png', imgMirror:false,
-    stats:{ hp:103, mp:42, atk:7,  matk:2,  def:2,  mdef:2,  acc:72, eva:6, crit:2, aspd:1.05 },
+    stats:{ hp:103, mp:42, atk:15,  matk:2,  def:10,  mdef:2,  acc:72, eva:6, crit:2, aspd:1.05 },
     extra:{ critDmg:52, recover_mp:3, recover_hp:1, armorPen:0, magicPen:1 },
     skills:[
       {
@@ -98,7 +98,6 @@ slime_young:{
         }
       }
     ],
-
     // 額外經驗 +5；若玩家等級 > 10 不給
     xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
@@ -113,7 +112,7 @@ slime_young:{
   Fire_Spirit:{
     id:'Fire_Spirit', name:'火之靈', level:4, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757512930/%E7%81%AB%E4%B9%8B%E9%9D%88_qgsyug.png', imgMirror:false,
-    stats:{ hp:103, mp:42, atk:7,  matk:2,  def:2,  mdef:2,  acc:72, eva:6, crit:2, aspd:1.10 },
+    stats:{ hp:103, mp:42, atk:17,  matk:2,  def:12,  mdef:2,  acc:72, eva:6, crit:2, aspd:1.10 },
     extra:{ critDmg:53, recover_mp:3, recover_hp:1, armorPen:0, magicPen:1 },
     ai:{ pattern:'smart', note:'先 1~2 次普攻，之後只要有 MP 優先用技能' },
     skills:[
@@ -142,7 +141,7 @@ slime_young:{
   laily:{
     id:'laily', name:'萊利', level:5, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757513124/%E8%90%8A%E5%88%A9_nmxv1h.png', imgMirror:false,
-    stats:{ hp:119, mp:43, atk:10,  matk:2,  def:4,  mdef:3,  acc:73, eva:7, crit:3, aspd:1.15 },
+    stats:{ hp:119, mp:43, atk:18,  matk:2,  def:14,  mdef:6,  acc:73, eva:7, crit:3, aspd:1.15 },
     extra:{ critDmg:55, recover_mp:3, recover_hp:1, armorPen:1, magicPen:1 },
     skills:[
       {
@@ -169,7 +168,7 @@ slime_young:{
   fire_orb:{
     id:'fire_orb', name:'聚火靈', level:6, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757513832/%E8%81%9A%E7%81%AB%E9%9D%88_yaenqp.png', imgMirror:false,
-    stats:{ hp:124, mp:44, atk:11,  matk:4,  def:5,  mdef:4,  acc:75, eva:8, crit:3, aspd:1.12 },
+    stats:{ hp:124, mp:44, atk:20,  matk:4,  def:16,  mdef:4,  acc:75, eva:8, crit:3, aspd:1.12 },
     extra:{ critDmg:55, recover_mp:3, recover_hp:1, armorPen:1, magicPen:1 },
     skills:[
       {
@@ -196,9 +195,9 @@ slime_young:{
     id:'stone_golem', name:'石像守衛', level:7, element:'rock',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757827138/%E7%9F%B3%E5%83%8F%E5%AE%88%E8%A1%9B_zbn95l.png', imgMirror:false,
     scales:{},
-    stats:{ hp:170, mp:60, atk:16, matk:10, def:12, mdef:14, acc:60, eva:1, crit:5, aspd:1.00 },
-      // 能力值生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
-    xpBonus:{ extra:15, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    stats:{ hp:170, mp:60, atk:20, matk:5, def:36, mdef:14, acc:60, eva:1, crit:5, aspd:1.00 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
       {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
       {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
@@ -207,12 +206,12 @@ slime_young:{
     ]
   },
     winter_spirit:{
-    id:'stone_golem', name:'冰霜妖', level:8, element:'ice',
+    id:'winter_spirit', name:'冰霜妖', level:8, element:'ice',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757826863/%E5%86%B0%E9%9C%9C%E5%A6%96_vljrns.png', imgMirror:false,
     scales:{},
-    stats:{ hp:188, mp:110, atk:12, matk:17, def:11, mdef:19, acc:70, eva:1, crit:6, aspd:1.20 },
-      // 能力值生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
-    xpBonus:{ extra:20, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    stats:{ hp:188, mp:110, atk:23, matk:22, def:11, mdef:19, acc:70, eva:1, crit:6, aspd:1.20 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     drops:[
       {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
       {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
@@ -220,13 +219,13 @@ slime_young:{
       
     ]
   },
-    winter_spirit:{
+    inferno_wolf:{
     id:'inferno_wolf', name:'地獄狼', level:8, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757827949/%E5%9C%B0%E7%8D%84%E7%8B%BC_pkukuz.png', imgMirror:false,
     scales:{},
-    stats:{ hp:210, mp:70, atk:16, matk:11, def:12, mdef:13, acc:70, eva:4, crit:7, aspd:1.30 },
-      // 能力值生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
-    xpBonus:{ extra:25, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    stats:{ hp:210, mp:70, atk:27, matk:11, def:22, mdef:13, acc:70, eva:4, crit:7, aspd:1.30 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:15, note:'玩家等級>10則無額外獎勵' },
     drops:[
       {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
       {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
@@ -234,13 +233,13 @@ slime_young:{
       
     ]
   },
-    winter_spirit9:{
+    inferno_wolf9:{
     id:'inferno_wolf9', name:'菁英地獄狼', level:9, element:'fire',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757827949/%E5%9C%B0%E7%8D%84%E7%8B%BC_pkukuz.png', imgMirror:false,
     scales:{},
-    stats:{ hp:235, mp:76, atk:19, matk:12, def:13, mdef:14, acc:72, eva:4, crit:7, aspd:1.30 },
-      // 能力值生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
-    xpBonus:{ extra:25, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
+    stats:{ hp:235, mp:76, atk:31, matk:15, def:24, mdef:16, acc:72, eva:4, crit:7, aspd:1.30 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
     drops:[
       {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
       {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
@@ -248,6 +247,218 @@ slime_young:{
       
     ]
   },
+    DuskRaven:{
+    id:'DuskRaven', name:'暗夜暮', level:11, element:'dark',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758010776/%E6%9A%97%E5%A4%9C%E6%9A%AElv11_pnuzmz.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:245, mp:80, atk:32, matk:26, def:31, mdef:22, acc:72, eva:4, crit:7, aspd:1.20 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    SubterraneanBeast:{
+    id:'SubterraneanBeast', name:'地下水怪', level:12, element:'water',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758010776/%E5%9C%B0%E4%B8%8B%E6%B0%B4%E6%80%AAlv12_ecthur.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:255, mp:110, atk:34, matk:15, def:28, mdef:16, acc:72, eva:4, crit:7, aspd:1.10 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    MimicryWoodling:{
+    id:'MimicryWoodling', name:'偽裝木妖', level:13, element:'grass',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758010776/%E5%81%BD%E8%A3%9D%E6%9C%A8%E5%A6%96lv13_wchtr2.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:270, mp:80, atk:36, matk:24, def:26, mdef:20, acc:72, eva:5, crit:8, aspd:1.05 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    FrostfangBear:{
+    id:'FrostfangBear', name:'寒霜冰熊', level:14, element:'ice',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758010776/%E5%AF%92%E9%9C%9C%E5%86%B0%E7%86%8Alv14_x7ryfc.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:280, mp:110, atk:40, matk:15, def:32, mdef:16, acc:76, eva:6, crit:8, aspd:1.15 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    IceHeir:{
+    id:'IceHeir', name:'冰霜之子', level:15, element:'ice',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758010776/%E5%86%B0%E9%9C%9C%E4%B9%8B%E5%AD%90LV15_c8te2j.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:310, mp:120, atk:38, matk:20, def:28, mdef:22, acc:72, eva:7, crit:9, aspd:1.20 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    ghostfire_wood:{
+    id:'ghostfire_wood', name:'鬼火木', level:16, element:'fire',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758035043/%E9%AC%BC%E7%81%AB%E6%9C%A8LV16_zvw8ee.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:320, mp:140, atk:39, matk:26, def:28, mdef:24, acc:77, eva:7, crit:9, aspd:1.05 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    blue_demon:{
+    id:'blue_demon', name:'藍妖魔', level:17, element:'fire',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758035043/%E8%97%8D%E5%A6%96%E9%AD%94LV17_wespyq.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:360, mp:140, atk:44, matk:26, def:36, mdef:24, acc:76, eva:9, crit:11, aspd:1.20 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    ice_crystal_beast:{
+    id:'ice_crystal_beast', name:'冰鑽怪', level:18, element:'ice',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758035043/%E5%86%B0%E9%91%BD%E6%80%AALV18_uupsgp.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:410, mp:160, atk:44, matk:27, def:37, mdef:27, acc:72, eva:9, crit:11, aspd:1.20 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    menkete:{
+    id:'menkete', name:'孟凱特', level:19, element:'body',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758035042/%E5%AD%9F%E5%87%B1%E7%89%B9LV19_qdlis1.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:470, mp:80, atk:49, matk:22, def:35, mdef:19, acc:78, eva:11, crit:12, aspd:1.20 },
+      // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    tundra_bear:{
+    id:'tundra_bear', name:'雪原地熊', level:20, element:'none',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758035043/%E9%9B%AA%E5%8E%9F%E5%9C%B0%E7%86%8ALV20_aobui4.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:530, mp:120, atk:45, matk:24, def:41, mdef:38, acc:72, eva:7, crit:9, aspd:1.10 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    XuePo_SpiritBeast:{
+    id:'XuePo_SpiritBeast', name:'雪魄靈獸', level:21, element:'ice',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758168219/%E9%9B%AA%E9%AD%84%E9%9D%88%E7%8D%B8LV21_csmm2k.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:550, mp:120, atk:44, matk:20, def:47, mdef:31, acc:72, eva:7, crit:10, aspd:1.15 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    DouLi_Spirit:{
+    id:'DouLi_Spirit', name:'斗笠精', level:22, element:'none',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758168221/%E6%96%97%E7%AC%A0%E7%B2%BELV22_yowc6n.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:480, mp:160, atk:45, matk:31, def:40, mdef:23, acc:72, eva:7, crit:9, aspd:1.20 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    HuoYan_LanternSpirit:{
+    id:'HuoYan_LanternSpirit', name:'火燄燈靈', level:23, element:'fire',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758168218/%E7%81%AB%E7%87%84%E7%87%88%E9%9D%88LV23_rjpay7.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:510, mp:120, atk:48, matk:37, def:30, mdef:30, acc:80, eva:7, crit:11, aspd:1.20 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    ZhangWu_LanternSpirit:{
+    id:'ZhangWu_LanternSpirit', name:'瘴霧燈靈', level:24, element:'dark',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758168218/%E7%98%B4%E9%9C%A7%E7%87%88%E9%9D%88LV24_bs8u2w.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:530, mp:140, atk:50, matk:36, def:34, mdef:21, acc:82, eva:7, crit:11, aspd:1.20 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+    YanShi_LanternSpirit:{
+    id:'YanShi_LanternSpirit', name:'岩石燈靈', level:25, element:'rock',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758168218/%E5%B2%A9%E7%9F%B3%E7%87%88%E9%9D%88LV25_tfvsz4.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:570, mp:120, atk:45, matk:20, def:42, mdef:22, acc:82, eva:7, crit:11, aspd:1.10 },
+    // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:1, note:'玩家等級>10則無額外獎勵' },
+    drops:[
+      {type:'currency',  id:'stone',      name:'靈石',     min:14, max:28, chance:1.00},
+      {type:'material',  id:'stone_core', name:'石像核心', min:1,  max:1,  chance:0.30},
+      {type:'material',  id:'hard_rock',  name:'堅石',     min:2,  max:4,  chance:0.60},
+      
+    ]
+  },
+  
 
 
   // ★ 原有 BOSS（保留原圖）
@@ -255,8 +466,10 @@ slime_young:{
     id:'slime_boss', name:'萊姆王', level:3, element:'none',rank: 'boss',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756707781/%E5%8F%B2%E8%90%8A%E7%8E%8B_kzopon.png', imgMirror:false,  
     scales:{}, 
-    stats:{ hp:250, mp:60, atk:21, matk:22, def:9, mdef:12, acc:85, eva:6, crit:5, aspd:1.10 },  // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
+    stats:{ hp:250, mp:60, atk:27, matk:22, def:20, mdef:12, acc:85, eva:6, crit:5, aspd:1.10 },  // 能力值（主要）生命值/魔力值/物理攻擊力/魔法攻擊力/物理防禦力/魔法防禦力/命中率/閃避率/暴擊率/攻擊速度
     extra:{ critDmg:50, recover_mp:2, recover_hp:1, armorPen:0, magicPen:0 },    // 額外屬性：暴擊傷害/回復魔力/回復生命/物理穿透/魔法穿透
+        // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
     skills: [
       { id:'slime_wave', name:'萊姆波動', kind:'magical', elem:'none', dps:4, duration:5, chance:0.25, lowHpBonus:0.35 } 
     ],
@@ -270,7 +483,9 @@ flame_master:{
   id:'flame_master', name:'炎使者', level:6, element:'fire',rank: 'boss',
   img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757518547/%E7%82%8E%E4%BD%BF%E8%80%85_gpdouc.png', imgMirror:false,
   scales:{},
-  stats:{ hp:550, mp:110, atk:27, matk:25, def:14, mdef:15, acc:87, eva:10, crit:6, aspd:1.30 },
+  stats:{ hp:550, mp:110, atk:32, matk:30, def:27, mdef:22, acc:87, eva:10, crit:6, aspd:1.30 },
+      // 額外經驗 +8；若玩家等級 > 10 不給
+    xpBonus:{ extra:10, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
   skills:[
     { id:'flame_burst', chance: 0.40, lowHpBonus: 0.35 },  // 🔥 改為引用模式
     { id:'fire_kiss', chance: 0.35, lowHpBonus: 0.30 }
@@ -286,7 +501,7 @@ flame_master:{
     id:'ice_flame_fox', name:'冰焰狐', level:10, element:'fire',rank: 'boss',
     img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757845184/%E7%81%AB%E7%8B%90%E5%86%B0%E5%A6%96_ropah6.png', imgMirror:false,
     scales:{},
-    stats:{ hp:650, mp:170, atk:34, matk:19, def:20, mdef:14, acc:88, eva:11, crit:7, aspd:1.30 },
+    stats:{ hp:650, mp:170, atk:34, matk:26, def:20, mdef:14, acc:88, eva:11, crit:7, aspd:1.30 },
     skills:[
       { id:'ice_shard', chance: 0.40, lowHpBonus: 0.35 },  // 🔥 改為引用模式
       { id:'glacier_prison', chance: 0.35, lowHpBonus: 0.30 }
@@ -297,33 +512,33 @@ flame_master:{
       {type:'consumable',id:'mp_small',     name:'靈氣丹',  min:1,  max:1,  chance:0.30},
     ]
   },
-  snow_wolf:{
-    id:'snow_wolf', name:'雪原狼', level:3, element:'water',rank: 'boss',
-    img:'https://picsum.photos/seed/snowwolf/500/500', imgMirror:false,
-    scales:{ '命中率':1.05, '閃避':1.05, '行動條速度':1.05 },
-    stats:{ hp:178, mp:41, atk:16, matk:10, def:10, mdef:8, acc:84, eva:8, crit:5, aspd:1.12 },
+  Limely:{
+    id:'Limely', name:'水怪萊姆立', level:15, element:'water',rank: 'boss',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758010776/%E6%B0%B4%E6%80%AA%E8%90%8A%E5%A7%86%E7%AB%8BbossLV15_w7bg52.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:820, mp:170, atk:44, matk:22, def:34, mdef:19, acc:90, eva:10, crit:7, aspd:1.30 },
     drops:[
       {type:'currency',  id:'stone',    name:'靈石', min:9,  max:20, chance:1.00},
       {type:'material',  id:'wolf_fur', name:'狼毛', min:1,  max:2,  chance:0.80},
       {type:'material',  id:'wolf_fang',name:'狼牙', min:1,  max:1,  chance:0.40},
     ]
   },
-  ice_bear:{
-    id:'ice_bear', name:'冰原巨熊', level:4, element:'water',rank: 'boss',
-    img:'https://picsum.photos/seed/icebear/500/500', imgMirror:false,
-    scales:{ '氣血上限':1.10, '物理攻擊':1.10, '物理防禦':1.10, '行動條速度':0.90 },
-    stats:{ hp:318, mp:30, atk:25, matk:10, def:22, mdef:12, acc:80, eva:3, crit:3, aspd:0.95 },
+  AshHornBeast:{
+    id:'AshHornBeast', name:'霜燼角獣', level:20, element:'none',rank: 'boss',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758035427/%E9%9C%9C%E7%87%BC%E8%A7%92%E7%8D%A3bossLV20_n5alej.png', imgMirror:false,
+    scales:{},
+    stats:{ hp:1050, mp:400, atk:67, matk:30, def:41, mdef:24, acc:92, eva:12, crit:8, aspd:1.40 },
     drops:[
       {type:'currency',  id:'stone',     name:'靈石', min:14, max:26, chance:1.00},
       {type:'material',  id:'bear_claw', name:'熊爪', min:1,  max:1,  chance:0.40},
       {type:'material',  id:'bear_fur',  name:'熊皮', min:1,  max:2,  chance:0.70},
     ]
   },
-  ice_thorn:{
-    id:'ice_thorn', name:'寒棘', level:4, element:'water',rank: 'boss',
-    img:'https://picsum.photos/seed/icethorn/500/500', imgMirror:false,
+  King_of_Darkness:{
+    id:'King_of_Darkness', name:'闇之王', level:25, element:'dark',rank: 'boss',
+    img:'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758168218/%E9%97%87%E4%B9%8B%E7%8E%8BbossLV25_a4mdga.png', imgMirror:false,
     scales:{ '法術攻擊':1.05, '法術防禦':1.05, '行動條速度':0.95 },
-    stats:{ hp:264, mp:65, atk:19, matk:23, def:15, mdef:19, acc:87, eva:7, crit:5, aspd:1.06 },
+    stats:{ hp:1250, mp:65, atk:63, matk:40, def:50, mdef:37, acc:87, eva:12, crit:13, aspd:1.40 },
     drops:[
       {type:'currency',  id:'stone',          name:'靈石',     min:12, max:24, chance:1.00},
       {type:'material',  id:'ice_crystal',    name:'冰晶',     min:1,  max:3,  chance:0.65},

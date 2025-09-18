@@ -11,6 +11,7 @@
       --gold:#b98c4b; --gold-2:#7a5b31; --radius:16px; --gap:12px; --shadow:0 10px 28px rgba(0,0,0,.35);
       --elem-none:#64748b; --elem-gold:#f59e0b; --elem-wood:#22c55e; --elem-water:#38bdf8;
       --elem-fire:#f97316; --elem-earth:#a16207; --elem-spirit:#a78bfa; --elem-dark:#0f172a;
+      --elem-rock:#8b7355; --elem-ice:#60a5fa; --elem-grass:#22c55e;
     }
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
     html,body{height:100%; margin:0; font-family:"Microsoft JhengHei",system-ui,Segoe UI,Roboto,sans-serif; color:var(--text); background:var(--bg);}
@@ -66,15 +67,21 @@
       font-size: 10px;
       background: rgba(255,255,255,0.08);
     }
-    .pill.elem{ color:#fff; font-weight:600; }
-    .pill.elem.none{  background:var(--elem-none);  }
-    .pill.elem.gold{  background:var(--elem-gold);  }
-    .pill.elem.wood{  background:var(--elem-wood);  }
-    .pill.elem.water{ background:var(--elem-water); }
-    .pill.elem.fire{  background:var(--elem-fire);  }
-    .pill.elem.earth{ background:var(--elem-earth); }
-    .pill.elem.spirit{background:var(--elem-spirit);}
-    .pill.elem.dark{  background:var(--elem-dark);  }
+.pill.elem{ color:#fff; font-weight:600; }
+.pill.elem.none{  background:var(--elem-none);  }
+.pill.elem.gold{  background:var(--elem-gold);  }
+.pill.elem.wood{  background:var(--elem-wood);  }
+.pill.elem.water{ background:var(--elem-water); }
+.pill.elem.fire{  background:var(--elem-fire);  }
+.pill.elem.earth{ background:var(--elem-earth); }
+.pill.elem.spirit{background:var(--elem-spirit);}
+.pill.elem.dark{  background:var(--elem-dark);  }
+
+/* === 元素鍵名對齊怪物資料（只補 alias，不改你配色變數） === */
+.pill.elem.rock{   background:var(--elem-earth); }  /* 岩 → 用土色 */
+.pill.elem.ice{    background:var(--elem-water); }  /* 冰 → 用水色 */
+.pill.elem.grass{  background:var(--elem-wood);  }  /* 草 → 用木色 */
+
 
     .medals{grid-area:medals; display:flex; gap:6px; min-width:0;}
     .medal-slot{width:30px; aspect-ratio:1/1; border-radius:50%; border:2px solid rgba(255,255,255,.25);
@@ -114,9 +121,12 @@
     /* 兩列選單：左＝大地圖（清單）／右＝副地圖（清單） */
     .map-select{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
     .col{
-      background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08);
+      background:rgba(0,0,0,25); border:1px solid rgba(255,255,255,08);
       border-radius:14px; padding:8px; display:grid; grid-template-rows:auto 1fr;
-      gap:8px; min-height:160px;
+      gap:8px;
+      /* 固定高度，避免被副地圖項目數量撐高；內層 .opts 已可滾動 */
+      height:149px;
+      overflow:hidden;
     }
     .col .clabel{font-size:12px; color:#a5b4fc; letter-spacing:2px;}
     .col .opts{
@@ -172,12 +182,18 @@
 
     /* 怪物膠囊（更緊湊） */
     .chip-list{ display:flex; flex-wrap:wrap; gap:6px; }
-    .chip{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:3px 6px; border-radius:8px;
-      border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.08);
-      font-size:11px; line-height:1.1; white-space:nowrap;
-      max-width:100%;
+    .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 1px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.08);
+    font-size: 10px;
+    line-height: 1.1;
+    white-space: nowrap;
+    max-width: 100%;
     }
     .chip .mname{
       max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -676,10 +692,15 @@
 <script src="stats.js"></script>
 <script src="items.js"></script>
 <script src="skills.js"></script>
+<script src="map-data.js"></script>
+<script src="map-ui.js"></script>
 <script src="monsters.js"></script>
 <script src="equip.js"></script><!-- ★新增：裝備模組，確保 getBonuses 一致 -->
 <script src="battle-state.js"></script><!-- ★新增：戰鬥狀態管理模組 -->
 <script src="auth.js"></script>
+
+
+
 
 
 
@@ -699,52 +720,14 @@ const fmt=(n)=> new Intl.NumberFormat('zh-Hant').format(n);
 const PLAYER_IMG_URL = 'https://picsum.photos/seed/xian-hero/400/600';
 
 
-/* ===== 地圖資料（大地圖 -> 小地圖） ===== */
-const MAPS = [
-{ id:'forest', name:'青木山脈', lv:'1-10', small:[
-  { id:'slime_cave',  name:'萊姆洞窟', lv:'1-3',
-    monsters:['slime_young','slime','slime_king'], 
-    boss:'slime_boss', killsRequired: 8 },
-  { id:'woodland',    name:'火林洞',   lv:'4-6',
-    monsters:['wood_wisp','Fire_Spirit','laily',"fire_orb"], 
-    boss:'flame_master', killsRequired: 12 },
-  { id:'moss_vale',   name:'苔石谷',   lv:'7-10',
-    monsters:['stone_golem','stone_golem',"winter_spirit","winter_spirit9"],
-    boss:'ice_flame_fox', killsRequired: 15 },
-]},
-{ id:'tundra', name:'雪原台地', lv:'3-5', small:[
-  { id:'snowfield',   name:'雪原狩場', lv:'3-4',
-    monsters:['snow_wolf','ice_thorn'], 
-    boss:'ice_bear_boss', killsRequired: 10 },
-  { id:'ice_cave',    name:'寒晶洞穴', lv:'4-5',
-    monsters:['ice_bear','ice_thorn'], 
-    boss:'ice_cave_boss', killsRequired: 12 },  // ★ 加上 boss
-]},
-{ id:'ruins', name:'幽怨遺跡', lv:'5-7', small:[
-  { id:'spirit_hall', name:'靈侍大殿', lv:'4-6',
-    monsters:['spirit_acolyte','wraith'], 
-    boss:'spirit_acolyte_boss', killsRequired: 15 },
-  { id:'shadow_pit',  name:'影翼深坑', lv:'4-6',
-    monsters:['shadow_bat','wraith'],     
-    boss:'shadow_bat_boss', killsRequired: 15 },
-]},
-{ id:'canyon', name:'磐石峽谷', lv:'3-6', small:[
-  { id:'beetle_ridge', name:'雷角嶺',  lv:'5-6',
-    monsters:['brass_beetle','thunder_beetle'], 
-    boss:'thunder_beetle_boss', killsRequired: 18 },
-  { id:'bog',          name:'泥潭窪地',lv:'3-5',
-    monsters:['bog_tortoise','stone_golem'],    
-    boss:'ancient_tortoise_boss', killsRequired: 14 },
-]},
-];
 
 
 
 /* ===== 玩家/導入角色 ===== */
-let P = null;           // 玩家角色
-let curBig = null;      // 現在選的大地圖 id
-let curSmall = null;    // 現在選的小地圖 id
-let entered = false;    // 是否已按「進入」，未進入前不顯示探險/戰鬥
+window.P = (typeof window.P !== 'undefined') ? window.P : null;                         // 玩家角色（共享）
+window.curBig = (typeof window.curBig !== 'undefined') ? window.curBig : null;          // 共享
+window.curSmall = (typeof window.curSmall !== 'undefined') ? window.curSmall : null;    // 共享
+window.entered = (typeof window.entered !== 'undefined') ? window.entered : false;      // 共享
 
 
 
@@ -925,258 +908,6 @@ function renderBars(){
 
 
 
-
-function buildMapUI(){
-  const bigCol   = qs('#bigMapCol');
-  const smallCol = qs('#smallMapCol');
-  bigCol.innerHTML=''; smallCol.innerHTML='';
-
-  // 左列：大地圖（清單＋建議等級）
-  MAPS.forEach(m=>{
-    const btn = document.createElement('div');
-    btn.className = 'tag' + (m.id===curBig?' active':'');
-    btn.innerHTML = `<span class="name">${m.name}</span><span class="lv">建議 ${m.lv||'—'}</span>`;
-    btn.onclick = ()=>{
-      curBig = m.id;
-      curSmall = null;      // 切換大地圖時清空副地圖選擇
-      entered = false;      // 必須重新進入
-      buildMapUI();
-      setLocBadge();
-      updateActionPanel();
-    };
-    bigCol.appendChild(btn);
-  });
-
-  // 若尚未選擇，預設選第一個大地圖
-  const big = MAPS.find(x=>x.id===curBig) || MAPS[0];
-  if(!curBig && big){ curBig = big.id; }
-
-  // 右列：依目前大地圖顯示副地圖（清單＋建議等級）
-  (big?.small||[]).forEach(s=>{
-    const btn = document.createElement('div');
-    btn.className = 'tag' + (s.id===curSmall?' active':'');
-    btn.innerHTML = `<span class="name">${s.name}</span><span class="lv">建議 ${s.lv||'—'}</span>`;
-    btn.onclick = ()=>{
-      curSmall = s.id;
-      entered = false;    // 選了副地圖後，仍需按「進入」
-      setLocBadge();
-      updateActionPanel();
-
-      // 標記 active
-      Array.prototype.slice.call(smallCol.children).forEach(function(x){
-      x.classList.remove('active');
-    });
-      btn.classList.add('active');
-
-      // 更新地區情報
-      renderAreaInfo();
-    };
-    smallCol.appendChild(btn);
-  });
-
-  setLocBadge();
-  updateActionPanel();
-  renderAreaInfo(); // 初始也渲染一次
-}
-
-/* 固定欄位：地區情報 */
-/* 固定欄位：地區情報（不用可選鏈/未宣告變數） */
-function renderAreaInfo(){
-  var box = qs('#infoMonsters');
-
-  // 依 curBig / curSmall 找到目前的小地圖
-  var big = null, s = null;
-  for (var i=0;i<MAPS.length;i++){
-    if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
-  }
-  if (big && big.small){
-    for (var j=0;j<big.small.length;j++){
-      if (big.small[j].id === curSmall){ s = big.small[j]; break; }
-    }
-  }
-  if (!s){
-    box.innerHTML = '<span class="chip">—</span>';
-    return;
-  }
-
-  var chips = [];
-  var list = s.monsters || [];
-  for (var k=0;k<list.length;k++){
-    var id = list[k];
-    var m = (window.MonsterDB && MonsterDB.get) ? MonsterDB.get(id) : null;
-    if(!m){
-      chips.push('<span class="chip"><span class="mname">'+id+'</span></span>');
-    }else{
-      var el = (window.ELEMENT_LABEL && ELEMENT_LABEL[m.element]) || '無';
-      chips.push(
-        '<span class="chip">' +
-          '<span class="pill elem '+(m.element||'none')+'">'+ el +'</span>' +
-          '<span class="mname">'+ m.name +'</span><span class="mlv">LV.'+(m.level||1)+'</span>' +
-        '</span>'
-      );
-    }
-  }
-
-  if (s.boss){
-    var b = (window.MonsterDB && MonsterDB.get) ? MonsterDB.get(s.boss) : null;
-    if (b){
-      var elb = (window.ELEMENT_LABEL && ELEMENT_LABEL[b.element]) || '無';
-      chips.push(
-        '<span class="chip" style="border-color:#dc2626;background:rgba(220,38,38,.12)">' +
-          '<strong>BOSS</strong>' +
-          '<span class="pill elem '+(b.element||'none')+'">'+ elb +'</span>' +
-          '<span class="mname">'+ b.name +'</span><span class="mlv">LV.'+(b.level||1)+'</span>' +
-        '</span>'
-      );
-    }
-  }
-
-  box.innerHTML = chips.join('');
-}
-
-
-function setLocBadge(){
-  const big = MAPS.find(x=>x.id===curBig);
-  const small = big?.small?.find(x=>x.id===curSmall);
-  const locTxt = small ? `目前位置：${big.name} ＞ ${small.name}` : '尚未選擇地點';
-  qs('#locBadge').textContent = entered ? `${locTxt}（已進入）` : locTxt;
-}
-
-
-
-function updateBossUI(){
-  const hint = qs('#slimeQuestHint');
-  const btnBoss = qs('#btnBoss');
-  if(!hint || !btnBoss) return;
-
-  // 找到當前小地圖
-  var big = null, area = null, i, j;
-  for (i = 0; i < MAPS.length; i++){
-    if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
-  }
-  if (big && big.small){
-    for (j = 0; j < big.small.length; j++){
-      if (big.small[j].id === curSmall){ area = big.small[j]; break; }
-    }
-  }
-
-  if(!area || !area.boss || !entered){
-    hint.style.display = 'none';
-    btnBoss.style.display = 'none';
-    return;
-  }
-
-  P.mapProg = P.mapProg || {};
-  var progKey = area.id;
-  var prog = P.mapProg[progKey] || { kills:0, bossReady:false, bossDefeated:false };
-  var requiredKills = area.killsRequired || 10;
-
-  // ★ 修正：當擊殺數達標時，重新啟用 BOSS（不管之前是否擊敗過）
-  if(prog.kills >= requiredKills){
-    prog.bossReady = true;
-    // 不重置 bossDefeated，保留歷史記錄
-  }
-
-  // 顯示邏輯：只要 bossReady 就能挑戰
-  if(prog.bossReady){
-    var statusPrefix = prog.bossDefeated ? '重新挑戰' : '首次挑戰';
-    hint.textContent = `${area.name}：討伐已達 ${prog.kills}/${requiredKills} → 可以${statusPrefix} BOSS！`;
-    hint.style.display = 'block';
-    btnBoss.style.display = 'inline-block';
-    btnBoss.textContent = statusPrefix + ' BOSS';
-    btnBoss.style.background = '#b91c1c';
-  }else{
-    var statusText = prog.bossDefeated 
-      ? `${area.name}：BOSS 已擊敗，需重新累積討伐進度 ${prog.kills}/${requiredKills}`
-      : `${area.name}：怪物討伐進度 ${prog.kills}/${requiredKills}（達成後將出現 BOSS）`;
-    
-    hint.textContent = statusText;
-    hint.style.display = 'block';
-    btnBoss.style.display = 'none';
-  }
-}
-
-
-function updateActionPanel(){
-  const btnEnter   = qs('#btnEnter');
-  const btnExplore = qs('#btnExplore');
-  const btnFight   = qs('#btnFight');
-
-  const canEnter = !!curBig && !!curSmall;
-  btnEnter.disabled = !canEnter;
-
-  if(!entered){
-    btnEnter.style.display   = 'inline-block';
-    btnExplore.style.display = 'none';
-    btnFight.style.display   = 'none';
-  }else{
-    btnEnter.style.display   = 'none';
-    btnExplore.style.display = 'inline-block';
-    btnFight.style.display   = 'inline-block';
-  }
-
-  // ★ 同步更新 BOSS UI
-  updateBossUI();
-}
-
-/* ===== 探險 ===== */
-async function doExplore(){
-  if(!curSmall){ log('請先選擇副地圖。'); return; }
-  if(!entered){ log('請先按「進入」該地區。'); return; }
-
-  var staCur = (P && P.sta && typeof P.sta.cur === 'number') ? P.sta.cur : 0;
-  if(staCur < 2){ log('體力不足（需要 2）', 'warn'); return; }
-  P.sta.cur = staCur - 2;
-
-  var r = Math.random();
-  if(r < 0.5){
-    var got = 5 + Math.floor(Math.random()*16); // 5~20
-    P.currencies.stone = (P.currencies.stone||0) + got;
-    log('探險獲得 靈石 ×' + got, 'ok');
-  }else if(r < 0.8){
-    // 素材
-    var picks = ['wood_shard','stone_core','ghost_essence'];
-    var id = picks[Math.floor(Math.random()*picks.length)];
-    var hasDef = (ItemDB && typeof ItemDB.getDef==='function' && ItemDB.getDef('materials', id));
-    if(!hasDef){ id = 'wood_shard'; }
-    var qty = 1 + Math.floor(Math.random()*2);
-    if(ItemDB && typeof ItemDB.addMaterialToBag==='function') ItemDB.addMaterialToBag(P.bag, id, qty);
-    var mdef = (ItemDB && ItemDB.getDef) ? ItemDB.getDef('materials', id) : null;
-    var mname = (mdef && mdef.name) ? mdef.name : id;
-    log('探險獲得素材：' + mname + ' ×' + qty, 'ok');
-  }else{
-    // 消耗品
-    var ids = ['hp_small','mp_small'];
-    var filtered = [];
-    for (var i=0; i<ids.length; i++){
-      var ok = (ItemDB && typeof ItemDB.getDef==='function' && ItemDB.getDef('consumables', ids[i]));
-      if(ok) filtered.push(ids[i]);
-    }
-    var cid = filtered.length ? filtered[Math.floor(Math.random()*filtered.length)] : 'hp_small';
-    if(ItemDB && typeof ItemDB.addConsumableToBag==='function') ItemDB.addConsumableToBag(P.bag, cid, 1);
-    var cdef = (ItemDB && ItemDB.getDef) ? ItemDB.getDef('consumables', cid) : null;
-    var cname = (cdef && cdef.name) ? cdef.name : cid;
-    log('探險獲得丹藥：' + cname + ' ×1', 'ok');
-  }
-
-  refreshLive();
-  renderHeader();
-  renderBars();
-  
-  // ★ 探險後立即同步到 Auth 快取（加強版）
-  if (window.Auth && Auth.setCharacter) {
-    try { 
-      var cleanData = JSON.parse(JSON.stringify(P));
-      delete cleanData._live;
-      Auth.setCharacter(cleanData); 
-      console.log('🗺️ 探險後同步成功 - 體力:', P.sta.cur, '靈石:', P.currencies.stone);
-    } catch(_e) {
-      console.error('❌ 探險後同步失敗:', _e);
-    }
-  }
-}
-
-
 /* ===== 戰鬥（ATB） ===== */
 const ATB_MAX = 1000;      // 滿格門檻
 let battle = null;         // 戰鬥狀態
@@ -1240,17 +971,17 @@ function updateBattleUI(enemy) {
 
 
 function startBattle(){
-  if(!curSmall){ log('請先選擇副地圖。'); return; }
-  if(!entered){ log('請先按「進入」該地區。'); return; }
+  if(!window.curSmall){ log('請先選擇副地圖。'); return; }
+  if(!window.entered){ log('請先按「進入」該地區。'); return; }
 
   // 找到目前區域
   var big = null, area = null, i, j;
   for (i = 0; i < MAPS.length; i++){
-    if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
+    if (MAPS[i].id === window.curBig){ big = MAPS[i]; break; }
   }
   if (big && big.small){
     for (j = 0; j < big.small.length; j++){
-      if (big.small[j].id === curSmall){ area = big.small[j]; break; }
+      if (big.small[j].id === window.curSmall){ area = big.small[j]; break; }
     }
   }
   if(!area){ log('找不到該地區'); return; }
@@ -2042,14 +1773,15 @@ addEventListener('visibilitychange', function(){
 
 qs('#btnLogout').onclick = ()=>{ if(window.Auth && Auth.logout) Auth.logout(); location.href='index.html'; };
 
-  qs('#btnEnter').onclick = ()=>{
-    if(!curSmall){ log('請先選擇副地圖。'); return; }
-    entered = true;
-    refreshLive();
-    setLocBadge();
-    updateActionPanel();
-    log('已進入當前區域，可以進行「探險 / 戰鬥」。','ok');
-  };
+qs('#btnEnter').onclick = ()=>{
+  if(!window.curSmall){ log('請先選擇副地圖。'); return; }
+  window.entered = true;
+  refreshLive();
+  setLocBadge();
+  updateActionPanel();
+  log('已進入當前區域，可以進行「探險 / 戰鬥」。','ok');
+};
+
 
   qs('#btnExplore').onclick = doExplore;
   qs('#btnFight').onclick   = startBattle;
@@ -2527,8 +2259,6 @@ window.addEventListener('DOMContentLoaded', async function(){
   updateActionPanel();
 
 });
-
-
 
 </script>
 </body>

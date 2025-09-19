@@ -387,6 +387,29 @@ function list(){ return Object.keys(DB).map(function(k){ return DB[k]; }); }
  }
  if (!dD) dD = { '物理防禦':8,'法術防禦':8 };
 
+ // ★ 1.5) 命中/閃避判定（若有全域 calcHitChance 則優先使用）
+ var atkElem = (sk && sk.elem) ? sk.elem : 'none';
+ var isHit = true;
+ if (typeof window.calcHitChance === 'function') {
+   isHit = window.calcHitChance(attacker, defender);  // 會用到「命中率」「閃避」 :contentReference[oaicite:3]{index=3}
+ } else {
+   var acc = (aD['命中率']!=null ? aD['命中率'] : 60);
+   var eva = (dD['閃避']!=null   ? dD['閃避']   : 5);
+   var hitChance = acc - eva;
+   if (hitChance < 5) hitChance = 5;
+   if (hitChance > 95) hitChance = 95;
+   isHit = (Math.random()*100 < hitChance);
+ }
+ if (!isHit){
+   return {
+     damage: 0,
+     isCrit: false,
+     isMiss: true,
+     elem: atkElem,
+     mul: 1.0
+   };
+ }
+
  // 2) 物理/法術分支
  var isMag = false;
  if (sk && sk.type){
@@ -399,7 +422,6 @@ function list(){ return Object.keys(DB).map(function(k){ return DB[k]; }); }
  var PEN  = isMag ? (aD['法穿']!=null?aD['法穿']:0)           : (aD['破甲']!=null?aD['破甲']:0);
 
  // 3) 相剋倍率
- var atkElem = (sk && sk.elem) ? sk.elem : 'none';
  var defElems = (defender && defender.element) ? defender.element : 'none';
  var elemMul = 1.0;
  if (typeof window.getElemMultiplier === 'function'){
@@ -441,10 +463,12 @@ function list(){ return Object.keys(DB).map(function(k){ return DB[k]; }); }
  return {
    damage: out,
    isCrit: !!isCrit,
+   isMiss: false,
    elem: atkElem,
    mul: elemMul
  };
  }
+
 
 // === 按元素分類取技能 ===
 function getByElement(elem){

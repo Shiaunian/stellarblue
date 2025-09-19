@@ -25,9 +25,9 @@
 
     // ---- 武器（Weapons）----
     weapons: [
-      { id: "c_dagger1", name: "普通的青銅短劍", level: 1, atk: 10, dmg: [8, 12],  rarity: "普", plus: 0, price: 50,  durMax: 50,  icon: "https://i.ibb.co/LDTw5Ry1/image.png" },
-      { id: "c_dagger2", name: "精良的青銅短劍", level: 1, atk: 12, dmg: [9, 14],  rarity: "精", plus: 0, price: 120, durMax: 70,  icon: "https://i.ibb.co/LdxqWgyn/image.png" },
-      { id: "c_dagger3", name: "稀有的青銅短劍", level: 1, atk: 14, dmg: [10, 16], rarity: "稀", plus: 0, price: 260, durMax: 100, icon: "https://i.ibb.co/tTvTWTDq/image.png" },
+      { id: "c_dagger1", name: "普通的青銅短劍", level: 1, atk: 10, dmg: [4, 5],  rarity: "普", plus: 0, price: 50,  durMax: 50,  icon: "https://i.ibb.co/LDTw5Ry1/image.png" },
+      { id: "c_dagger2", name: "精良的青銅短劍", level: 1, atk: 12, dmg: [5, 7],  rarity: "精", plus: 0, price: 120, durMax: 70,  icon: "https://i.ibb.co/LdxqWgyn/image.png" },
+      { id: "c_dagger3", name: "稀有的青銅短劍", level: 1, atk: 14, dmg: [7, 9], rarity: "稀", plus: 0, price: 260, durMax: 100, icon: "https://i.ibb.co/tTvTWTDq/image.png" },
     ],
     // ---- 飾品（Ornaments）----
     ornaments: [
@@ -116,6 +116,32 @@
         icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757691625/%E5%A4%9C%E7%A5%9E%E5%AE%87_drztxi.png",
         desc: "自現代都市的普通青年，在一次神秘的時空異象中意外穿越到異世界。跨越位面的過程中，他的身體承受了巨大的時空能量衝擊，因此覺醒了前所未有的超能力。"
       }
+    ],
+
+      // === 🆕 卡片資料 ===
+  cards: [
+    {
+      id: "WS_001_SSS",
+      name: "SSS-湊友希那",
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758247405/WS_%E9%B3%A5%E7%B1%A0%E3%81%AE%E6%AD%8C%E5%A7%AB-%E6%B9%8A%E5%8F%8B%E5%B8%8C%E9%82%A3BD_bvhlsn.png",
+      desc: "WS 鳥籠の歌姫-湊友希那BD",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "card_water",
+      name: "水流卡",
+      img: "card_water.png",
+      desc: "水流的祝福",
+      bonus: { hp: 6}
+    },
+    {
+      id: "card_wind",
+      name: "疾風卡",
+      img: "card_wind.png",
+      desc: "疾風的速度",
+      bonus: { hp: 7}
+    },
+
     ],
 
     // ---- 勳章（Medals）----
@@ -248,7 +274,6 @@ window.ItemDB = {
     return [];
   },
 
-
   // === 堆疊型 ===
   addConsumableToBag: addConsumableToBag,
   addMaterialToBag:   addMaterialToBag,
@@ -290,8 +315,81 @@ window.ItemDB = {
     for(var i=0;i<qty;i++){
       bag.ornaments.push(deepCopy(def));
     }
+  },
+
+  // === 🆕 卡片收藏：新增 / 讀取 ===
+  /**
+   * 將卡片加入玩家的收藏物件。
+   * @param {object} playerOrCards - 可傳整個玩家物件 P，或直接傳 P.cards
+   * @param {string|number} id     - 卡片 ID（會轉成字串儲存）
+   * @param {number} qty           - 數量（正整數）
+   */
+  addCardToCollection: function(playerOrCards, id, qty){
+    if(!id) return;
+    qty = parseInt(qty,10); if(!qty || qty<=0) return;
+    var target = null;
+
+    // 允許傳 P 或 P.cards
+    if (playerOrCards && typeof playerOrCards === 'object'){
+      if (playerOrCards.cards && typeof playerOrCards.cards === 'object') {
+        // 傳進來是 P
+        playerOrCards.cards = playerOrCards.cards || {};
+        target = playerOrCards.cards;
+      } else {
+        // 傳進來就是 P.cards
+        target = playerOrCards;
+      }
+    }
+    if(!target) return;
+
+    // 接受 {id:count} 或陣列格式，統一用物件儲存
+    if (Array.isArray(target)){
+      // 轉物件
+      var obj = {};
+      for (var i=0;i<target.length;i++){
+        var it = target[i]||{};
+        var k  = it.id!=null ? String(it.id) : null;
+        if(!k) continue;
+        var c  = it.count!=null ? parseInt(it.count,10) : 1;
+        if(isNaN(c)||c<0) c=0;
+        obj[k] = (obj[k]||0) + c;
+      }
+      target = obj;
+      // 回寫（如果是 P.cards 陣列進來）
+      if (playerOrCards && playerOrCards.cards) playerOrCards.cards = target;
+    }
+
+    var key = String(id);
+    var cur = parseInt(target[key]||0,10); if(isNaN(cur)||cur<0) cur=0;
+    target[key] = cur + qty;
+  },
+
+  /**
+   * 取得玩家持有某卡的數量（若無，回 0）
+   * @param {object} playerOrCards - 可傳 P 或 P.cards
+   * @param {string|number} id
+   */
+  getCardCount: function(playerOrCards, id){
+    if(!id) return 0;
+    var target = (playerOrCards && playerOrCards.cards && typeof playerOrCards.cards==='object')
+      ? playerOrCards.cards : playerOrCards;
+    if(!target) return 0;
+
+    if (Array.isArray(target)){
+      var total = 0, key = String(id);
+      for (var i=0;i<target.length;i++){
+        var it = target[i]||{};
+        if (String(it.id)===key){
+          var c = parseInt(it.count,10); if(!isNaN(c)&&c>0) total += c;
+        }
+      }
+      return total;
+    }
+    var n = parseInt(target[String(id)]||0,10);
+    return (isNaN(n)||n<0) ? 0 : n;
   }
 };
+
 
 
 })();

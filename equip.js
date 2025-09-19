@@ -396,7 +396,7 @@ function _calcBonusesFor(P){
       else if (k === 'mp')   { out['真元上限']   = (out['真元上限']||0)   + v; }
       else if (k === 'def')  { out['物理防禦']   = (out['物理防禦']||0)   + v; }
       else if (k === 'mdef') { out['法術防禦']   = (out['法術防禦']||0)   + v; }
-      else if (k === 'atk')  { out['物理攻擊']   = (out['物理攻擊']||0)   + v; } // 供外觀/飾品使用
+      else if (k === 'atk')  { out['物理攻擊']   = (out['物理攻擊']||0)   + v; }
       else if (k === 'matk') { out['法術攻擊']   = (out['法術攻擊']||0)   + v; }
       else if (k === 'aspd') { out['行動條速度'] = (out['行動條速度']||0) + v; }
       else if (k === 'eva')  { out['閃避']       = (out['閃避']||0)       + v; }
@@ -408,15 +408,14 @@ function _calcBonusesFor(P){
       else if (k === 'rmp')  { out['回氣/回合']  = (out['回氣/回合']||0)  + v; }
       else if (k === 'rhp')  { out['回血/回合']  = (out['回血/回合']||0)  + v; }
 
-      // --- 主屬性（影響衍生公式）：先收進 __ATTR__，稍後由 finalDerived() 套入 A.* 再推導 ---
+      // --- 主屬性 ---
       else if (k === 'str' || k === 'int' || k === 'vit' || k === 'dex' || k === 'wis' || k === 'luk' || k === 'agi'){
-        // 註：若資料使用 agi 表示敏捷，統一視為 dex
         var key = (k === 'agi') ? 'dex' : k;
         if (!out['__ATTR__']) out['__ATTR__'] = {};
         out['__ATTR__'][key] = (out['__ATTR__'][key]||0) + v;
       }
 
-      // --- 其他未知鍵，保留（方便日後擴充，例如抗性 res: {ice:10} 等） ---
+      // --- 其他未知鍵，保留 ---
       else {
         out[k] = (out[k]||0) + v;
       }
@@ -424,7 +423,6 @@ function _calcBonusesFor(P){
 
     return out;
   }
-
 
   function addMap(m){
     if(!m) return;
@@ -485,8 +483,20 @@ function _calcBonusesFor(P){
   arr = (P.equip && P.equip.medals) || [];
   for (i2=0;i2<arr.length;i2++){ it2 = norm(arr[i2],'medal');  addMap(convert(it2 && (it2.bonus || it2.effect))); }
 
+  // ★★★ 卡片展示架（P.cardShelf）：逐張套用卡片加成（依 items.js 的 cards 定義）
+  var cs = (P && Array.isArray(P.cardShelf)) ? P.cardShelf : [];
+  for (var i3=0;i3<cs.length;i3++){
+    var cid = cs[i3];
+    if (!cid) continue;
+    var cdef = (window.ItemDB && ItemDB.getDef) ? ItemDB.getDef('cards', cid) : null;
+    if (cdef && (cdef.bonus || cdef.effect)){
+      addMap(convert(cdef.bonus || cdef.effect));
+    }
+  }
+
   return sum;
 }
+
 
 // --- 對外 API ---
 // 1) 舊版：用當前登入者

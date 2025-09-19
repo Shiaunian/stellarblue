@@ -42,8 +42,10 @@
       '#collectionModal input[type="search"]{padding:6px 10px;border:1px solid #ddd;border-radius:8px;min-width:160px}'+
       '#collectionModal select{padding:6px 10px;border:1px solid #ddd;border-radius:8px;}'+
       '.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}'+
-      '.card-cell{position:relative;aspect-ratio:3/4;border:1px solid #ddd;border-radius:10px;overflow:hidden;background:#fafafa;display:flex;align-items:center;justify-content:center;cursor:pointer}'+
-      '.card-cell .thumb{font-size:12px;text-align:center;line-height:1.1;padding:4px}'+
+      '.card-cell{position:relative;aspect-ratio:3/4;border:0px solid #ddd;border-radius:10px;background:#fafafa00;display:flex;align-items:center;justify-content:center;cursor:pointer}'+
+      '.col-thumb{font-size:12px;text-align:center;line-height:1.1;padding:4px}'+
+      '.card-cell img{width:100%;height:auto;aspect-ratio:80/106.67;object-fit:contain;display:block;margin:auto}'+
+      '.card-cell .name{position:absolute;left:4px;right:36px;bottom:4px;text-align:center;font-size:12px;color:#fff;background:rgba(0,0,0,.55);padding:2px 4px;border-radius:6px}'+
       '.card-cell .qty{position:absolute;right:4px;bottom:4px;background:#222;color:#fff;padding:2px 6px;border-radius:999px;font-size:12px}'+
       '.shelf{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}'+
       '.shelf .slot{position:relative;aspect-ratio:3/4;border:1px dashed #bbb;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center}'+
@@ -147,28 +149,209 @@
     searchBox.addEventListener('input', renderList);
     sortSel.addEventListener('change', renderList);
 
-    // 互動：清單點擊→放到展示架
-    gridList.addEventListener('click', function(e){
-      var cell = e.target.closest ? e.target.closest('.card-cell') : null;
-      if (!cell) return;
-      var id = cell.getAttribute('data-id');
-      if (!id) return;
+// 互動：清單點擊→打開卡片資訊視窗
+gridList.addEventListener('click', function(e){
+  var cell = e.target.closest ? e.target.closest('.card-cell') : null;
+  if (!cell) return;
+  var id = cell.getAttribute('data-id');
+  if (!id) return;
 
-      var have = countOf(id);
-      if (have<=0) { api.log('沒有這張卡，無法放入展示架'); return; }
+  // 取卡片資料
+  var card = dataAll.find(function(it){ return String(it.id)===String(id); });
+  if (!card) return;
 
-      // 尋第一個空槽
-      var pos = -1;
-      var i;
-      for(i=0;i<5;i++){ if(!shelf[i]){ pos=i; break; } }
-      if (pos===-1){
-        api.log('展示架已滿（最多 5 張）','warn');
-        return;
+  // 取正式圖（優先 items.js -> ItemDB.DB.cards 裡的 img）
+  var imgUrl = (function(){
+    try{
+      var arr = (window.ItemDB && ItemDB.DB && ItemDB.DB.cards) ? ItemDB.DB.cards : [];
+      for (var i=0;i<arr.length;i++){
+        var it = arr[i] || {};
+        if (String(it.id) === String(id)) {
+          if (it.img && typeof it.img === 'string' && it.img.trim()) return it.img;
+          break;
+        }
       }
-      shelf[pos] = id;
-      renderShelf();
-      api.save();
+    }catch(_){}
+    return '';
+  })() || ('https://picsum.photos/seed/card_'+id+'/200/280');
+
+  // 填充卡片資訊（使用 imgUrl）
+  var html = ''
+    + '<img src="'+imgUrl+'" style="width:80%;height:auto;aspect-ratio:80/106.67;object-fit:contain;display:block;margin:auto" />'
+    + '<h3 style="text-align:center">'+(card.name||('卡片 #'+id))+'</h3>'
+    + '<p style="text-align:center">卡片介紹：'+(card.desc||'尚無說明')+'</p>';
+  qs('#cardInfoContent').innerHTML = html;
+
+  // 綁定按鈕：放到展示架
+  qs('#btnAddToShelf').onclick = function(){
+    var have = countOf(id);
+    if (have<=0) { api.log('沒有這張卡，無法放入展示架'); return; }
+
+    var pos = -1;
+    for(var i=0;i<5;i++){ if(!shelf[i]){ pos=i; break; } }
+    if (pos===-1){
+      api.log('展示架已滿（最多 5 張）','warn');
+      return;
+    }
+
+    for (var k=0;k<dataAll.length;k++){
+      if (String(dataAll[k].id)===String(id)){
+        if (dataAll[k].count>0) dataAll[k].count -= 1;
+        break;
+      }
+    }
+
+    shelf[pos] = id;
+
+    // ★ 新增：加成屬性（保留原邏輯）
+    try{
+      var P = api.getPlayer ? api.getPlayer() : null;
+      if (P && window.Items){
+        var item = Items[id];
+        if (item && item.bonus){
+          if(item.bonus.hp) P.hp = (P.hp||0) + item.bonus.hp;
+          if(item.bonus.mp) P.mp = (P.mp||0) + item.bonus.mp;
+          if(item.bonus.atk) P.atk = (P.atk||0) + item.bonus.atk;
+          if(item.bonus.spd) P.spd = (P.spd||0) + item.bonus.spd;
+        }
+      }
+    }catch(_){}
+
+    renderList();
+    renderShelf();
+    api.save();
+    closeCardInfo();
+  };
+
+
+  // 綁定按鈕：販賣（原樣保留）
+  qs('#btnSellCard').onclick = function(){
+    var have = countOf(id);
+    if (have<=0) { api.log('沒有這張卡，無法販賣'); return; }
+
+    // 建立販賣視窗
+    var sellModal = document.createElement('div');
+    sellModal.className = 'modal show';
+    sellModal.innerHTML =
+      '<div class="mask" data-close="sell"></div>'+
+      '<div class="sheet" style="max-width:360px;padding:16px">'+
+        '<div class="sec-title">販賣卡片</div>'+
+        '<div style="margin:12px 0">擁有數量：'+have+'</div>'+
+        '<input id="sellQtyInput" type="number" min="1" max="'+have+'" value="1" style="width:100%;padding:6px;margin-bottom:10px" />'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+
+          '<button data-val="1">1</button>'+
+          '<button data-val="5">5</button>'+
+          '<button data-val="10">10</button>'+
+          '<button data-val="max">最高</button>'+
+        '</div>'+
+        '<div style="text-align:right">'+
+          '<button id="btnSellCancel">取消</button> '+
+          '<button id="btnSellConfirm">確定</button>'+
+        '</div>'+
+      '</div>';
+
+    document.body.appendChild(sellModal);
+
+    function closeSell(){
+      if(sellModal && sellModal.parentNode){
+        sellModal.parentNode.removeChild(sellModal);
+      }
+    }
+
+    // 綁定快捷按鈕（自動限制為擁有數量）
+    qsa('button[data-val]', sellModal).forEach(function(b){
+      b.addEventListener('click', function(){
+        var v = b.getAttribute('data-val');
+        var n;
+        if (v === 'max') {
+          n = have;
+        } else {
+          n = parseInt(v, 10);
+          if (!n || n < 1) n = 1;
+          if (n > have) n = have;
+        }
+        qs('#sellQtyInput', sellModal).value = n;
+      });
     });
+
+
+    // 確認販賣
+    qs('#btnSellConfirm', sellModal).onclick = function(){
+      var qty = parseInt(qs('#sellQtyInput', sellModal).value,10);
+      if(!qty || qty<=0){ api.log('數量不正確'); return; }
+      if(qty>have) qty = have;
+
+      // 1) 先扣前端快取 dataAll（維持畫面立即更新）
+      for (var k=0;k<dataAll.length;k++){
+        if (String(dataAll[k].id)===String(id)){
+          dataAll[k].count -= qty;
+          if (dataAll[k].count<0) dataAll[k].count=0;
+          break;
+        }
+      }
+
+      // 2) 同步寫回玩家資料 P.cards（避免下次打開被覆蓋回來）
+      try{
+        var P = api.getPlayer ? api.getPlayer() : null;
+        if (P){
+          // 確保 P.cards 存在，且統一成 { id: count } 物件格式
+          if (!P.cards){ P.cards = {}; }
+          var store = null;
+          if (Array.isArray(P.cards)){
+            var obj = {};
+            for (var i=0;i<P.cards.length;i++){
+              var it = P.cards[i]||{};
+              var key = it.id!=null ? String(it.id) : null;
+              if(!key) continue;
+              var c = it.count!=null ? parseInt(it.count,10) : 1;
+              if(isNaN(c)||c<0) c=0;
+              obj[key] = (obj[key]||0) + c;
+            }
+            P.cards = obj;
+            store = P.cards;
+          } else if (typeof P.cards==='object'){
+            store = P.cards;
+          }
+
+          var key2 = String(id);
+          var cur = parseInt(store[key2]||0,10); if(isNaN(cur)||cur<0) cur=0;
+          cur -= qty; if (cur<0) cur=0;
+          if (cur===0){ delete store[key2]; } else { store[key2] = cur; }
+        }
+      }catch(_){}
+
+      // 3) 存檔 + 以 P.cards 重載列表，確保畫面與資料一致
+      try{
+        if (window.Auth && Auth.saveCharacter && P){
+          var clean = JSON.parse(JSON.stringify(P));
+          delete clean._live;
+          Auth.saveCharacter(clean);
+        } else {
+          api.save();
+        }
+      }catch(_){ api.save(); }
+
+      loadDataFromPlayer(P);
+      renderList();
+      renderShelf();
+
+      closeSell();
+      closeCardInfo();
+      api.log('已販賣 '+qty+' 張卡片 #'+id);
+    };
+
+
+    // 取消
+    qs('#btnSellCancel', sellModal).onclick = closeSell;
+    sellModal.querySelector('.mask').onclick = closeSell;
+  };
+
+
+
+  openCardInfo();
+});
+
+
 
     // 互動：展示架點擊→移除
     gridShelf.addEventListener('click', function(e){
@@ -178,11 +361,58 @@
       if (isNaN(p)) return;
 
       if (shelf[p]){
+        var id = shelf[p];
         shelf[p] = null;
+
+        // 放回卡片收藏（數量+1）
+        for (var k=0;k<dataAll.length;k++){
+          if (String(dataAll[k].id)===String(id)){
+            dataAll[k].count += 1;
+            break;
+          }
+        }
+
+        // ★ 新增：移除屬性加成
+        try{
+          var P = api.getPlayer ? api.getPlayer() : null;
+          if (P && window.Items){
+            var item = Items[id];
+            if (item && item.bonus){
+              if(item.bonus.hp) P.hp = (P.hp||0) - item.bonus.hp;
+              if(item.bonus.mp) P.mp = (P.mp||0) - item.bonus.mp;
+              if(item.bonus.atk) P.atk = (P.atk||0) - item.bonus.atk;
+              if(item.bonus.spd) P.spd = (P.spd||0) - item.bonus.spd;
+            }
+          }
+        }catch(_){}
+
+        renderList();
         renderShelf();
         api.save();
       }
+
+
     });
+    // === 卡片資訊視窗 ===
+    var cardInfoModal = document.createElement('div');
+    cardInfoModal.id = 'cardInfoModal';
+    cardInfoModal.className = 'modal';
+    cardInfoModal.setAttribute('aria-hidden','true');
+    cardInfoModal.setAttribute('tabindex','-1');
+    cardInfoModal.innerHTML =
+      '<div class="mask" data-close="cardInfo"></div>'
+      + '<div class="sheet">'
+      +   '<div class="sec-title">卡片資訊 <div class="close" data-close="cardInfo">✕</div></div>'
+      +   '<div class="body">'
+      +     '<div id="cardInfoContent"></div>'
+      +     '<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
+      +       '<button id="btnAddToShelf">放到展示架</button>'
+      +       '<button id="btnSellCard">販賣</button>'
+      +     '</div>'
+      +   '</div>'
+      + '</div>';
+
+    document.body.appendChild(cardInfoModal);
 
     return modal;
   }
@@ -232,83 +462,127 @@
   }
 
   // ===== 繪製 =====
-  function renderList(){
-    if(!gridList) return;
-    var keyword = (searchBox.value||'').trim().toLowerCase();
-    var mode = (sortSel.value||'id');
+function renderList(){
+  if(!gridList) return;
+  var keyword = (searchBox.value||'').trim().toLowerCase();
+  var mode = (sortSel.value||'id');
 
-    // 過濾
-    var list = [];
-    for (var i=0;i<dataAll.length;i++){
-      var it = dataAll[i];
-      var hit = true;
-      if (keyword){
-        var t = (String(it.id)+' '+(it.name||'')).toLowerCase();
-        hit = t.indexOf(keyword) >= 0;
-      }
-      if(hit) list.push(it);
+  // 過濾（只顯示擁有數量 > 0 的卡）
+  var list = [];
+  for (var i=0;i<dataAll.length;i++){
+    var it = dataAll[i];
+    var hit = true;
+    if (keyword){
+      var t = (String(it.id)+' '+(it.name||'')).toLowerCase();
+      hit = t.indexOf(keyword) >= 0;
     }
-
-    // 排序
-    list.sort(function(a,b){
-      if (mode==='count'){
-        var da = (a.count||0), db=(b.count||0);
-        if (db!==da) return db-da; // 數量多的在前
-        return String(a.id).localeCompare(String(b.id),'zh-Hant');
-      }
-      if (mode==='name'){
-        var na = a.name||'', nb=b.name||'';
-        var c = na.localeCompare(nb,'zh-Hant');
-        if (c!==0) return c;
-        return String(a.id).localeCompare(String(b.id),'zh-Hant');
-      }
-      // id
-      return String(a.id).localeCompare(String(b.id),'zh-Hant',{numeric:true});
-    });
-
-    // 產生 DOM
-    var html = '';
-    for (var j=0;j<list.length;j++){
-      var it2 = list[j];
-      var id = String(it2.id);
-      var name = it2.name || ('卡片 #'+id);
-      // 圖片先用佔位（之後可換正式素材）
-      var img = 'https://picsum.photos/seed/card_'+encodeURIComponent(id)+'/120/160';
-      html += '<div class="card-cell" data-id="'+id+'">'+
-                '<div class="thumb"><img alt="'+name+'" src="'+img+'" style="max-width:100%;max-height:100%;display:block;margin:auto" /><div>'+name+'</div></div>'+
-                (it2.count>0? '<div class="qty">x'+fmt(it2.count)+'</div>':'' )+
-              '</div>';
-    }
-    gridList.innerHTML = html || '<div style="color:#666">目前沒有任何卡片</div>';
+    if(hit && (it.count||0) > 0) list.push(it);
   }
 
-  function renderShelf(){
-    if(!gridShelf) return;
-    var cells = qsa('.slot', gridShelf);
-    for (var i=0;i<cells.length;i++){
-      var slot = cells[i];
-      var id = shelf[i];
-      if (!id){
-        slot.classList.remove('filled');
-        slot.innerHTML = '<div style="color:#aaa;font-size:12px">空位</div>';
-      } else {
-        var name = '卡片 #'+id;
-        var img = 'https://picsum.photos/seed/card_'+encodeURIComponent(id)+'/120/160';
-        slot.classList.add('filled');
-        slot.innerHTML =
-          '<div class="remove">×</div>'+
-          '<div class="thumb"><img alt="'+name+'" src="'+img+'" style="max-width:100%;max-height:100%;display:block;margin:auto" /><div style="font-size:12px;text-align:center">'+name+'</div></div>';
-      }
+  // 排序
+  list.sort(function(a,b){
+    if (mode==='count'){
+      var da = (a.count||0), db=(b.count||0);
+      if (db!==da) return db-da; // 數量多的在前
+      return String(a.id).localeCompare(String(b.id),'zh-Hant');
     }
+    if (mode==='name'){
+      var na = a.name||'', nb=b.name||'';
+      var c = na.localeCompare(nb,'zh-Hant');
+      if (c!==0) return c;
+      return String(a.id).localeCompare(String(b.id),'zh-Hant');
+    }
+    // id
+    return String(a.id).localeCompare(String(b.id),'zh-Hant',{numeric:true});
+  });
 
-    // 回寫到玩家資料
+  // 產生 DOM（圖片/名稱改取 items.js 正式資料優先）
+  var html = '';
+  for (var j=0;j<list.length;j++){
+    var it2 = list[j];
+    var id = String(it2.id);
+
+    var officialImg = '';
+    var officialName = '';
     try{
-      var P = api.getPlayer ? api.getPlayer() : null;
-      if (P){
-        P.cardShelf = shelf.slice(0,5);
+      var arr = (window.ItemDB && ItemDB.DB && ItemDB.DB.cards) ? ItemDB.DB.cards : [];
+      for (var k=0;k<arr.length;k++){
+        var c = arr[k] || {};
+        if (String(c.id)===id){
+          officialImg  = c.img || '';
+          officialName = c.name || '';
+          break;
+        }
       }
     }catch(_){}
+
+    var name = (officialName && officialName.trim())
+      ? officialName
+      : (it2.name || ('卡片 #'+id));
+
+    var img = (officialImg && officialImg.trim())
+      ? officialImg
+      : ('https://picsum.photos/seed/card_'+encodeURIComponent(id)+'/120/160');
+
+    html += '<div class="card-cell" data-id="'+id+'">'+
+              '<img alt="'+name+'" src="'+img+'"/>'+
+              '<div class="name">'+name+'</div>'+
+              '<div class="qty">x'+fmt(it2.count)+'</div>'+
+            '</div>';
   }
+  gridList.innerHTML = html || '<div style="color:#666">目前沒有任何卡片</div>';
+}
+
+
+
+function renderShelf(){
+  if(!gridShelf) return;
+  var cells = qsa('.slot', gridShelf);
+  for (var i=0;i<cells.length;i++){
+    var slot = cells[i];
+    var id = shelf[i];
+    if (!id){
+      slot.classList.remove('filled');
+      slot.innerHTML = '<div style="color:#aaa;font-size:12px">空位</div>';
+    } else {
+      var officialImg = '';
+      var officialName = '';
+      try{
+        var arr = (window.ItemDB && ItemDB.DB && ItemDB.DB.cards) ? ItemDB.DB.cards : [];
+        for (var k=0;k<arr.length;k++){
+          var c = arr[k] || {};
+          if (String(c.id)===String(id)){
+            officialImg  = c.img || '';
+            officialName = c.name || '';
+            break;
+          }
+        }
+      }catch(_){}
+
+      var name = (officialName && officialName.trim()) ? officialName : ('卡片 #'+id);
+      var img  = (officialImg && officialImg.trim())
+        ? officialImg
+        : ('https://picsum.photos/seed/card_'+encodeURIComponent(id)+'/120/160');
+
+      slot.classList.add('filled');
+      slot.innerHTML =
+        '<div class="remove">×</div>'+
+        '<div class="col-thumb"><img alt="'+name+'" src="'+img+'" style="width:100%;height:auto;aspect-ratio:80/106.67;object-fit:contain;display:block;margin:auto" /><div style="font-size:12px;text-align:center">'+name+'</div></div>';
+    }
+  }
+
+  // 回寫到玩家資料 + 立刻刷新主頁面能力值（原樣保留）
+  try{
+    var P = api.getPlayer ? api.getPlayer() : null;
+    if (P){
+      P.cardShelf = shelf.slice(0,5);
+      if (typeof window.render === 'function') { window.render(P); }
+    }
+  }catch(_){}
+}
+
+
+
 
   // ===== 開關 =====
     function open(gameAPI){
@@ -356,5 +630,33 @@
     close: close
   };
   global.Collection = Collection;
+
+  function openCardInfo(){
+    var m = qs('#cardInfoModal');
+    if (!m) return;
+    m.setAttribute('aria-hidden','false');
+    m.classList.add('show');
+    // 先把焦點移到 modal 本身，避免 aria-hidden 衝突
+    m.focus();
+    // 如果需要自動聚焦到按鈕，可延遲一個 tick
+    setTimeout(function(){
+      var btn = qs('#btnAddToShelf');
+      if (btn) btn.focus();
+    }, 0);
+  }
+
+  function closeCardInfo(){
+    var m = qs('#cardInfoModal');
+    if (!m) return;
+    m.setAttribute('aria-hidden','true');
+    m.classList.remove('show');
+  }
+
+  document.body.addEventListener('click', function(e){
+    if (e.target.dataset.close==='cardInfo'){
+      closeCardInfo();
+    }
+  });
+
 
 })(window);

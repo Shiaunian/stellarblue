@@ -210,7 +210,8 @@
   });
 
 
-document.getElementById('btnLogin').addEventListener('click', async ()=>{
+// 封裝登入流程，方便按鈕與 Enter 共用
+async function doLogin(){
   const u = loginUser.value.trim();
   const p = loginPass.value.trim();
 
@@ -237,7 +238,19 @@ document.getElementById('btnLogin').addEventListener('click', async ()=>{
     loginMsg.style.color='var(--danger)';
     loginMsg.textContent = '登入錯誤';
   }
+}
+
+// 按下登入按鈕
+document.getElementById('btnLogin').addEventListener('click', doLogin);
+
+// ★ 新增：按下 Enter 也能登入
+loginUser.addEventListener('keydown', function(e){
+  if(e.key === 'Enter'){ doLogin(); }
 });
+loginPass.addEventListener('keydown', function(e){
+  if(e.key === 'Enter'){ doLogin(); }
+});
+
 
 
 document.getElementById('btnCreate').addEventListener('click', async ()=>{

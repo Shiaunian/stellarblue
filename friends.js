@@ -47,6 +47,7 @@
           '<div id="chatBox" style="display:none; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:8px; gap:8px;">' +
             '<div id="chatBoxTitle" style="font-weight:bold; margin-bottom:4px;"></div>' +
             '<div id="chatLog" style="height:300px; overflow:auto; background:#060a1a; border:1px solid rgba(255,255,255,.15); border-radius:8px; padding:6px; font-size:12px;"></div>' +
+            '<div id="chatRetentionTip" style="text-align:center; font-size:10px; opacity:.1.65; margin:18px 0 11px 0;">僅保留最近 300 則訊息</div>' +
             '<div style="display:flex; gap:6px;">' +
               '<input id="chatInputFriend" type="text" placeholder="輸入訊息..." style="flex:1; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:#fff; color:#111;">' +
               '<button id="btnSendFriend" class="opx primary">送出</button>' +
@@ -359,12 +360,47 @@ function renderLog(val){
 
 
 
-// 即時監聽
+// 即時監聽（含 300 則上限 & 自動清舊）
 DB.ref('chats/'+key+'/messages').off();
 DB.ref('chats/'+key+'/messages').on('value', function(snap){
-  lastLog = (snap && snap.exists()) ? snap.val() : {};
-  renderLog(lastLog);
+  var val = (snap && snap.exists()) ? (snap.val() || {}) : {};
+  var items = [];
+  for (var k in val){
+    if (!val.hasOwnProperty(k)) continue;
+    var msg = val[k] || {};
+    var ts  = Number(msg.ts || 0);
+    items.push({ id:k, ts:ts, msg:msg });
+  }
+  // 依 ts 由舊到新排序（ts 缺失則當 0）
+  items.sort(function(a,b){ return a.ts - b.ts; });
+
+  var over = items.length - 300;
+  var viewObj = {};
+  if (over > 0){
+    // 先畫面只顯示「最新 300」
+    var keep = items.slice(items.length - 300);
+    for (var i=0; i<keep.length; i++){ viewObj[ keep[i].id ] = keep[i].msg; }
+    lastLog = viewObj;
+    renderLog(lastLog);
+
+    // 小字提示（3 秒回復）
+    var tip = qs('#chatRetentionTip');
+    if (tip){
+      tip.textContent = '僅保留最近 300 則訊息（較舊訊息已自動清理）';
+      setTimeout(function(){ tip.textContent = '僅保留最近 300 則訊息'; }, 3000);
+    }
+
+    // 真的刪除多餘的舊訊息
+    for (var j=0; j<over; j++){
+      var delId = items[j].id;
+      DB.ref('chats/'+key+'/messages/'+delId).remove();
+    }
+  }else{
+    lastLog = val;
+    renderLog(lastLog);
+  }
 });
+
 
 // 點擊訊息 → 嘗試收回（只限「我」在 5 分鐘內）
 logBox.onclick = function(ev){

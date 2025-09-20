@@ -46,7 +46,7 @@
           '<div id="friendsInbox" class="bag-list" style="display:none; max-height:unset;"></div>' +
           '<div id="chatBox" style="display:none; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:8px; gap:8px;">' +
             '<div id="chatBoxTitle" style="font-weight:bold; margin-bottom:4px;"></div>' +
-            '<div id="chatLog" style="height:160px; overflow:auto; background:#060a1a; border:1px solid rgba(255,255,255,.15); border-radius:8px; padding:6px; font-size:12px;"></div>' +
+            '<div id="chatLog" style="height:300px; overflow:auto; background:#060a1a; border:1px solid rgba(255,255,255,.15); border-radius:8px; padding:6px; font-size:12px;"></div>' +
             '<div style="display:flex; gap:6px;">' +
               '<input id="chatInputFriend" type="text" placeholder="輸入訊息..." style="flex:1; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:#fff; color:#111;">' +
               '<button id="btnSendFriend" class="opx primary">送出</button>' +
@@ -275,13 +275,55 @@ if (btnChat){
     renderLog(lastLog);
   });
 
-// 渲染器：25px 頭像；對方靠左灰黑泡泡、自己靠右亮色泡泡；不顯示名字
+// 渲染器：25px 頭像；分日（台灣時區）＋久未發言插入時間條；不顯示名字
 function renderLog(val){
   var html = '';
+
+  // 先把訊息按 ts 正序排列（避免 Firebase 物件鍵序不穩）
+  var arr = [];
   for (var k in val){
     if (!val.hasOwnProperty(k)) continue;
-    var mmsg = val[k] || {};
+    arr.push({ id:k, msg: val[k] || {} });
+  }
+  arr.sort(function(a,b){
+    var ta = Number(a.msg.ts || 0); var tb = Number(b.msg.ts || 0);
+    return ta - tb;
+  });
+
+  // 工具：台灣時間的「年月日字串」與「完整日期+時間」
+  function dayKeyTW(ts){
+    return new Date(ts).toLocaleDateString('zh-TW', { timeZone:'Asia/Taipei', year:'numeric', month:'2-digit', day:'2-digit' });
+  }
+  function dayLabelTW(ts){
+    // 例：8月15日
+    return new Date(ts).toLocaleDateString('zh-TW', { timeZone:'Asia/Taipei', month:'long', day:'numeric' });
+  }
+  function dateTimeLabelTW(ts){
+    // 例：8月15日 20:43（24h）
+    return new Date(ts).toLocaleString('zh-TW', { timeZone:'Asia/Taipei', month:'long', day:'numeric', hour12:false, hour:'2-digit', minute:'2-digit' });
+  }
+
+  var prevDay = '';
+  var prevTs  = 0;
+
+  for (var i=0; i<arr.length; i++){
+    var id   = arr[i].id;
+    var mmsg = arr[i].msg || {};
     var isMe = (mmsg.from === me.username);
+    var ts   = Number(mmsg.ts || 0);
+
+    // 每到新的一天（依台灣時間）插入「日期分隔條」
+    var curDay = dayKeyTW(ts);
+    if (curDay !== prevDay){
+      html += '<div class="sep" style="text-align:center; opacity:.8; font-size:11px; margin:8px 0;">' + dayLabelTW(ts) + '</div>';
+      prevDay = curDay;
+      prevTs = 0; // 新的一天，重置間隔
+    }
+
+    // 若與上一則訊息間隔 > 10 分鐘，插入「日期時間分隔條」
+    if (prevTs && (ts - prevTs) > 600000){
+      html += '<div class="sep" style="text-align:center; opacity:.65; font-size:10px; margin:6px 0;">' + dateTimeLabelTW(ts) + '</div>';
+    }
 
     // 頭像來源：我方優先 myAvatar；對方優先 fromAvatar -> peerAvatar
     var av = isMe
@@ -291,35 +333,63 @@ function renderLog(val){
     if (!isMe){
       // 對方：頭像在左、灰黑底訊息泡泡
       html += ''
-        + '<div class="item" style="display:flex; justify-content:flex-start; align-items:flex-end; gap:8px; margin:6px 0;">'
+        + '<div class="item msg" data-msg-id="'+ id +'" data-from="'+ (mmsg.from||'') +'" data-ts="'+ ts +'" style="display:flex; justify-content:flex-start; align-items:flex-end; gap:8px; margin:6px 0;">'
         +   '<img src="'+ av +'" alt="avatar" style="width:25px; height:25px; border-radius:50%; object-fit:cover; flex:0 0 25px;">'
-        +   '<div style="max-width:72%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:#eaf2ff; border-radius:12px; padding:6px 10px; line-height:1.5; word-break:break-word;">'
+        +   '<div class="msg-bubble" style="max-width:72%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:#eaf2ff; border-radius:12px; padding:6px 10px; line-height:1.5; word-break:break-word;">'
         +     (mmsg.text || '')
         +   '</div>'
         + '</div>';
     } else {
       // 自己：整列靠右、亮色泡泡、頭像在右
       html += ''
-        + '<div class="item" style="display:flex; justify-content:flex-end; align-items:flex-end; gap:8px; margin:6px 0;">'
-        +   '<div style="max-width:72%; background:linear-gradient(135deg, var(--accent,#8b5cf6), var(--accent2,#22d3ee)); color:#fff; border:1px solid rgba(255,255,255,.18); border-radius:12px; padding:6px 10px; line-height:1.5; word-break:break-word;">'
+        + '<div class="item msg" data-msg-id="'+ id +'" data-from="'+ (mmsg.from||'') +'" data-ts="'+ ts +'" style="display:flex; justify-content:flex-end; align-items:flex-end; gap:8px; margin:6px 0;">'
+        +   '<div class="msg-bubble" style="max-width:72%; background:linear-gradient(135deg, var(--accent,#8b5cf6), var(--accent2,#22d3ee)); color:#fff; border:1px solid rgba(255,255,255,.18); border-radius:12px; padding:6px 10px; line-height:1.5; word-break:break-word;">'
         +     (mmsg.text || '')
         +   '</div>'
         +   '<img src="'+ av +'" alt="avatar" style="width:25px; height:25px; border-radius:50%; object-fit:cover; flex:0 0 25px;">'
         + '</div>';
     }
+
+    prevTs = ts;
   }
+
   logBox.innerHTML = html;
   logBox.scrollTop = logBox.scrollHeight;
 }
 
 
 
-  // 即時監聽
-  DB.ref('chats/'+key+'/messages').off();
-  DB.ref('chats/'+key+'/messages').on('value', function(snap){
-    lastLog = (snap && snap.exists()) ? snap.val() : {};
-    renderLog(lastLog);
-  });
+// 即時監聽
+DB.ref('chats/'+key+'/messages').off();
+DB.ref('chats/'+key+'/messages').on('value', function(snap){
+  lastLog = (snap && snap.exists()) ? snap.val() : {};
+  renderLog(lastLog);
+});
+
+// 點擊訊息 → 嘗試收回（只限「我」在 5 分鐘內）
+logBox.onclick = function(ev){
+  var target = ev.target;
+  // 允許點到泡泡或整列
+  var row = target.closest ? target.closest('.msg') : null;
+  if (!row) return;
+
+  var from = row.getAttribute('data-from') || '';
+  var mid  = row.getAttribute('data-msg-id') || '';
+  var ts   = Number(row.getAttribute('data-ts') || '0');
+
+  if (!mid) return;
+
+  // 只允許收回自己的訊息
+  if (from !== me.username) return;
+
+  // 5 分鐘內可收回
+  var now = Date.now();
+  if (now - ts > 300000) return; // 超時則無動作
+
+  // 直接刪除該訊息
+  DB.ref('chats/'+key+'/messages/'+mid).remove();
+};
+
 
   // 送出
   qs('#btnSendFriend').onclick = function(){

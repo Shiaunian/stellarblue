@@ -149,7 +149,9 @@ function normalizePlayer(username, data){
       // 名稱欄位：頭像 + 名稱（可點擊開啟對方資訊）
       var nameCell =
         '<div style="display:flex; align-items:center; justify-content:center; gap:8px; min-width:0;">' +
-          '<img src="'+ avatar +'" alt="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.2)">' +
+          '<button class="rank-prof" data-view-profile="'+ (r.username || '') +'" style="all:unset;cursor:pointer;border-radius:50%;">' +
+            '<img src="'+ avatar +'" alt="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.2)">' +
+          '</button>' +
           '<button class="rank-prof" data-view-profile="'+ (r.username || '') +'" '+
                   'style="all:unset;cursor:pointer;color:#eaf2ff;font-weight:700;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
             + (r.name || '(未命名)') +
@@ -263,7 +265,11 @@ function normalizePlayer(username, data){
         var p = snap && snap.exists() ? snap.val() : {};
         var row = normalizePlayer(uid, p);
 
-        // 重新算戰力（全能力值版本）
+        // 自己的帳號（用於是否顯示加入好友）
+        var me = (window.Auth && typeof Auth.currentUser==='function') ? Auth.currentUser() : null;
+        var myId = (me && me.username) ? me.username : '';
+
+        // 戰力
         var pow = computePower(p);
 
         // 取裝備（純顯示，盡量容錯）
@@ -284,7 +290,18 @@ function normalizePlayer(username, data){
 
         var elemText = (typeof ELEMENT_LABEL!=='undefined' && ELEMENT_LABEL[row.element]) ? ELEMENT_LABEL[row.element] : (row.element||'none');
 
-        // 手機友善卡片 + 能力 + 裝備（純顯示）
+        // 是否可加入好友（不是自己）
+        var canAdd = (myId && myId !== uid);
+        var btnHtml = '';
+        if (canAdd){
+          btnHtml =
+            '<button id="btnAddFriend" data-send-friend="'+ uid +'" '+
+            'style="padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:linear-gradient(135deg,#16a34a,#22c55e); color:#fff; font-weight:800; cursor:pointer;">加入好友</button>';
+        } else {
+          btnHtml = '<div style="opacity:.7; font-size:12px;">（這是你自己）</div>';
+        }
+
+        // 手機友善卡片 + 能力 + 裝備 + 動作（加入好友）
         var html = ''
           + '<div style="display:grid; grid-template-columns:56px 1fr; gap:10px; align-items:center;">'
           +   '<img src="'+ (row.avatar||'https://picsum.photos/seed/xian/64') +'" style="width:56px;height:56px;border-radius:12px;object-fit:cover;border:1px solid rgba(255,255,255,.2)">'
@@ -308,7 +325,8 @@ function normalizePlayer(username, data){
           +   '<div class="kv item"><span class="k">戒指</span><span class="v">'+ rname +'</span></div>'
           +   '<div class="kv item"><span class="k">項鍊</span><span class="v">'+ nname +'</span></div>'
           +   '<div class="kv item"><span class="k">飾品</span><span class="v">'+ aname +'</span></div>'
-          + '</div>';
+          + '</div>'
+          + '<div style="margin-top:6px;">'+ btnHtml +'</div>';
 
         var body = qs('#profBody');
         if (body){ body.innerHTML = html; }
@@ -317,11 +335,12 @@ function normalizePlayer(username, data){
         if (body){ body.innerHTML = '<div style="opacity:.8;">讀取失敗。</div>'; }
       });
     }
+
   };
 
   window.Rank = Rank;
 
-  // 委派監聽：開啟排行榜／檢視玩家資訊
+  // 委派監聽：開啟排行榜／檢視玩家資訊／送出好友邀請
   document.addEventListener('click', function(e){
     var t = e.target;
 
@@ -334,7 +353,29 @@ function normalizePlayer(username, data){
                   : (t.closest ? t.closest('[data-view-profile]') : null);
     if (profBtn){
       var uid = profBtn.getAttribute('data-view-profile') || profBtn.getAttribute('data-uid') || '';
-      if (uid){ Rank.view(uid); }
+      if (uid){ Rank.view(uid); return; }
+    }
+
+    // 3) 送出好友邀請
+    var addBtn = t.closest ? t.closest('[data-send-friend]') : null;
+    if (addBtn){
+      if (!window.DB || !DB.ref || !window.Auth || !Auth.currentUser){ return; }
+      var me = Auth.currentUser() || null;
+      var myId = me && me.username ? me.username : '';
+      var toId = addBtn.getAttribute('data-send-friend') || '';
+      if (!myId || !toId || myId === toId){ return; }
+
+      // 寫入：對方的收件匣 & 我的寄件匣
+      DB.ref('characters/'+toId+'/friendInbox/'+myId).set(true);
+      DB.ref('characters/'+myId+'/friendOutbox/'+toId).set(true);
+
+      // 視覺：按鈕變紅、顯示已發送
+      addBtn.textContent = '已發送邀請';
+      addBtn.style.background = '#ef4444';
+      addBtn.style.borderColor = 'rgba(255,255,255,.35)';
+      addBtn.style.color = '#fff';
+      addBtn.disabled = true;
     }
   });
+
 })();

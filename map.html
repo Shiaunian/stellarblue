@@ -1006,6 +1006,13 @@ function startBattle(){
     enemy = JSON.parse(JSON.stringify(pool[Math.floor(Math.random()*pool.length)]));
   }
 
+  // ★ 新增：遇怪即紀錄到玩家圖鑑（只要遇到就算）
+  try {
+    P.dex = P.dex || {};
+    P.dex.seen = P.dex.seen || {};
+    if (enemy && enemy.id) { P.dex.seen[enemy.id] = true; }
+  } catch(_){}
+
   // ★ 使用 BattleState 模組啟動戰鬥
   if (window.BattleState && BattleState.startBattle) {
     var success = BattleState.startBattle(enemy, area, P);
@@ -1031,6 +1038,7 @@ function startBattle(){
   updateBattleUI(enemy);
   log('在 ' + (area.name||'當前地區') + ' 遭遇 ' + enemy.name + '！');
 }
+
 
 
 function tickATB(){

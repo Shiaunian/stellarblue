@@ -301,7 +301,33 @@
   position: absolute;
   inset: -8px;                         /* 外擴 8px 的隱形熱區 */
 }
+/* ========== Dex（圖鑑） ========== */
+.dex-row{
+  display:grid; grid-template-columns:44px 1fr auto; gap:8px; align-items:center;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+  border-radius:10px; padding:6px 8px; cursor:pointer;
+}
+.dex-thumb{ width:44px; height:44px; border-radius:10px; overflow:hidden; background:#1e293b; display:grid; place-items:center; }
+.dex-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.dex-main{ display:grid; gap:2px; }
+.dex-name{ font-weight:800; font-size:12px; letter-spacing:1px; }
+.dex-sub{ font-size:10px; color:#cbd5e1; }
+.dex-lv{ font-size:11px; padding:2px 6px; border-radius:999px; background:rgba(255,255,255,.85); color:#0b1024; font-weight:900; }
+
+.dex-detail{
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+  border-radius:12px; padding:8px; display:grid; gap:8px;
+}
+.dex-hero{ display:grid; grid-template-columns:96px 1fr; gap:10px; align-items:center; }
+.dex-hero .img{ width:96px; height:96px; border-radius:12px; overflow:hidden; background:#111; }
+.dex-hero img{ width:100%; height:100%; object-fit:cover; display:block; }
+.dex-kv{ display:grid; grid-template-columns:repeat(2,1fr); gap:6px 12px; }
+.dex-kv .item{ display:flex; justify-content:space-between; gap:8px; padding:2px 8px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:8px; font-size:12px; }
+.dex-locs{ display:grid; gap:6px; }
+.dex-loc{ font-size:12px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:999px; padding:2px 10px; display:inline-block; }
+.dex-loc .tag{ margin-left:6px; font-size:11px; color:#fca5a5; }
 </style>
+
 </head>
 <body>
 
@@ -342,6 +368,26 @@
     </div>
   </div>
 </div>
+
+<!-- 圖鑑（Dex） -->
+<div id="dexModal" class="modal" aria-hidden="true">
+  <div class="mask" data-close="dex"></div>
+  <div class="sheet" role="dialog" aria-labelledby="dexTitle" style="width:min(96vw, 420px); max-height:90svh; display:grid; grid-template-rows:auto 1fr; overflow:hidden;">
+    <div class="sec-title" id="dexTitle">
+      圖 鑑
+      <div class="close" data-close="dex">✕</div>
+    </div>
+    <div class="body" style="display:grid; gap:8px; overflow:auto; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));">
+      <div class="bag-tabs" id="dexTabs">
+        <span class="bag-tab active" data-dex-tab="mob">小怪</span>
+        <span class="bag-tab" data-dex-tab="boss">BOSS</span>
+      </div>
+      <div id="dexList" class="bag-list" style="max-height:unset;"></div>
+      <div id="dexDetail" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
 
 <div id="bagAction" aria-hidden="true">
   <div class="mask" data-close="bagAction"></div>
@@ -432,6 +478,7 @@
       <div class="gbtn" data-open="equip">裝備欄</div>
       <div class="gbtn" data-open="rank">排行榜</div>
       <div class="gbtn" data-open="shop">商店</div>
+      <div class="gbtn" data-open="friends">好友<span id="friendBadge" style="display:none;margin-left:6px; padding:0 6px; border-radius:999px; background:#ef4444; color:#fff; font-weight:900; font-size:11px;">!</span></div>
       <div class="gbtn" data-open="appearance">外觀</div>
     </div>
 
@@ -441,11 +488,11 @@
         <div class="card" data-mod="cave"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">洞府</div><div class="csub">目前待開發中</div></div></div>
         <div class="card" data-mod="map"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757814967/%E9%87%8E%E5%A4%96%E5%9C%B0%E5%9C%96_hwvssk.png" alt="施工中"></div><div><div class="ctitle">野外地圖</div><div class="csub">充滿著未知個人冒險</div></div></div>
         <div class="card" data-mod="library"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">藏經閣</div><div class="csub">目前待開發中</div></div></div>
-        <div class="card" data-mod="tower"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">試煉塔</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="tower"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E8%A9%A6%E7%85%89%E5%A1%94_ojkzmo.png" alt="施工中"></div><div><div class="ctitle">試煉塔</div><div class="csub">目前待開發中</div></div></div>
         <div class="card" data-mod="war"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">規模戰</div><div class="csub">目前待開發中</div></div></div>
         <div class="card" data-mod="collection"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758257795/%E5%8D%A1%E7%89%87%E8%92%90%E8%97%8F_ivhky7.png" alt="施工中"></div><div><div class="ctitle">卡片收藏</div><div class="csub">目前待開發中</div></div></div>
-        <div class="card" data-mod="dex"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">圖鑑</div><div class="csub">目前待開發中</div></div></div>
-        <div class="card" data-mod="shop"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">商城</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="dex"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E5%9C%96%E9%91%91_adcdkl.png" alt="施工中"></div><div><div class="ctitle">圖鑑</div><div class="csub">點擊開啟圖鑑</div></div></div>
+        <div class="card" data-mod="shop"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E5%95%86%E5%9F%8E_efzk1i.png" alt="施工中"></div><div><div class="ctitle">商城</div><div class="csub">目前待開發中</div></div></div>
       </div>
 
       <div class="dock">
@@ -536,8 +583,21 @@
 <script src="auth.js"></script>
 <script src="equip.js"></script>
 <script src="rank.js"></script>
+<script src="friends.js"></script>
 <script src="appearance.js?v=dev1"></script>
 <script src="collection.js?v=dev1"></script>
+<script src="monsters.js"></script>
+<script src="map-data.js"></script>
+<script src="dex.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var dexCard = document.querySelector('.card[data-mod="dex"]');
+  if (dexCard) dexCard.addEventListener('click', openDex);
+  var btns = document.querySelectorAll('[data-open="dex"]');
+  for (var i=0;i<btns.length;i++){ btns[i].addEventListener('click', openDex); }
+});
+</script>
 <script>
 
 

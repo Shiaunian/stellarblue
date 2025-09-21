@@ -31,10 +31,10 @@ slime_young:{
       // 額外經驗：+5；若玩家等級超過10等則不給（僅註記，不影響相容）
   xpBonus:{ extra:20, cutoffLevel:10, note:'玩家等級>10則無額外獎勵' },
   drops:[
-    {type:'currency',  id:'stone',       name:'靈石',       min:6,  max:14, chance:1.00},      // 掉落貨幣：靈石，數量6-14，機率100%
-    {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},      // 掉落素材：史萊姆凝膠，數量1，機率60%
-    {type:'consumable',id:'hp_small',    name:'小氣血丹',   min:1,  max:1,  chance:0.60},      // 掉落消耗品：小氣血丹，數量1，機率60%
-    {type:'accessory', id:'jade_ring',   name:'翠玉戒指',   min:1,  max:1,  chance:0.05}       // 掉落飾品：翠玉戒指，數量1，機率5%
+    {type:'currency',  id:'stone',         name:'靈石',      min:6,  max:14, chance:1.00},      // 掉落貨幣：靈石，數量6-14，機率100%
+    {type:'material',  id:'slime_jelly',   name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},      // 掉落素材：史萊姆凝膠，數量1，機率60%
+    {type:'earrings',id:'ear_smalljade', name:'小翠耳環',   min:1,  max:1,  chance:0.60},      // 掉落消耗品：小氣血丹，數量1，機率60%
+    {type:'accessory', id:'jade_ring',     name:'翠玉戒指',   min:1,  max:1,  chance:0.60}       // 掉落飾品：翠玉戒指，數量1，機率5%
   ]
 },
 
@@ -53,8 +53,8 @@ slime_young:{
     drops:[
       {type:'currency',  id:'stone',       name:'靈石',       min:10, max:15, chance:1.00},
       {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},
-      {type:'consumable',id:'hp_small',    name:'小氣血丹',   min:1,  max:1,  chance:0.60},
-      {type:'accessory', id:'jade_ring',   name:'翠玉戒指',   min:1,  max:1,  chance:0.10}
+      {type:'earrings',id:'ear_smalljade',    name:'小翠耳環',   min:1,  max:1,  chance:0.60},
+      {type:'accessory', id:'jade_ring',   name:'翠玉戒指',   min:1,  max:1,  chance:0.60}
     ]
   },
 
@@ -73,7 +73,7 @@ slime_young:{
       {type:'currency',  id:'stone',       name:'靈石',       min:15, max:20, chance:1.00},
       {type:'material',  id:'slime_jelly', name:'史萊姆凝膠', min:1,  max:1,  chance:0.60},
       {type:'consumable',id:'hp_small',    name:'小氣血丹',   min:1,  max:1,  chance:0.60},
-      {type:'accessory', id:'jade_ring',   name:'翠玉戒指',   min:1,  max:1,  chance:0.10}
+      {type:'accessory', id:'jade_ring',   name:'翠玉戒指',   min:1,  max:1,  chance:0.60}
     ]
   },
 
@@ -831,7 +831,7 @@ function applyDrops(player, drops){
     else if(d.type==='weapon'){
       if(window.ItemDB && ItemDB.addWeaponToBag)    ItemDB.addWeaponToBag(player.bag, d.id, qty);
     }
-    else if(d.type==='ornament' || d.type==='accessory'){
+    else if(d.type==='ornament' || d.type==='accessory' || d.type==='earrings'){
       if(window.ItemDB && ItemDB.addOrnamentToBag)  ItemDB.addOrnamentToBag(player.bag, d.id, qty);
     }
     else if(d.type==='medal'){

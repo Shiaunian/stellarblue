@@ -41,7 +41,7 @@
 
     // ---- 耳環（Earrings）----
     earrings: [
-      { id: "ear_smalljade", name: "小翠耳環", rarity: "普", level: 1, effect: { hp: 20 }, price: 80, icon: "https://i.ibb.co/mDRWyjr/ear-smalljade.png", desc: "靈玉雕製的耳環，帶微靈氣。" },
+      { id: "ear_smalljade", name: "小翠耳環", rarity: "普", level: 1, effect: { hp: 20 }, price: 80, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758465744/%E5%B0%8F%E7%BF%A0%E8%80%B3%E7%92%B01LV_ggjgpk.png", desc: "靈玉雕製的耳環，帶微靈氣。" },
       { id: "ear_ice", name: "冰痕耳環", rarity: "普", level: 2, effect: { mp: 40, int: 1 }, price: 160, icon: "https://i.ibb.co/SNQwMfL/ear-ice.png", desc: "如霜凝結的冰晶耳飾，提升悟性。" },
       { id: "ear_shadow", name: "影縛耳環", rarity: "普", level: 4, effect: { mp: 60, agi: 2 }, price: 300, icon: "https://i.ibb.co/n8bkZJ1/ear-shadow.png", desc: "由陰影之絲編製而成，強化反應力。" },
     ],

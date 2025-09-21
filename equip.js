@@ -170,31 +170,41 @@ function onClick(e){
 
   };
 
-  // 點擊 = 卸下
-  if (part === 'weapon') {
-    if (P.equip?.weapon) {
-      backToBag('weapon', P.equip.weapon);
-      P.equip.weapon = null;
-      api.log('已卸下武器 → 回到儲物袋');
-    }
+// 點擊 = 卸下
+if (part === 'weapon') {
+  if (P.equip?.weapon) {
+    backToBag('weapon', P.equip.weapon);
+    P.equip.weapon = null;
+    api.log('已卸下武器 → 回到儲物袋');
+    // 若儲物袋有開，立刻更新武器分頁
+    var bm = (typeof document!=='undefined') ? document.querySelector('#bagModal') : null;
+    if (bm && bm.classList && bm.classList.contains('show') && typeof renderBag==='function') renderBag('weapon');
   }
-  else if (part === 'earrings' || part === 'rings') {
-    const arr = P.equip?.[part] || [];
-    const cur = arr[idx];
-    if (cur) {
-      backToBag('orn', cur);
-      arr[idx] = null;
-      api.log(`已卸下${part === 'earrings' ? '耳環' : '戒指'} → 回到儲物袋`);
-    }
+}
+else if (part === 'earrings' || part === 'rings') {
+  const arr = P.equip?.[part] || [];
+  const cur = arr[idx];
+  if (cur) {
+    backToBag('orn', cur);
+    arr[idx] = null;
+    api.log(`已卸下${part === 'earrings' ? '耳環' : '戒指'} → 回到儲物袋`);
+    // 若儲物袋有開，立刻更新飾品分頁
+    var bm2 = (typeof document!=='undefined') ? document.querySelector('#bagModal') : null;
+    if (bm2 && bm2.classList && bm2.classList.contains('show') && typeof renderBag==='function') renderBag('ornament');
   }
-  else if (part === 'cloak' || part === 'armor' || part === 'shoes') {
-    const cur = P.equip?.[part];
-    if (cur) {
-      backToBag('orn', cur);
-      P.equip[part] = null;
-      api.log('已卸下 → 回到儲物袋');
-    }
+}
+else if (part === 'cloak' || part === 'armor' || part === 'shoes') {
+  const cur = P.equip?.[part];
+  if (cur) {
+    backToBag('orn', cur);
+    P.equip[part] = null;
+    api.log('已卸下 → 回到儲物袋');
+    // 若儲物袋有開，立刻更新飾品分頁
+    var bm3 = (typeof document!=='undefined') ? document.querySelector('#bagModal') : null;
+    if (bm3 && bm3.classList && bm3.classList.contains('show') && typeof renderBag==='function') renderBag('ornament');
   }
+}
+
   // ★ 新增：角色外觀（character）— 卸下時回收至外觀背包
 else if (part === 'character') {
   const cur = P.equip && P.equip.character;
@@ -329,6 +339,7 @@ else if (part === 'character') {
     if (!kind){ api.log('無法辨識飾品種類'); return false; }
 
     var copy = JSON.parse(JSON.stringify(o));
+    var replaced = null;
 
     if (kind==='rings' || kind==='earrings'){
       // ★ 關鍵：舊存檔若不是陣列，可能是單一值（字串或物件）→ 保留到第 1 槽
@@ -359,15 +370,26 @@ else if (part === 'character') {
         }
       }
 
-      // 先找空位；若無空位才覆蓋第 1 格
+      // 先找空位；若無空位才覆蓋第 1 格（被覆蓋者需回到儲物袋）
       var pos = -1;
       for (var j=0;j<2;j++){
         if (!arr[j]) { pos = j; break; }
       }
-      if (pos === -1) { arr[0] = copy; } else { arr[pos] = copy; }
+      if (pos === -1) { replaced = arr[0] || null; arr[0] = copy; } else { arr[pos] = copy; }
 
     } else { // cloak / armor / shoes 單格
+      replaced = P.equip[kind] || null;
       P.equip[kind] = copy;
+    }
+
+    // ★ 直接回袋（不依賴 backToBag 作用域）
+    if (replaced){
+      P.bag = P.bag || {};
+      P.bag.ornaments = Array.isArray(P.bag.ornaments) ? P.bag.ornaments : [];
+      var putBack = replaced;
+      if (typeof putBack === 'string') putBack = { id: putBack }; // 舊存檔字串格式保底
+      try { P.bag.ornaments.unshift(JSON.parse(JSON.stringify(putBack))); }
+      catch(_){ P.bag.ornaments.unshift(putBack); }
     }
 
     api.save(); render(); api.recalc();

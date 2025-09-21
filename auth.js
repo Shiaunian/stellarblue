@@ -6,8 +6,13 @@ const STORE_CHAR_PREFIX = 'rpg_character_';
 // 之後要改頭像，只需改這裡的 avatar，玩家下次登入就會拿到最新網址
 var ACCOUNTS = [
   { username: "0017", password: "0128", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1756723857/%E5%BF%B5%E5%BF%B5_bmuc6s.png" },
-  { username: "little01", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757509864/%E6%B2%90%E6%B2%90_hmamju.png" },
-  { username: "little02", password: "5126", avatar: "https://example.com/avatars/2817.png" },
+  { username: "little01", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757509864/%E6%B2%90%E6%B2%90_hmamju.png" }, // 沐沐
+  { username: "little02", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758477022/%E5%93%86%E5%95%A6_kkuf6u.png" }, // 多啦
+  { username: "little03", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758477022/%E7%90%B3%E7%90%B3%E5%85%92_wpslfg.png" }, // 琳琳兒
+  { username: "little04", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758477021/%E5%A7%8D%E5%A7%8D_uhxxfw.png" }, // 姍姍
+  { username: "little05", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758477022/%E9%BA%A5%E9%BA%A5_ejnwjn.png" }, // 麥麥
+  { username: "little06", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758477022/%E8%89%BE%E5%80%AB_gqzfst.png" }, // 艾倫
+  { username: "little07", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758477022/%E5%AE%89%E8%BF%AA%E5%93%A5_bfprfd.png" }, //安迪哥
   { username: "9031", password: "1123", avatar: "https://example.com/avatars/9031.png" },
   { username: "7905", password: "0824", avatar: "https://example.com/avatars/7905.png" },
   { username: "0592", password: "0825", avatar: "https://example.com/avatars/0592.png" }

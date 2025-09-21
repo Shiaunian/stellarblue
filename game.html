@@ -1278,7 +1278,16 @@ function renderBag(k){
 
 /* === 新增：飾品清單渲染 === */
 function renderOrnaments(box, P){
-  const items = (P.bag && P.bag.ornaments) ? P.bag.ornaments : [];
+  const items = (function(){
+    var out = [];
+    var B = (P && P.bag) ? P.bag : {};
+    if (Array.isArray(B.ornaments)) out = out.concat(B.ornaments);
+    if (Array.isArray(B.earrings))  out = out.concat(B.earrings);
+    if (Array.isArray(B.cloaks))    out = out.concat(B.cloaks);
+    if (Array.isArray(B.armors))    out = out.concat(B.armors);
+    if (Array.isArray(B.boots))     out = out.concat(B.boots);
+    return out;
+  })();
   const url = (s)=> typeof s==='string' && /^https?:\/\//.test(s);
 
   items.forEach((o,i)=>{

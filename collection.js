@@ -24,6 +24,49 @@
   var sortSel    = null;
   var gridList   = null;
   var gridShelf  = null;
+  
+    // ===== 追加：展示架佔用計算與加成重算 =====
+  function countOnShelf(id){
+    var n = 0;
+    for (var i=0;i<shelf.length;i++){
+      if (String(shelf[i]) === String(id)) n++;
+    }
+    return n;
+  }
+
+  function countAvailable(id){
+    var total = countOf(id);
+    var used = countOnShelf(id);
+    var left = total - used;
+    if (left < 0) left = 0;
+    return left;
+  }
+
+  function recalcShelfBonus(){
+    var bonus = { hp:0, mp:0, atk:0, spd:0 };
+    for (var i=0;i<5;i++){
+      var sid = shelf[i];
+      if (!sid) continue;
+      try{
+        var it = (window.Items && Items[sid]) ? Items[sid] : null;
+        if (it && it.bonus){
+          if (it.bonus.hp) bonus.hp += it.bonus.hp;
+          if (it.bonus.mp) bonus.mp += it.bonus.mp;
+          if (it.bonus.atk) bonus.atk += it.bonus.atk;
+          if (it.bonus.spd) bonus.spd += it.bonus.spd;
+        }
+      }catch(_){}
+    }
+    try{
+      var P = api.getPlayer ? api.getPlayer() : null;
+      if (P){
+        P.bonusFromShelf = bonus;
+        if (typeof window.render === 'function') { window.render(P); }
+        if (api.recalc) api.recalc();
+      }
+    }catch(_){}
+  }
+
   var dataAll    = [];     // [{id,name,count}]
   var shelf      = [];     // [cardId,...]
 
@@ -183,9 +226,9 @@ gridList.addEventListener('click', function(e){
   qs('#cardInfoContent').innerHTML = html;
 
   // 綁定按鈕：放到展示架
-  qs('#btnAddToShelf').onclick = function(){
-    var have = countOf(id);
-    if (have<=0) { api.log('沒有這張卡，無法放入展示架'); return; }
+qs('#btnAddToShelf').onclick = function(){
+    var have = countAvailable(id);
+    if (have<=0) { api.log('沒有可用的這張卡，無法放入展示架'); return; }
 
     var pos = -1;
     for(var i=0;i<5;i++){ if(!shelf[i]){ pos=i; break; } }
@@ -194,34 +237,18 @@ gridList.addEventListener('click', function(e){
       return;
     }
 
-    for (var k=0;k<dataAll.length;k++){
-      if (String(dataAll[k].id)===String(id)){
-        if (dataAll[k].count>0) dataAll[k].count -= 1;
-        break;
-      }
-    }
-
+    // 不動原始 dataAll.count，只在展示架記錄
     shelf[pos] = id;
 
-    // ★ 新增：加成屬性（保留原邏輯）
-    try{
-      var P = api.getPlayer ? api.getPlayer() : null;
-      if (P && window.Items){
-        var item = Items[id];
-        if (item && item.bonus){
-          if(item.bonus.hp) P.hp = (P.hp||0) + item.bonus.hp;
-          if(item.bonus.mp) P.mp = (P.mp||0) + item.bonus.mp;
-          if(item.bonus.atk) P.atk = (P.atk||0) + item.bonus.atk;
-          if(item.bonus.spd) P.spd = (P.spd||0) + item.bonus.spd;
-        }
-      }
-    }catch(_){}
+    // 重新計算展示加成
+    recalcShelfBonus();
 
     renderList();
     renderShelf();
     api.save();
     closeCardInfo();
   };
+
 
 
   // 綁定按鈕：販賣（原樣保留）
@@ -354,7 +381,7 @@ gridList.addEventListener('click', function(e){
 
 
     // 互動：展示架點擊→移除
-    gridShelf.addEventListener('click', function(e){
+gridShelf.addEventListener('click', function(e){
       var slot = e.target.closest ? e.target.closest('.slot') : null;
       if (!slot) return;
       var p = parseInt(slot.getAttribute('data-pos'),10);
@@ -364,27 +391,10 @@ gridList.addEventListener('click', function(e){
         var id = shelf[p];
         shelf[p] = null;
 
-        // 放回卡片收藏（數量+1）
-        for (var k=0;k<dataAll.length;k++){
-          if (String(dataAll[k].id)===String(id)){
-            dataAll[k].count += 1;
-            break;
-          }
-        }
+        // 不回補 dataAll.count，改為統一由 countAvailable 控制顯示與可用量
 
-        // ★ 新增：移除屬性加成
-        try{
-          var P = api.getPlayer ? api.getPlayer() : null;
-          if (P && window.Items){
-            var item = Items[id];
-            if (item && item.bonus){
-              if(item.bonus.hp) P.hp = (P.hp||0) - item.bonus.hp;
-              if(item.bonus.mp) P.mp = (P.mp||0) - item.bonus.mp;
-              if(item.bonus.atk) P.atk = (P.atk||0) - item.bonus.atk;
-              if(item.bonus.spd) P.spd = (P.spd||0) - item.bonus.spd;
-            }
-          }
-        }catch(_){}
+        // 重新計算展示加成
+        recalcShelfBonus();
 
         renderList();
         renderShelf();
@@ -393,6 +403,7 @@ gridList.addEventListener('click', function(e){
 
 
     });
+
     // === 卡片資訊視窗 ===
     var cardInfoModal = document.createElement('div');
     cardInfoModal.id = 'cardInfoModal';
@@ -467,7 +478,7 @@ function renderList(){
   var keyword = (searchBox.value||'').trim().toLowerCase();
   var mode = (sortSel.value||'id');
 
-  // 過濾（只顯示擁有數量 > 0 的卡）
+  // 過濾（只顯示「可用數量 > 0」的卡 = 總數 - 展示佔用）
   var list = [];
   for (var i=0;i<dataAll.length;i++){
     var it = dataAll[i];
@@ -476,27 +487,30 @@ function renderList(){
       var t = (String(it.id)+' '+(it.name||'')).toLowerCase();
       hit = t.indexOf(keyword) >= 0;
     }
-    if(hit && (it.count||0) > 0) list.push(it);
+    if (hit){
+      var remain = countAvailable(it.id);
+      if (remain > 0){
+        // 複製一份顯示用資料，避免改動原 dataAll
+        list.push({ id: it.id, name: it.name, count: remain });
+      }
+    }
   }
 
   // 排序
   list.sort(function(a,b){
-    if (mode==='count'){
-      var da = (a.count||0), db=(b.count||0);
-      if (db!==da) return db-da; // 數量多的在前
-      return String(a.id).localeCompare(String(b.id),'zh-Hant');
+    if (mode === 'name'){
+      var na = (a.name||'').toLowerCase();
+      var nb = (b.name||'').toLowerCase();
+      if (na<nb) return -1;
+      if (na>nb) return 1;
+      return 0;
+    } else if (mode === 'count'){
+      return (b.count||0) - (a.count||0);
     }
-    if (mode==='name'){
-      var na = a.name||'', nb=b.name||'';
-      var c = na.localeCompare(nb,'zh-Hant');
-      if (c!==0) return c;
-      return String(a.id).localeCompare(String(b.id),'zh-Hant');
-    }
-    // id
-    return String(a.id).localeCompare(String(b.id),'zh-Hant',{numeric:true});
+    return (parseInt(a.id,10)||0) - (parseInt(b.id,10)||0);
   });
 
-  // 產生 DOM（圖片/名稱改取 items.js 正式資料優先）
+  // 渲染（優先用 ItemDB 正式資料）
   var html = '';
   for (var j=0;j<list.length;j++){
     var it2 = list[j];
@@ -532,7 +546,6 @@ function renderList(){
   }
   gridList.innerHTML = html || '<div style="color:#666">目前沒有任何卡片</div>';
 }
-
 
 
 function renderShelf(){

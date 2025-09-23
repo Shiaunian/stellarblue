@@ -190,6 +190,11 @@
   <script src="items.js"></script>
   <script src="equip.js"></script>
   <script src="auth.js"></script>
+  <!-- 招募相關：怪物資料 / 地圖資料（判別 BOSS）、洞府招募模組 -->
+  <script src="monsters.js"></script>
+  <script src="map-data.js"></script>
+  <script src="洞府招募.js"></script>
+
 
   <script>
   (function(){
@@ -317,59 +322,57 @@
       }catch(e){}
     }
 
-   function wire(){
-      var back = q('btnBackCity');
-      if(back){
-        back.addEventListener('click', function(){
-          try{ if (state.player && window.Auth && Auth.saveCharacter) { Auth.saveCharacter(state.player); } }catch(e){}
-          location.href = 'game.html';
-        });
+function wire(){
+  var back = document.getElementById('btnBackCity');
+  if (back){ back.addEventListener('click', function(){ location.href='game.html'; }); }
+
+  var pvp = document.getElementById('btnPVP'); 
+  if(pvp){ pvp.addEventListener('click', function(){
+    if (!state.player) return;
+    state.player.pvp = !state.player.pvp;
+    var on = !!state.player.pvp;
+    this.classList.toggle('on', on);
+    this.textContent = on ? 'PVP' : 'PVP';
+    saveNow();
+  });}
+
+  var def = document.getElementById('btnDefend'); 
+  if(def){ def.addEventListener('click', function(){
+    if (!state.player) return;
+    state.player.defend = !state.player.defend;
+    var on = !!state.player.defend;
+    this.classList.toggle('on', on);
+    this.textContent = on ? '參與防守' : '參與防守';
+    saveNow();
+  });}
+
+  // 區域按鈕：改成能開啟「招募大廳」
+  var zone = document.getElementById('zone');
+  if (zone){
+    zone.addEventListener('click', function(e){
+      var cell = e.target.closest('.cell'); if(!cell) return;
+      var act = cell.getAttribute('data-act') || '';
+      var nm  = cell.querySelector('.name'); 
+      var title = nm? nm.textContent.trim() : ('['+act+']');
+
+      // 招募大廳（原 data-act="pet"）
+      if (act === 'pet'){
+        if (window['洞府招募'] && typeof window['洞府招募'].open === 'function'){
+          window['洞府招募'].open({
+            getPlayer: function(){ return state.player || null; },
+            save:      function(){ try{ saveNow(); }catch(_e){} }
+          });
+        }else{
+          alert('招募模組未載入。');
+        }
+        return;
       }
 
-      // PVP 開關
-      var pvp = q('btnPvpToggle');
-      if(pvp){
-        pvp.addEventListener('click', function(){
-          try{
-            if (!state.player) return;
-            state.player.pvp = !state.player.pvp;
-            render(state.player);
-            saveNow();
-          }catch(_){}
-        });
-      }
-
-      // 參與防守 開關
-      var def = q('btnDefendToggle');
-      if(def){
-        def.addEventListener('click', function(){
-          try{
-            if (!state.player) return;
-            state.player.defend = !state.player.defend;
-            render(state.player);
-            saveNow();
-          }catch(_){}
-        });
-      }
-
-      // 功能按鈕（先顯示提示 + 記錄一筆動作）
-      var zone = document.getElementById('zone');
-      if(zone){
-        zone.addEventListener('click', function(e){
-          var cell = e.target.closest ? e.target.closest('.cell') : null;
-          if(!cell) return;
-          var act = cell.getAttribute('data-act') || '';
-          try{
-            var u = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
-            if (u && u.username && window.DB && DB.ref) {
-              DB.ref('activity/cave/' + u.username + '/clicks').push({ act: act, ts: Date.now() });
-            }
-          }catch(err){}
-          alert('「' + (cell.querySelector('.name') ? cell.querySelector('.name').textContent : act) + '」功能施工中');
-        });
-      }
-    }
-
+      // 其他仍維持「施工中」提示
+      alert('「' + title + '」功能施工中，敬請期待！');
+    });
+  }
+}
 
 
     // ===== 啟動：帶入玩家資料並渲染（對齊野外地圖） =====

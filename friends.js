@@ -46,7 +46,7 @@
           '<div id="friendsInbox" class="bag-list" style="display:none; max-height:unset;"></div>' +
           '<div id="chatBox" style="display:none; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:8px; gap:8px;">' +
             '<div id="chatBoxTitle" style="font-weight:bold; margin-bottom:4px;"></div>' +
-            '<div id="chatLog" style="height:300px; overflow:auto; background:#060a1a; border:1px solid rgba(255,255,255,.15); border-radius:8px; padding:6px; font-size:12px;"></div>' +
+            '<div id="chatLog" style="height:380px; overflow:auto; background:#060a1a; border:1px solid rgba(255,255,255,.15); border-radius:8px; padding:6px; font-size:12px;"></div>' +
             '<div id="chatRetentionTip" style="text-align:center; font-size:10px; opacity:.1.65; margin:18px 0 11px 0;">僅保留最近 300 則訊息</div>' +
             '<div style="display:flex; gap:6px;">' +
               '<input id="chatInputFriend" type="text" placeholder="輸入訊息..." style="flex:1; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:#fff; color:#111;">' +
@@ -120,7 +120,7 @@ function renderFriends(arr){
         '<div class="dex-row">'+
           '<img src="'+ avatar +'" alt="頭像" style="width:40px; height:40px; border-radius:50%; object-fit:cover; margin-right:8px;">'+
           '<div class="dex-main">'+
-            '<div class="dex-name">'+ nickname +'</div>'+
+            '<div class="dex-name">'+ nickname +'<span id="unread_'+ username +'" title="有未讀訊息" style="display:none; margin-left:6px; color:#ffda33; font-weight:bold;">！</span></div>'+
             '<div class="dex-sub">可傳訊息</div>'+
           '</div>'+
           '<div>'+
@@ -132,13 +132,53 @@ function renderFriends(arr){
       pending--;
       if (pending === 0){
         box.innerHTML = html;
+
+        // ★ 生成未讀監聽（比較最新訊息 ts 與我的最後閱讀 ts）
+        try{
+          if (!window.DB || !DB.ref || !window.Auth || !Auth.currentUser) return;
+          var meObj = Auth.currentUser(); if (!meObj || !meObj.username) return;
+          var me = meObj.username;
+
+          function watchUnread(peer){
+            var k = pairKey(me, peer);
+            var latestTs = 0;
+            var lastReadTs = 0;
+
+            function updateFlag(){
+              var el = qs('#unread_'+ peer);
+              var show = (latestTs && (latestTs > lastReadTs));
+              if (el){ el.style.display = show ? 'inline' : 'none'; }
+            }
+
+            // 最新一則訊息
+            DB.ref('chats/'+k+'/messages').limitToLast(1).on('value', function(s1){
+              var v = (s1 && s1.exists()) ? (s1.val() || {}) : {};
+              var ts = 0;
+              for (var mid in v){
+                if (!v.hasOwnProperty(mid)) continue;
+                var m = v[mid] || {};
+                var t = Number(m.ts || 0);
+                if (t > ts) ts = t;
+              }
+              latestTs = ts;
+              updateFlag();
+            });
+
+            // 我方最後閱讀時間
+            DB.ref('characters/'+me+'/chatReads/'+peer).on('value', function(s2){
+              lastReadTs = Number((s2 && s2.exists()) ? s2.val() : 0);
+              updateFlag();
+            });
+          }
+
+          for (var i=0;i<arr.length;i++){
+            watchUnread(arr[i]);
+          }
+        }catch(_){}
       }
     });
   });
 }
-
-
-
 
   function renderInbox(arr){
     var box = qs('#friendsInbox'); if(!box) return;
@@ -217,7 +257,7 @@ function renderFriends(arr){
       return;
     }
 
-// 進入對話
+ // 進入對話
 var btnChat = t.closest ? t.closest('[data-chat-with]') : null;
 if (btnChat){
   var peer = btnChat.getAttribute('data-chat-with') || '';
@@ -230,6 +270,13 @@ if (btnChat){
   var logBox = qs('#chatLog');
   logBox.innerHTML = '';
   var key = pairKey(me.username, peer);
+
+  // ★ 進入對話即標記已讀，並先把清單上的驚嘆號隱藏
+  try{
+    DB.ref('characters/'+me.username+'/chatReads/'+peer).set(Date.now());
+    var mark = qs('#unread_'+ peer);
+    if (mark){ mark.style.display = 'none'; }
+  }catch(_){}
 
   // 對方暱稱/頭像、我方頭像
   var peerNick = '';
@@ -337,7 +384,7 @@ function renderLog(val){
         + '<div class="item msg" data-msg-id="'+ id +'" data-from="'+ (mmsg.from||'') +'" data-ts="'+ ts +'" style="display:flex; justify-content:flex-start; align-items:flex-end; gap:8px; margin:6px 0;">'
         +   '<img src="'+ av +'" alt="avatar" style="width:25px; height:25px; border-radius:50%; object-fit:cover; flex:0 0 25px;">'
         +   '<div class="msg-bubble" style="max-width:72%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:#eaf2ff; border-radius:12px; padding:6px 10px; line-height:1.5; word-break:break-word;">'
-        +     (mmsg.text || '')
+        +     (mmsg.text || '') 
         +   '</div>'
         + '</div>';
     } else {
@@ -345,7 +392,7 @@ function renderLog(val){
       html += ''
         + '<div class="item msg" data-msg-id="'+ id +'" data-from="'+ (mmsg.from||'') +'" data-ts="'+ ts +'" style="display:flex; justify-content:flex-end; align-items:flex-end; gap:8px; margin:6px 0;">'
         +   '<div class="msg-bubble" style="max-width:72%; background:linear-gradient(135deg, var(--accent,#8b5cf6), var(--accent2,#22d3ee)); color:#fff; border:1px solid rgba(255,255,255,.18); border-radius:12px; padding:6px 10px; line-height:1.5; word-break:break-word;">'
-        +     (mmsg.text || '')
+        +     (mmsg.text || '') 
         +   '</div>'
         +   '<img src="'+ av +'" alt="avatar" style="width:25px; height:25px; border-radius:50%; object-fit:cover; flex:0 0 25px;">'
         + '</div>';
@@ -399,6 +446,13 @@ DB.ref('chats/'+key+'/messages').on('value', function(snap){
     lastLog = val;
     renderLog(lastLog);
   }
+
+  // ★ 聊天室開著就持續標記已讀，並隱藏該好友的驚嘆號
+  try{
+    DB.ref('characters/'+me.username+'/chatReads/'+peer).set(Date.now());
+    var mark2 = qs('#unread_'+ peer);
+    if (mark2){ mark2.style.display = 'none'; }
+  }catch(_){}
 });
 
 

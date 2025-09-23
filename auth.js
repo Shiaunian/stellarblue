@@ -111,6 +111,7 @@ async createCharacter(name, element='none', gender='M', avatarOverride=''){
     exp: { cur: 0,   max: 100 },
     hp:  { cur: hpMax, max: hpMax },
     currencies: { stone: 13000, diamond: 300 },
+    resources:  { ore: 100, wood: 100, food: 100, water: 100 },
     // ★ 新增：包包與裝備欄（含外觀欄位）
     bag: {
       consumables: [],
@@ -133,12 +134,13 @@ async createCharacter(name, element='none', gender='M', avatarOverride=''){
     _updatedAt: Date.now()
   };
 
+
   // ★ 初始外觀：依性別給一件（先放入外觀背包，需玩家自行裝備）
   var startSkin = (safeGender === 'F') ? 'skin_qing_f' : 'skin_qing_m';
   character.bag.appearances.push({ id: startSkin, count: 1 });
 
   // ★ 管理員專屬配給（帳號 0017）
-  var isAdmin = (u && u.username === '0017', 'little01', 'little02');
+  var isAdmin = (u && u.username === '0017','little01','little02','little03','little03','little04','little05','little06','little07');
   if (isAdmin) {
     try {
   

@@ -218,12 +218,30 @@ gridList.addEventListener('click', function(e){
     return '';
   })() || ('https://picsum.photos/seed/card_'+id+'/200/280');
 
-  // 填充卡片資訊（使用 imgUrl）
+  // 取正式名稱與說明（優先 items.js -> ItemDB.DB.cards）
+  var officialName = '';
+  var officialDesc = '';
+  try{
+    var arr2 = (window.ItemDB && ItemDB.DB && ItemDB.DB.cards) ? ItemDB.DB.cards : [];
+    for (var j=0;j<arr2.length;j++){
+      var c2 = arr2[j] || {};
+      if (String(c2.id) === String(id)) {
+        if (c2.name && typeof c2.name === 'string' && c2.name.trim()) officialName = c2.name;
+        if (c2.desc && typeof c2.desc === 'string' && c2.desc.trim()) officialDesc = c2.desc;
+        break;
+      }
+    }
+  }catch(_){}
+  var shownName = officialName || card.name || ('卡片 #'+id);
+  var shownDesc = officialDesc || '尚無說明';
+
+  // 填充卡片資訊（使用 imgUrl、名稱、說明）
   var html = ''
     + '<img src="'+imgUrl+'" style="width:80%;height:auto;aspect-ratio:80/106.67;object-fit:contain;display:block;margin:auto" />'
-    + '<h3 style="text-align:center">'+(card.name||('卡片 #'+id))+'</h3>'
-    + '<p style="text-align:center">卡片介紹：'+(card.desc||'尚無說明')+'</p>';
+    + '<h3 style="text-align:center">'+ shownName +'</h3>'
+    + '<p style="text-align:center">卡片介紹：'+ shownDesc +'</p>';
   qs('#cardInfoContent').innerHTML = html;
+
 
   // 綁定按鈕：放到展示架
 qs('#btnAddToShelf').onclick = function(){
@@ -252,126 +270,157 @@ qs('#btnAddToShelf').onclick = function(){
 
 
   // 綁定按鈕：販賣（原樣保留）
-  qs('#btnSellCard').onclick = function(){
-    var have = countOf(id);
-    if (have<=0) { api.log('沒有這張卡，無法販賣'); return; }
+qs('#btnSellCard').onclick = function(){
+  var have = countOf(id);
+  if (have<=0) { api.log('沒有這張卡，無法販賣'); return; }
 
-    // 建立販賣視窗
-    var sellModal = document.createElement('div');
-    sellModal.className = 'modal show';
-    sellModal.innerHTML =
-      '<div class="mask" data-close="sell"></div>'+
-      '<div class="sheet" style="max-width:360px;padding:16px">'+
-        '<div class="sec-title">販賣卡片</div>'+
-        '<div style="margin:12px 0">擁有數量：'+have+'</div>'+
-        '<input id="sellQtyInput" type="number" min="1" max="'+have+'" value="1" style="width:100%;padding:6px;margin-bottom:10px" />'+
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+
-          '<button data-val="1">1</button>'+
-          '<button data-val="5">5</button>'+
-          '<button data-val="10">10</button>'+
-          '<button data-val="max">最高</button>'+
-        '</div>'+
-        '<div style="text-align:right">'+
-          '<button id="btnSellCancel">取消</button> '+
-          '<button id="btnSellConfirm">確定</button>'+
-        '</div>'+
-      '</div>';
+  // 建立販賣視窗
+  var sellModal = document.createElement('div');
+  sellModal.className = 'modal show';
+  sellModal.innerHTML =
+    '<div class="mask" data-close="sell"></div>'+
+    '<div class="sheet" style="max-width:360px;padding:16px">'+
+      '<div class="sec-title">販賣卡片</div>'+
+      '<div style="margin:12px 0">擁有數量：'+have+'</div>'+
+      '<input id="sellQtyInput" type="number" min="1" max="'+have+'" value="1" style="width:100%;padding:6px;margin-bottom:10px" />'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+
+        '<button data-val="1">1</button>'+
+        '<button data-val="5">5</button>'+
+        '<button data-val="10">10</button>'+
+        '<button data-val="max">最高</button>'+
+      '</div>'+
+      '<div style="text-align:right">'+
+        '<button id="btnSellCancel">取消</button> '+
+        '<button id="btnSellConfirm">確定</button>'+
+      '</div>'+
+    '</div>';
 
-    document.body.appendChild(sellModal);
+  document.body.appendChild(sellModal);
 
-    function closeSell(){
-      if(sellModal && sellModal.parentNode){
-        sellModal.parentNode.removeChild(sellModal);
+  function closeSell(){
+    if(sellModal && sellModal.parentNode){
+      sellModal.parentNode.removeChild(sellModal);
+    }
+  }
+
+  // 綁定快捷按鈕（自動限制為擁有數量）
+  qsa('button[data-val]', sellModal).forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = b.getAttribute('data-val');
+      var n;
+      if (v === 'max') {
+        n = have;
+      } else {
+        n = parseInt(v, 10);
+        if (!n || n < 1) n = 1;
+        if (n > have) n = have;
+      }
+      qs('#sellQtyInput', sellModal).value = n;
+    });
+  });
+
+
+  // 確認販賣
+  qs('#btnSellConfirm', sellModal).onclick = function(){
+    var qty = parseInt(qs('#sellQtyInput', sellModal).value,10);
+    if(!qty || qty<=0){ api.log('數量不正確'); return; }
+    if(qty>have) qty = have;
+
+    // 1) 先扣前端快取 dataAll（維持畫面立即更新）
+    for (var k=0;k<dataAll.length;k++){
+      if (String(dataAll[k].id)===String(id)){
+        dataAll[k].count -= qty;
+        if (dataAll[k].count<0) dataAll[k].count=0;
+        break;
       }
     }
 
-    // 綁定快捷按鈕（自動限制為擁有數量）
-    qsa('button[data-val]', sellModal).forEach(function(b){
-      b.addEventListener('click', function(){
-        var v = b.getAttribute('data-val');
-        var n;
-        if (v === 'max') {
-          n = have;
-        } else {
-          n = parseInt(v, 10);
-          if (!n || n < 1) n = 1;
-          if (n > have) n = have;
+    // 2) 同步寫回玩家資料 P.cards（避免下次打開被覆蓋回來），並加上靈石
+    var gain = 0;
+    try{
+      var P = api.getPlayer ? api.getPlayer() : null;
+      if (P){
+        // 確保 P.cards 存在，且統一成 { id: count } 物件格式
+        if (!P.cards){ P.cards = {}; }
+        var store = null;
+        if (Array.isArray(P.cards)){
+          var obj = {};
+          for (var i=0;i<P.cards.length;i++){
+            var it = P.cards[i]||{};
+            var key = it.id!=null ? String(it.id) : null;
+            if(!key) continue;
+            var c = it.count!=null ? parseInt(it.count,10) : 1;
+            if(isNaN(c)||c<0) c=0;
+            obj[key] = (obj[key]||0) + c;
+          }
+          P.cards = obj;
+          store = P.cards;
+        } else if (typeof P.cards==='object'){
+          store = P.cards;
         }
-        qs('#sellQtyInput', sellModal).value = n;
-      });
-    });
 
+        var key2 = String(id);
+        var cur = parseInt(store[key2]||0,10); if(isNaN(cur)||cur<0) cur=0;
+        cur -= qty; if (cur<0) cur=0;
+        if (cur===0){ delete store[key2]; } else { store[key2] = cur; }
 
-    // 確認販賣
-    qs('#btnSellConfirm', sellModal).onclick = function(){
-      var qty = parseInt(qs('#sellQtyInput', sellModal).value,10);
-      if(!qty || qty<=0){ api.log('數量不正確'); return; }
-      if(qty>have) qty = have;
+        // 查單價並加錢
+        var unitPrice = 0;
+        try{
+          var arr = (window.ItemDB && ItemDB.DB && ItemDB.DB.cards) ? ItemDB.DB.cards : [];
+          for (var j=0;j<arr.length;j++){
+            var cd = arr[j]||{};
+            if (String(cd.id) === String(id)) {
+              if (cd.price!=null) unitPrice = parseInt(cd.price,10) || 0;
+              break;
+            }
+          }
+        }catch(_){}
+        gain = unitPrice * qty;
+        P.currencies = P.currencies || { stone:0, diamond:0 };
+        P.currencies.stone = (P.currencies.stone||0) + gain;
+      }
+    }catch(_){}
 
-      // 1) 先扣前端快取 dataAll（維持畫面立即更新）
-      for (var k=0;k<dataAll.length;k++){
-        if (String(dataAll[k].id)===String(id)){
-          dataAll[k].count -= qty;
-          if (dataAll[k].count<0) dataAll[k].count=0;
-          break;
+    // 3) 存檔 + 重載列表/展示架，確保畫面與資料一致
+    try{
+      if (window.Auth && Auth.saveCharacter && P){
+        var clean = JSON.parse(JSON.stringify(P));
+        delete clean._live;
+        Auth.saveCharacter(clean);
+      } else {
+        api.save();
+      }
+    }catch(_){ api.save(); }
+
+    loadDataFromPlayer(P);
+    renderList();
+    renderShelf();
+
+    // 4) 立刻刷新頁面上的貨幣顯示
+    try{
+      if (window.Game && Game.recalc) {
+        Game.recalc();
+      } else {
+        // 最小備援：直接更新頁首的靈石文本（若存在）
+        var uiStone = document.querySelector('#uiStone');
+        if (uiStone && P && P.currencies){
+          uiStone.textContent = (P.currencies.stone||0);
         }
       }
+    }catch(_){}
 
-      // 2) 同步寫回玩家資料 P.cards（避免下次打開被覆蓋回來）
-      try{
-        var P = api.getPlayer ? api.getPlayer() : null;
-        if (P){
-          // 確保 P.cards 存在，且統一成 { id: count } 物件格式
-          if (!P.cards){ P.cards = {}; }
-          var store = null;
-          if (Array.isArray(P.cards)){
-            var obj = {};
-            for (var i=0;i<P.cards.length;i++){
-              var it = P.cards[i]||{};
-              var key = it.id!=null ? String(it.id) : null;
-              if(!key) continue;
-              var c = it.count!=null ? parseInt(it.count,10) : 1;
-              if(isNaN(c)||c<0) c=0;
-              obj[key] = (obj[key]||0) + c;
-            }
-            P.cards = obj;
-            store = P.cards;
-          } else if (typeof P.cards==='object'){
-            store = P.cards;
-          }
-
-          var key2 = String(id);
-          var cur = parseInt(store[key2]||0,10); if(isNaN(cur)||cur<0) cur=0;
-          cur -= qty; if (cur<0) cur=0;
-          if (cur===0){ delete store[key2]; } else { store[key2] = cur; }
-        }
-      }catch(_){}
-
-      // 3) 存檔 + 以 P.cards 重載列表，確保畫面與資料一致
-      try{
-        if (window.Auth && Auth.saveCharacter && P){
-          var clean = JSON.parse(JSON.stringify(P));
-          delete clean._live;
-          Auth.saveCharacter(clean);
-        } else {
-          api.save();
-        }
-      }catch(_){ api.save(); }
-
-      loadDataFromPlayer(P);
-      renderList();
-      renderShelf();
-
-      closeSell();
-      closeCardInfo();
-      api.log('已販賣 '+qty+' 張卡片 #'+id);
-    };
-
-
-    // 取消
-    qs('#btnSellCancel', sellModal).onclick = closeSell;
-    sellModal.querySelector('.mask').onclick = closeSell;
+    closeSell();
+    closeCardInfo();
+    var logMsg = '已販賣 '+qty+' 張卡片 #'+id;
+    if (gain>0) logMsg += '，獲得 '+gain+' 靈石';
+    api.log(logMsg);
   };
+
+  // 取消
+  qs('#btnSellCancel', sellModal).onclick = closeSell;
+  sellModal.querySelector('.mask').onclick = closeSell;
+}
 
 
 

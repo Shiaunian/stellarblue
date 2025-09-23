@@ -120,9 +120,219 @@
 
       // === 🆕 卡片資料 ===
   cards: [
+    // 刀劍神域-WS SAO/S20系列 ソードアート・オンライン
+    {
+      id: "S20-001",
+      name: "派對邀請函 亞絲娜 RR",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758514438/%E3%83%91%E3%83%BC%E3%83%86%E3%82%A3%E3%83%BC%E3%81%AE%E8%AA%98%E3%81%84_%E3%82%A2%E3%82%B9%E3%83%8ARR_mbb6s1.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "S20-001S",
+      name: "派對邀請函 亞絲娜 SR",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758514439/%E3%83%91%E3%83%BC%E3%83%86%E3%82%A3%E3%83%BC%E3%81%AE%E8%AA%98%E3%81%84_%E3%82%A2%E3%82%B9%E3%83%8ASR_wx5vnv.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "S20-002",
+      name: "閃光亞絲娜 RR",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758514438/%E9%96%83%E5%85%89_%E3%81%AE%E3%82%A2%E3%82%B9%E3%83%8A_RR_agwwif.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-002SP",
+      name: "閃光亞絲娜 SP",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758514438/%E9%96%83%E5%85%89_%E3%81%AE%E3%82%A2%E3%82%B9%E3%83%8A_SP_dxzymd.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-003",
+      name: "躺在沙發上的亞絲娜 R",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758514438/%E3%82%BD%E3%83%95%E3%82%A1%E3%81%AB%E6%A8%AA%E3%81%9F%E3%82%8F%E3%82%8B%E3%82%A2%E3%82%B9%E3%83%8A_R_wuuu6l.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-003S",
+      name: "躺在沙發上的亞絲娜 SR",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758529874/%E3%82%BD%E3%83%95%E3%82%A1%E3%81%AB%E6%A8%AA%E3%81%9F%E3%82%8F%E3%82%8B%E3%82%A2%E3%82%B9%E3%83%8A_SR_hptvfx.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-004",
+      name: "被俘女王亞絲娜 R",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758529873/%E5%9B%9A%E3%82%8F%E3%82%8C%E3%81%AE%E5%A5%B3%E7%8E%8B_%E3%82%A2%E3%82%B9%E3%83%8A_R_emomt4.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-005",
+      name: "亞絲娜換衣服 R",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758529873/%E7%9D%80%E6%9B%BF%E3%81%88%E4%B8%AD%E3%81%AE%E3%82%A2%E3%82%B9%E3%83%8A_R_ghgqji.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-006",
+      name: "沉睡的亞絲娜 R",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758529873/%E3%81%BE%E3%81%A9%E3%82%8D%E3%82%80%E3%82%A2%E3%82%B9%E3%83%8A_R_jtwlfw.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-006R",
+      name: "沉睡的亞絲娜 RRR",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758529873/%E3%81%BE%E3%81%A9%E3%82%8D%E3%82%80%E3%82%A2%E3%82%B9%E3%83%8A_RRR_uhdbzz.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-007",
+      name: "威嚴的力量亞絲娜 R",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758530905/%E5%87%9B%E3%81%A8%E3%81%97%E3%81%9F%E5%BC%B7%E3%81%95_%E3%82%A2%E3%82%B9%E3%83%8A_R_fyzq4u.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-007R",
+      name: "威嚴的力量亞絲娜 RRR",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758530905/%E5%87%9B%E3%81%A8%E3%81%97%E3%81%9F%E5%BC%B7%E3%81%95_%E3%82%A2%E3%82%B9%E3%83%8A_RRR_a4u90a.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-008",
+      name: "新婚生活 亞絲娜 U",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758530905/%E6%96%B0%E5%A9%9A%E7%94%9F%E6%B4%BB_%E3%82%A2%E3%82%B9%E3%83%8A_U_mnrfhl.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-009",
+      name: "無防備的亞絲娜 U",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758530905/%E7%84%A1%E9%98%B2%E5%82%99%E3%81%AA%E7%B4%A0%E9%A1%94_%E3%82%A2%E3%82%B9%E3%83%8A_U_bxzidk.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-010",
+      name: "副團長亞絲娜 U",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758530905/%E5%89%AF%E5%9B%A3%E9%95%B7_%E3%82%A2%E3%82%B9%E3%83%8A_U_ydxoz8.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-011",
+      name: "躲避雨水的亞絲娜 U",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758530905/%E9%9B%A8%E5%AE%BF%E3%82%8A_%E3%82%A2%E3%82%B9%E3%83%8A_U_puxztr.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "SAO/S20-012",
+      name: "求婚回應 亞絲娜 U",
+      price: 8000, stackable: true,
+      img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758530905/%E3%83%97%E3%83%AD%E3%83%9D%E3%83%BC%E3%82%BA%E3%81%AE%E8%BF%94%E4%BA%8B_%E3%82%A2%E3%82%B9%E3%83%8A_U_zxopk8.png",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "",
+      name: "",
+      price: 8000, stackable: true,
+      img: "",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "",
+      name: "",
+      price: 8000, stackable: true,
+      img: "",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "",
+      name: "",
+      price: 8000, stackable: true,
+      img: "",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "",
+      name: "",
+      price: 8000, stackable: true,
+      img: "",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "",
+      name: "",
+      price: 8000, stackable: true,
+      img: "",
+      desc: "WS SAO/S20系列 ソードアート・オンライン",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "",
+      name: "",
+      price: 8000, stackable: true,
+      img: "",
+      desc: "",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "",
+      name: "",
+      price: 8000, stackable: true,
+      img: "",
+      desc: "",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "",
+      name: "",
+      price: 8000, stackable: true,
+      img: "",
+      desc: "",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
+    {
+      id: "",
+      name: "",
+      price: 8000, stackable: true,
+      img: "",
+      desc: "",
+      bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
+    },
     {
       id: "WS_001_SSS",
       name: "SSS-湊友希那",
+      price: 8000, stackable: true,
       img: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758247405/WS_%E9%B3%A5%E7%B1%A0%E3%81%AE%E6%AD%8C%E5%A7%AB-%E6%B9%8A%E5%8F%8B%E5%B8%8C%E9%82%A3BD_bvhlsn.png",
       desc: "WS 鳥籠の歌姫-湊友希那BD",
       bonus: { hp: 5, mp: 5, atk: 1, spd: 2}
@@ -130,6 +340,7 @@
     {
       id: "card_water",
       name: "水流卡",
+      price: 8000, stackable: true,
       img: "card_water.png",
       desc: "水流的祝福",
       bonus: { hp: 6}
@@ -137,6 +348,7 @@
     {
       id: "card_wind",
       name: "疾風卡",
+      price: 8000, stackable: true,
       img: "card_wind.png",
       desc: "疾風的速度",
       bonus: { hp: 7}

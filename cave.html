@@ -17,26 +17,69 @@
     .stage{ position:fixed; inset:0; display:grid; justify-items:center; align-items:start; overflow:auto; padding-top:max(6px, env(safe-area-inset-top)); }
     .app{ width:min(420px, 100svw); max-height:100svh; background:linear-gradient(180deg, var(--bg2), var(--panel)); border-radius:var(--radius); box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; }
 
-    header{ position:relative; padding:8px 10px 6px; background:rgba(255,255,255,.06); border-bottom:1px solid rgba(255,255,255,.08); }
+    header{ position:relative; padding:19px 7px 10px; background:rgba(255,255,255,.06); border-bottom:1px solid rgba(255,255,255,.08); }
     .topbar{ display:flex; align-items:center; justify-content:center; }
-    .back{ position:absolute; left:10px; top:8px; padding:6px 12px; border-radius:8px; font-weight:900; letter-spacing:2px; background:#b91c1c; color:#fff; border:1px solid rgba(255,255,255,.25); cursor:pointer; }
+    .left-controls{ position:absolute; left:10px; top:8px; display:flex; align-items:center; gap:8px; }
+    .back{ position:relative; padding:6px 6px; border-radius:8px; font-weight:900; letter-spacing:2px; background:#2324d1; color:#fff; border:1px solid rgba(255,255,255,25); cursor:pointer; }
+    .pvp-toggle{ padding:6px 7px; border-radius:8px; font-weight:900; letter-spacing:2px; border:1px solid rgba(255,255,255,25); cursor:pointer; background:#374151; color:#e5e7eb; }
+    .pvp-toggle.on{ background:#b91c1c; color:#fff; }
+    .def-toggle{ padding:6px 8px; border-radius:8px; font-weight:900; letter-spacing:2px; border:1px solid rgba(255,255,255,25); cursor:pointer; background:#374151; color:#e5e7eb; font-size:12px; }
+    .def-toggle.on{ background:#b91c1c; color:#fff; }
     .title{ font-weight:900; letter-spacing:6px; color:#c7d2fe; }
+    /* 洞府戰力徽章（置於標題右側） */
+    .power-badge{
+      position:absolute; right:10px; top:8px;
+      display:flex; align-items:center; gap:6px;
+      padding:6px 10px; border-radius:10px;
+      background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.18);
+      font-size:12px;
+    }
+    .power-ico{ font-size:14px; line-height:1 }
+    .power-text{ opacity:.95; }
+    .power-val{ font-weight:900; min-width:18px; text-align:right; }
 
-    .pbox{ display:grid; grid-template-columns:40px 1fr; gap:8px; align-items:center; margin-top:6px; }
+
+    .pbox{ display:block; margin-top:6px; }
     .avatar{ width:40px; height:40px; border-radius:50%; object-fit:cover; background:#222; border:2px solid rgba(255,255,255,.15); }
-    .pinfo{ display:grid; gap:4px; }
+    /* pinfo：左右兩欄；左欄放「頭像+名字+等級」與「開關列」，右欄放資源板 */
+    .pinfo{ display:grid; grid-template-columns:auto 1fr; align-items:end; gap:6px; }
     .prow{ display:flex; align-items:center; gap:6px; }
+    .phead{ display:flex; align-items:center; gap:10px; } /* 新增：頭像與名字同列 */
     .pname{ font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .plv{ font-size:12px; opacity:.9; }
 
+
+    /* 資源板：有框線、雙列整齊排列 */
+    .res-board{
+      display:grid;
+      grid-template-columns:repeat(3, max-content);
+      gap:6px 32px;
+      padding:6px 10px;
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:10px;
+      background:rgba(255,255,255,.06);
+      justify-self:end;
+    }
+    .res-item{ display:flex; align-items:center; gap:2px; font-size:12px; }
+    .res-label{ opacity:.95; }
+    .res-val{ font-weight:800; }
+
     .bars{ display:grid; gap:6px; padding:8px 10px 0; }
-    .stat-row{ display:grid; grid-template-columns:54px 1fr 64px; align-items:center; gap:8px; }
-    .label{ font-size:12px; opacity:.9; text-align:right; }
-    .num{ font-size:12px; text-align:right; }
-    .prog{ height:14px; background:#1f273a; border-radius:999px; position:relative; overflow:hidden; box-shadow: inset 0 2px 0 rgba(255,255,255,.06), inset 0 -2px 0 rgba(0,0,0,.25); }
+    /* 把右側數字那一欄拿掉 → 兩欄：標籤 + 進度條（左欄自動吃字寬，避免換行） */
+    .stat-row{ display:grid; grid-template-columns:max-content 1fr; align-items:center; gap:8px; }
+    .label{ font-size:12px; opacity:.9; text-align:right; white-space:nowrap; }
+    .num{ font-size:12px; text-align:right; } /* 保留定義，不再使用 */
+    .prog{ height:14px; background:#1f273a; border-radius:999px; position:relative; overflow:hidden; box-shadow: inset 0 2px 0 rgba(255,255,255,06), inset 0 -2px 0 rgba(0,0,0,25); }
     .fill{ height:100%; width:0%; }
     .fill.hp{ background:linear-gradient(90deg,#ef4444,#b91c1c); }
     .fill.mp{ background:linear-gradient(90deg,#3b82f6,#1d4ed8); }
+    .fill.fort{ background:linear-gradient(90deg,#22c55e,#16a34a); }
+    /* 能量條中央文字（覆蓋在條上） */
+    .prog-txt{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; text-shadow:0 1px 2px rgba(0,0,0,65); pointer-events:none; }
+
+
+
+
 
     .grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; padding:12px; }
     .cell{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:12px; display:grid; gap:8px; align-items:center; min-height:86px; cursor:pointer; }
@@ -52,32 +95,64 @@
     <div class="app">
       <header>
         <div class="topbar">
-          <button id="btnBackCity" class="back" title="回主城">回主城</button>
+          <div class="left-controls">
+            <button id="btnBackCity" class="back" title="回主城">回主城</button>
+            <button id="btnPvpToggle" class="pvp-toggle" aria-pressed="false" title="PVP：關">PVP</button>
+            <button id="btnDefendToggle" class="def-toggle" aria-pressed="false" title="參與防守：關">參與防守</button>
+          </div>
           <div class="title">洞 府</div>
-        </div>
-        <div class="pbox">
-          <img id="uiAvatar" class="avatar" alt="avatar" />
-          <div class="pinfo">
-            <div class="prow">
-              <div id="uiName" class="pname">—</div>
-              <div class="plv">LV.<span id="uiLv">1</span></div>
-            </div>
+          <div class="power-badge" id="cavePowerBox">
+            <span class="power-ico">⚔</span>
+            <span class="power-text">洞府戰力</span>
+            <span class="power-val" id="uiCavePower">0</span>
           </div>
         </div>
+
+
+
+          <div class="pbox">
+            <div class="pinfo">
+              <!-- 左欄：頭像 + 名稱 + 等級（同一列） -->
+              <div class="prow phead">
+                <img id="uiAvatar" class="avatar" alt="avatar" />
+                <div id="uiName" class="pname">—</div>
+                <div class="plv">LV.<span id="uiLv">1</span></div>
+              </div>
+
+              <!-- 右側：資源板（雙列、含框線） -->
+              <div class="res-board" id="resBoard">
+                <!-- 第1列：靈石 / 木 / 糧 -->
+                <div class="res-item"><span class="res-label">靈石:</span><span class="res-val" id="uiStone">0</span></div>
+                <div class="res-item"><span class="res-label">木:</span><span class="res-val" id="uiWood">0</span></div>
+                <div class="res-item"><span class="res-label">糧:</span><span class="res-val" id="uiFood">0</span></div>
+                <!-- 第2列：水 / 礦 / 佔位（維持 3 欄對齊） -->
+                <div class="res-item"><span class="res-label">水:</span><span class="res-val" id="uiWater">0</span></div>
+                <div class="res-item"><span class="res-label">礦:</span><span class="res-val" id="uiOre">0</span></div>
+                <div style="width:1px;height:1px;"></div>
+              </div>
+            </div>
+          </div>
+
+
+
       </header>
 
       <div class="bars">
         <div class="stat-row">
+          <div class="label">洞府防城值：</div>
+          <div class="prog"><div class="fill fort" id="barFort"></div><div class="prog-txt" id="txtFort">2000/2000</div></div>
+        </div>
+        <div class="stat-row">
           <div class="label">氣血：</div>
-          <div class="prog"><div class="fill hp" id="barHp"></div></div>
-          <div class="num" id="txtHp">--/--</div>
+          <div class="prog"><div class="fill hp" id="barHp"></div><div class="prog-txt" id="txtHp">--/--</div></div>
         </div>
         <div class="stat-row">
           <div class="label">真元：</div>
-          <div class="prog"><div class="fill mp" id="barMp"></div></div>
-          <div class="num" id="txtMp">--/--</div>
+          <div class="prog"><div class="fill mp" id="barMp"></div><div class="prog-txt" id="txtMp">--/--</div></div>
         </div>
       </div>
+
+
 
       <div class="grid" id="zone">
         <div class="cell" data-act="compose">
@@ -89,11 +164,11 @@
           <div class="sub">武器/飾品強化（施工中）</div>
         </div>
         <div class="cell" data-act="pet">
-          <div class="name">靈寵</div>
+          <div class="name">招募大廳</div>
           <div class="sub">孵化、培養、出戰（施工中）</div>
         </div>
         <div class="cell" data-act="farm">
-          <div class="name">菜園</div>
+          <div class="name">軍隊</div>
           <div class="sub">播種、澆灌、採收（施工中）</div>
         </div>
         <div class="cell disabled" data-act="reserved">
@@ -136,6 +211,17 @@
       var nm = q('uiName'); if(nm) nm.textContent = p.name || '';
       var lv = q('uiLv'); if(lv) lv.textContent = p.level || 1;
 
+      // === 貨幣與資源（給洞府顯示） ===
+      // 兼容舊存檔：若沒有 resources，給預設初始 100。
+      if (!p.currencies) { p.currencies = { stone: 0, diamond: 0 }; }
+      if (!p.resources)  { p.resources  = { ore:100, wood:100, food:100, water:100 }; }
+
+      var elStone = q('uiStone'); if (elStone) elStone.textContent = (p.currencies.stone || 0);
+      var elOre   = q('uiOre');   if (elOre)   elOre.textContent   = (p.resources.ore  || 0);
+      var elWood  = q('uiWood');  if (elWood)  elWood.textContent  = (p.resources.wood || 0);
+      var elFood  = q('uiFood');  if (elFood)  elFood.textContent  = (p.resources.food || 0);
+      var elWater = q('uiWater'); if (elWater) elWater.textContent = (p.resources.water|| 0);
+
       // 重新計算上限（含裝備加成）
       var base  = (typeof derivedFrom === 'function') ? derivedFrom(p) : {};
       var bonus = (window.Equip && typeof Equip.getBonuses === 'function') ? (Equip.getBonuses() || {}) : {};
@@ -145,11 +231,72 @@
       if (!p.hp) { p.hp = { cur: hpMax, max: hpMax }; } else { p.hp.max = hpMax; p.hp.cur = Math.max(0, Math.min(p.hp.cur == null ? hpMax : p.hp.cur, hpMax)); }
       if (!p.mp) { p.mp = { cur: mpMax, max: mpMax }; } else { p.mp.max = mpMax; p.mp.cur = Math.max(0, Math.min(p.mp.cur == null ? mpMax : p.mp.cur, mpMax)); }
 
-      var bhp = q('barHp'); if(bhp) bhp.style.width = (p.hp.max ? ((p.hp.cur / p.hp.max) * 100).toFixed(1) : 0) + '%';
-      var bmp = q('barMp'); if(bmp) bmp.style.width = (p.mp.max ? ((p.mp.cur / p.mp.max) * 100).toFixed(1) : 0) + '%';
-      var thp = q('txtHp'); if(thp) thp.textContent = (p.hp.cur || 0) + '/' + (p.hp.max || 0);
-      var tmp = q('txtMp'); if(tmp) tmp.textContent = (p.mp.cur || 0) + '/' + (p.mp.max || 0);
+      // === 洞府防城值（條+數字）預設 2000/2000；舊存檔補齊 ===
+      if (!p.fort) { p.fort = { cur: 2000, max: 2000 }; }
+      else {
+        p.fort.max = (p.fort.max == null ? 2000 : p.fort.max);
+        p.fort.cur = (p.fort.cur == null ? p.fort.max : Math.max(0, Math.min(p.fort.cur, p.fort.max)));
+      }
+
+      // === PVP 開關（舊存檔補齊 + UI 同步） ===
+      if (p.pvp !== true && p.pvp !== false) { p.pvp = false; }
+      var pbtn = q('btnPvpToggle');
+      if (pbtn){
+        if (p.pvp){
+          if (pbtn.classList) pbtn.classList.add('on');
+          pbtn.setAttribute('aria-pressed','true');
+          pbtn.title = 'PVP：開';
+        }else{
+          if (pbtn.classList) pbtn.classList.remove('on');
+          pbtn.setAttribute('aria-pressed','false');
+          pbtn.title = 'PVP：關';
+        }
+      }
+
+      // === 參與防守 開關（舊存檔補齊 + UI 同步） ===
+      if (p.defend !== true && p.defend !== false) { p.defend = false; }
+      var dbtn = q('btnDefendToggle');
+      if (dbtn){
+        if (p.defend){
+          if (dbtn.classList) dbtn.classList.add('on');
+          dbtn.setAttribute('aria-pressed','true');
+          dbtn.title = '參與防守：開';
+        }else{
+          if (dbtn.classList) dbtn.classList.remove('on');
+          dbtn.setAttribute('aria-pressed','false');
+          dbtn.title = '參與防守：關';
+        }
+      }
+
+      // === 洞府戰力（只在參與防守=開 時，計入玩家個人戰力） ===
+      var powEl = q('uiCavePower');
+      if (powEl){
+        var final = {}, k;
+        for (k in base){ if (Object.prototype.hasOwnProperty.call(base,k)) final[k] = Number(base[k]||0); }
+        for (k in bonus){ if (Object.prototype.hasOwnProperty.call(bonus,k)) final[k] = (final[k]||0) + Number(bonus[k]||0); }
+        var score = 0;
+        for (k in final){
+          if (!Object.prototype.hasOwnProperty.call(final,k)) continue;
+          var v = Number(final[k]||0); if (isNaN(v)) continue;
+          if (k.indexOf('氣血上限') !== -1) score += Math.floor(v/5);
+          else if (k.indexOf('真元上限') !== -1) score += Math.floor(v/10);
+          else score += v;
+        }
+        powEl.textContent = p.defend ? Math.max(0, score|0) : 0;
+      }
+
+      // 進度條寬度
+      var bft = q('barFort'); if(bft) bft.style.width = (p.fort.max ? ((p.fort.cur / p.fort.max) * 100).toFixed(1) : 0) + '%';
+      var bhp = q('barHp');  if(bhp)  bhp.style.width = (p.hp.max   ? ((p.hp.cur   / p.hp.max)   * 100).toFixed(1) : 0) + '%';
+      var bmp = q('barMp');  if(bmp)  bmp.style.width = (p.mp.max   ? ((p.mp.cur   / p.mp.max)   * 100).toFixed(1) : 0) + '%';
+
+      // 條上置中文字
+      var tft = q('txtFort'); if(tft) tft.textContent = (p.fort.cur || 0) + '/' + (p.fort.max || 0);
+      var thp = q('txtHp');   if(thp) thp.textContent = (p.hp.cur   || 0) + '/' + (p.hp.max   || 0);
+      var tmp = q('txtMp');   if(tmp) tmp.textContent = (p.mp.cur   || 0) + '/' + (p.mp.max   || 0);
     }
+
+
 
     function saveNow(){ if (window.Auth && Auth.saveCharacter && state.player) { try{ Auth.saveCharacter(state.player); }catch(e){} } }
 
@@ -179,6 +326,32 @@
         });
       }
 
+      // PVP 開關
+      var pvp = q('btnPvpToggle');
+      if(pvp){
+        pvp.addEventListener('click', function(){
+          try{
+            if (!state.player) return;
+            state.player.pvp = !state.player.pvp;
+            render(state.player);
+            saveNow();
+          }catch(_){}
+        });
+      }
+
+      // 參與防守 開關
+      var def = q('btnDefendToggle');
+      if(def){
+        def.addEventListener('click', function(){
+          try{
+            if (!state.player) return;
+            state.player.defend = !state.player.defend;
+            render(state.player);
+            saveNow();
+          }catch(_){}
+        });
+      }
+
       // 功能按鈕（先顯示提示 + 記錄一筆動作）
       var zone = document.getElementById('zone');
       if(zone){
@@ -196,6 +369,8 @@
         });
       }
     }
+
+
 
     // ===== 啟動：帶入玩家資料並渲染（對齊野外地圖） =====
     window.addEventListener('DOMContentLoaded', function(){

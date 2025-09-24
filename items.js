@@ -23,6 +23,11 @@
       { id: "mp_small_1", name: "中靈氣丹",     effect: { mp: 50 },  price: 60,  icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758721126/%E4%B8%AD%E9%9D%88%E6%B0%A3%E4%B8%B9_aj1ddb.png" },
       { id: "mp_small_2", name: "大靈氣丹",     effect: { mp: 75 },  price: 100, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758721125/%E5%A4%A7%E9%9D%88%E6%B0%A3%E4%B8%B9_ld9rhc.png" },
       { id: "mp_small_3", name: "巨顆靈氣丹",   effect: { mp: 100 }, price: 150, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758721125/%E5%B7%A8%E9%A1%86%E6%B0%A3%E8%A1%80%E4%B8%B9_dfolpb.png" },
+      { id: "food_apple",      name: "蘋果",   effect: { sta: 5  }, price: 10,  icon: "https://upload.wikimedia.org/wikipedia/commons/1/15/Red_Apple.jpg" },
+      { id: "food_strawberry", name: "草莓",   effect: { sta: 10 }, price: 20,  icon: "https://upload.wikimedia.org/wikipedia/commons/2/29/PerfectStrawberry.jpg" },
+      { id: "food_banana",     name: "香蕉",   effect: { sta: 15 }, price: 30,  icon: "https://upload.wikimedia.org/wikipedia/commons/8/8a/Banana-Single.jpg" },
+      { id: "food_greenapple", name: "青蘋果", effect: { sta: 20 }, price: 40,  icon: "https://upload.wikimedia.org/wikipedia/commons/f/f4/Granny_smith_and_cross_section.jpg" },
+
       // { id: "entry_ticket", name: "副本入場卷", effect: null, price: 0, icon: "" },
     ],
 

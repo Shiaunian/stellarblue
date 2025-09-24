@@ -514,48 +514,6 @@
 </div>
 </div>
 
-<!-- ★ 新增：商店介面 -->
-<div id="shopModal" class="modal" aria-hidden="true">
-  <div class="mask" data-close="shop"></div>
-  <div class="sheet" role="dialog" aria-labelledby="shopTitle">
-    <div class="sec-title" id="shopTitle">
-      商店
-      <div class="close" data-close="shop">✕</div>
-    </div>
-    <div class="body">
-      <!-- 商人清單頁 -->
-      <div id="merchantList"></div>
-      <!-- 商品清單頁 -->
-      <div id="merchantShop" style="display:none;">
-        <div class="sec-title" id="merchantName"></div>
-        <div id="shopList"></div>
-        <button class="opx" id="btnBackMerchants">返回商人清單</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ★ 新增：購買介面 Modal -->
-<div id="buyModal" class="modal" aria-hidden="true">
-  <div class="mask" data-close="buy"></div>
-  <div class="sheet" role="dialog" aria-labelledby="buyTitle">
-    <div class="sec-title" id="buyTitle">
-      購買物品
-      <div class="close" data-close="buy">✕</div>
-    </div>
-    <div class="body">
-      <div id="buyItemName" style="font-weight:700; text-align:center;"></div>
-      <div style="display:flex; gap:8px; align-items:center; justify-content:center;">
-        <label for="buyQty">數量：</label>
-        <input id="buyQty" type="number" value="1" min="1" style="width:80px; text-align:center;">
-      </div>
-      <div style="text-align:center; margin-top:10px;">
-        <button class="opx primary" id="btnConfirmBuy">確定購買</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 
 
 <!-- Firebase（compat 版，免 ES Module） -->
@@ -593,6 +551,8 @@
 <script src="map-data.js"></script>
 <script src="dex.js"></script>
 <script src="bag.js"></script>
+<script src="shop.js"></script>
+
 </body>
 
 <script>
@@ -1076,184 +1036,14 @@ function openAppearance(){
 }
 
 
-/* ===== Shop (NPC → Items) ===== */
-function openShop(){
-  renderMerchants();
-  const m = qs('#shopModal'); if(!m) return;
-  m.classList.add('show'); m.setAttribute('aria-hidden','false');
-}
-function closeShop(){
-  const m = qs('#shopModal'); if(!m) return;
-  m.classList.remove('show'); m.setAttribute('aria-hidden','true');
-  const list = qs('#merchantList'); const page = qs('#merchantShop');
-  if(list) list.style.display = 'block';
-  if(page) page.style.display = 'none';
-}
+/* ===== Shop (module proxy) ===== */
+function openShop(){ if (window.Shop && Shop.open) Shop.open(); }
+function closeShop(){ if (window.Shop && Shop.close) Shop.close(); }
 
 /* 商人清單頁 */
-function renderMerchants(){
-  const box = qs('#merchantList'); if(!box) return;
-  box.innerHTML = '';
-
-  // 1) 藥鋪小李（固定可用）
-  const li = document.createElement('div');
-  li.className = 'item-row';
-  li.innerHTML = ''
-    + '<div class="item-thumb"><img src="https://i.ibb.co/3fNzHbn/apothecary.png" alt="藥鋪小李"></div>'
-    + '<div class="item-main">'
-    + '  <div class="item-title"><span class="item-name">藥鋪小李</span></div>'
-    + '  <div class="item-sub"><span class="sub-left">販售丹藥</span></div>'
-    + '</div>';
-  li.onclick = function(){ openMerchant('藥鋪小李', ItemDB.DB.consumables || []); };
-  box.appendChild(li);
-
-  // 2) 洞窟補給商（打過萊姆洞窟 BOSS 才解鎖）
-var P = (window.Auth && Auth.getCharacter) ? Auth.getCharacter() : null;
-var unlocked = false;
-if(P && P.mapProg && P.mapProg.slime_cave && P.mapProg.slime_cave.bossReady){ unlocked = true; }
-
-  const cave = document.createElement('div');
-  cave.className = 'item-row';
-  cave.style.filter = unlocked ? 'none' : 'grayscale(1) opacity(.5)';
-  cave.innerHTML = ''
-    + '<div class="item-thumb"><img src="https://i.ibb.co/QnLR7vN/cave-merchant.png" alt="洞窟補給商"></div>'
-    + '<div class="item-main">'
-    + '  <div class="item-title"><span class="item-name">洞窟補給商</span></div>'
-    + '  <div class="item-sub"><span class="sub-left">' + (unlocked ? '販售特用品' : '尚未解鎖') + '</span></div>'
-    + '</div>';
-  if(unlocked){
-    cave.onclick = function(){ 
-      openMerchant('洞窟補給商', [
-        { id:'antidote', name:'解毒藥', price:120, icon:'https://i.ibb.co/JxR7ZzP/antidote.png' }
-      ]);
-    };
-  }
-  box.appendChild(cave);
-}
-
-/* 進入某位商人 → 顯示商品清單 */
-function openMerchant(name, items){
-  const list = qs('#merchantList'); const page = qs('#merchantShop');
-  if(list) list.style.display = 'none';
-  if(page) page.style.display = 'block';
-  const ttl = qs('#merchantName'); if(ttl) ttl.textContent = name;
-
-  const box = qs('#shopList'); if(!box) return;
-  box.innerHTML = '';
-  for(var i=0;i<items.length;i++){
-    var it = items[i] || {};
-    var hasIcon = (typeof it.icon === 'string') && /^https?:\/\//.test(it.icon);
-    var effHp = it.effect && it.effect.hp ? it.effect.hp : 0;
-    var effMp = it.effect && it.effect.mp ? it.effect.mp : 0;
-    var effHtml = '';
-    if(effHp){ effHtml += '<span class="badge hp">氣血+' + effHp + '</span>'; }
-    if(effMp){ effHtml += '<span class="badge">真元+' + effMp + '</span>'; }
-
-    var row = document.createElement('div');
-    row.className = 'item-row';
-    row.innerHTML = ''
-      + '<div class="item-thumb">' + (hasIcon?('<img src="'+it.icon+'" alt="'+(it.name||'')+'">'):'') + '</div>'
-      + '<div class="item-main">'
-      + '  <div class="item-title cons">'
-      + '    <span class="item-name">' + (it.name||'') + '</span>'
-      + '    <span class="meta-effect">' + effHtml + '</span>'
-      + '    <span class="count-slot">×1</span>'
-      + '  </div>'
-      + '  <div class="item-sub">'
-      + '    <span class="sub-left">價格 ' + (it.price||0) + ' 靈石</span>'
-      + '    <span class="sub-right"><button class="opx primary" data-shop-src="'+name+'" data-shop-buy="'+i+'">購買</button></span>'
-      + '  </div>'
-      + '</div>';
-    box.appendChild(row);
-  }
-}
-
-/* 購買按鈕 → 先開數量輸入框 */
-document.addEventListener('click', function(e){
-  var btn = e.target && e.target.closest ? e.target.closest('[data-shop-buy]') : null;
-  if(!btn) return;
-
-  var idx = parseInt(btn.getAttribute('data-shop-buy')||'0',10);
-  var src = btn.getAttribute('data-shop-src') || '';
-
-  var items = [];
-  if(src === '藥鋪小李'){ items = ItemDB.DB.consumables || []; }
-  else if(src === '洞窟補給商'){ 
-    items = [{ id:'antidote', name:'解毒藥', price:120, icon:'https://i.ibb.co/JxR7ZzP/antidote.png' }];
-  }
-  var it = items[idx]; if(!it) return;
-
-  // 開啟購買介面
-  var m = qs('#buyModal'); if(!m) return;
-  var nameEl = qs('#buyItemName'); if(nameEl) nameEl.textContent = it.name + '（單價 ' + (it.price||0) + ' 靈石）';
-  m.dataset.itemIndex = idx;
-  m.dataset.itemSrc = src;
-  var qtyEl = qs('#buyQty'); if(qtyEl) qtyEl.value = 1;
-  m.classList.add('show'); m.setAttribute('aria-hidden','false');
-});
+function renderMerchants(){ /* moved to shop.js */ }
 
 
-/* 確定購買 */
-document.getElementById('btnConfirmBuy').addEventListener('click', function(){
-  var m = qs('#buyModal'); if(!m) return;
-  var idx = parseInt(m.dataset.itemIndex||'0',10);
-  var src = m.dataset.itemSrc || '';
-
-  var items = [];
-  if(src === '藥鋪小李'){ items = ItemDB.DB.consumables || []; }
-  else if(src === '洞窟補給商'){ 
-    items = [{ id:'antidote', name:'解毒藥', price:120, icon:'https://i.ibb.co/JxR7ZzP/antidote.png' }];
-  }
-  var it = items[idx]; if(!it) return;
-
-  var qtyEl = qs('#buyQty');
-  var qty = parseInt((qtyEl ? qtyEl.value : '1')||'1',10);
-  if(qty<1) qty=1;
-
-  var P = Game.getPlayer(); if(!P) return;
-  var stone = (P.currencies && typeof P.currencies.stone==='number') ? P.currencies.stone : 0;
-  var cost = (it.price||0) * qty;
-  if(stone < cost){
-    Game.log('靈石不足，無法購買 ' + (it.name||'') + ' ×' + qty, 'warn');
-    return;
-  }
-
-  P.currencies.stone = stone - cost;
-  ItemDB.addConsumableToBag(P.bag, it.id, qty);
-
-  if(window.Auth && Auth.saveCharacter) {
-    var cleanData = JSON.parse(JSON.stringify(P));
-    delete cleanData._live;
-    Auth.saveCharacter(cleanData);
-  }
-  Game.recalc();
-  Game.log('購買 ' + (it.name||'') + ' ×' + qty + ' 成功！', 'ok');
-
-  // 關閉購買框
-  m.classList.remove('show'); m.setAttribute('aria-hidden','true');
-});
-
-
-/* 關閉購買框 */
-document.querySelectorAll('[data-close="buy"]').forEach(function(el){
-  el.addEventListener('click', function(){
-    var m = qs('#buyModal'); if(!m) return;
-    m.classList.remove('show'); m.setAttribute('aria-hidden','true');
-  });
-});
-
-/* 返回商人清單、關閉商店 */
-var backBtn = document.getElementById('btnBackMerchants');
-if(backBtn){
-  backBtn.addEventListener('click', function(){
-    var list = qs('#merchantList'); var page = qs('#merchantShop');
-    if(list) list.style.display = 'block';
-    if(page) page.style.display = 'none';
-  });
-}
-document.querySelectorAll('[data-close="shop"]').forEach(function(el){
-  el.addEventListener('click', closeShop);
-});
 
 
 

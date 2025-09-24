@@ -183,13 +183,11 @@ function startBattle(enemy, area, playerData) {
     return false;
   }
 
-  // 顯示戰鬥區
   var mapSection = document.querySelector('#mapSection');
   var battleSection = document.querySelector('#battleSection');
-  if (mapSection) mapSection.style.display = 'none';
-  if (battleSection) battleSection.classList.add('show');
 
-  // === 新增：BOSS 標誌（只處理 UI，不影響戰鬥邏輯） ===
+  // === BOSS 標誌 + 判斷是否為 BOSS（同原邏輯） ===
+  var isBoss = false;
   try {
     var badge = document.getElementById('bossBadge');
     if (!badge) {
@@ -204,19 +202,14 @@ function startBattle(enemy, area, playerData) {
       badge.style.color = '#fff';
       badge.style.fontWeight = '900';
       badge.style.fontSize = '12px';
-      // 儘量插在敵人名稱旁 (#eName)，沒有就掛到 battleSection
       var nameEl = document.querySelector('#eName');
       if (nameEl && nameEl.parentNode) {
-        if (nameEl.nextSibling) {
-          nameEl.parentNode.insertBefore(badge, nameEl.nextSibling);
-        } else {
-          nameEl.parentNode.appendChild(badge);
-        }
+        if (nameEl.nextSibling) { nameEl.parentNode.insertBefore(badge, nameEl.nextSibling); }
+        else { nameEl.parentNode.appendChild(badge); }
       } else if (battleSection) {
         battleSection.appendChild(badge);
       }
     }
-    var isBoss = false;
     if (enemy && enemy.rank === 'boss') {
       isBoss = true;
     } else if (window.MonsterDB && MonsterDB.rankOf && enemy && enemy.id) {
@@ -224,6 +217,26 @@ function startBattle(enemy, area, playerData) {
     }
     badge.style.display = isBoss ? 'inline-block' : 'none';
   } catch (_ignore) {}
+
+  // === 立刻扣體力（一般戰鬥 2；BOSS 不在此扣） ===
+  if (!isBoss) {
+    if (!window.P || !P.sta || typeof P.sta.cur !== 'number') {
+      if (typeof log === 'function') log('無法讀取玩家體力。', 'warn');
+      return false;
+    }
+    var sNow = (P.sta.cur|0);
+    if (sNow < 2) {
+      if (typeof log === 'function') log('體力不足（需要 2）', 'warn');
+      return false;
+    }
+    P.sta.cur = sNow - 2;
+    if (typeof renderHeader === 'function') renderHeader();
+    if (typeof renderBars === 'function') renderBars();
+  }
+
+  // 顯示戰鬥區（放在扣體力成功之後）
+  if (mapSection) mapSection.style.display = 'none';
+  if (battleSection) battleSection.classList.add('show');
 
   if (loop) { clearInterval(loop); loop = null; }
 
@@ -252,7 +265,6 @@ var eStats = {
   '命中率': (enemy.stats && typeof enemy.stats.acc === 'number') ? enemy.stats.acc : 75,
   '閃避': (enemy.stats && typeof enemy.stats.eva === 'number') ? enemy.stats.eva : 5,
   '暴擊率': (enemy.stats && typeof enemy.stats.crit === 'number') ? Math.min(100, enemy.stats.crit) : 3,
-  // 🔁 改用衍生表 / extra 來帶入暴擊傷害（避免固定 150）
   '暴擊傷害': (function(){
     var fromDerived = pickD('暴擊傷害', null);
     if (typeof fromDerived === 'number') return fromDerived;
@@ -260,12 +272,10 @@ var eStats = {
     if (typeof extraCrd === 'number') return Math.max(100, extraCrd);
     return 150;
   })(),
-  // 🔁 行動條速度統一採衍生表（避免與 battle.e.speed 脫鉤）
   '行動條速度': pickD('行動條速度', (enemy.stats && typeof enemy.stats.aspd === 'number') ? Math.round(100 * enemy.stats.aspd) : 100),
   '破甲': (enemy.extra && typeof enemy.extra.armorPen === 'number') ? enemy.extra.armorPen : pickD('破甲', 0),
   '法穿': (enemy.extra && typeof enemy.extra.magicPen === 'number') ? enemy.extra.magicPen : pickD('法穿', 0)
 };
-// === 補齊英文字段鏡像（提供 skills.js / 其他相容讀取）===
 eStats.atk     = eStats['物理攻擊'];
 eStats.matk    = eStats['法術攻擊'];
 eStats.def     = eStats['物理防禦'];
@@ -307,13 +317,11 @@ eStats.mpen    = eStats['法穿'];
     dotTimers: []
   };
 
-
   console.log('🎮 戰鬥開始:', enemy.name, 'vs', playerData.name);
-  
-  // 開始 ATB 循環
   loop = setInterval(tickATB, 60);
   return true;
 }
+
 
 
 // ===== ATB 系統 tick =====

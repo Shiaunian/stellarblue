@@ -106,81 +106,98 @@ function renderFriends(arr){
   var box = qs('#friendsList'); if(!box) return;
   if(!arr || !arr.length){ box.innerHTML = '<div style="opacity:.8;">目前沒有好友。</div>'; return; }
 
-  var html = '';
+  // 取得自己帳號（供 pairKey 使用）
+  if (!window.DB || !DB.ref || !window.Auth || !Auth.currentUser) return;
+  var meObj = Auth.currentUser(); if (!meObj || !meObj.username) return;
+  var me = meObj.username;
+
+  var rows = [];
   var pending = arr.length;
-  arr.forEach(function(username){
-    DB.ref('characters/'+username).get().then(function(snap){
-      var data = (snap && snap.exists()) ? snap.val() : {};
-      var nickname = data.nickname || data.name || username;
-      var avatar = (data.avatar && String(data.avatar).trim())
-                || (data.avatarUrl && String(data.avatarUrl).trim())
-                || 'https://via.placeholder.com/40x40?text=🤖';
+
+  // 預設頭像
+  function fallbackAvatar(){
+    try{
+      if (window.Auth && Auth.defaultAvatar){
+        var a = Auth.defaultAvatar();
+        if (a) return a;
+      }
+    }catch(_){}
+    return 'https://via.placeholder.com/40x40?text=🤖';
+  }
+
+  // 逐一載入好友資料 + 最新訊息
+  for (var i=0;i<arr.length;i++){
+    (function(idx){
+      var username = arr[idx];
+      DB.ref('characters/'+username).get().then(function(snap){
+        var data = (snap && snap.exists()) ? snap.val() : {};
+        var nickname = data.nickname || data.name || username;
+        var avatar = (data.avatar && String(data.avatar).trim())
+                   || (data.avatarUrl && String(data.avatarUrl).trim())
+                   || fallbackAvatar();
+
+        var row = { i:idx, username:username, nickname:nickname, avatar:avatar, lastText:'', lastTs:0 };
+
+        // 讀取最新一則訊息（僅 1 則）
+        var k = pairKey(me, username);
+        return DB.ref('chats/'+k+'/messages').limitToLast(1).get().then(function(ms){
+          if (ms && ms.exists()){
+            var v = ms.val() || {};
+            for (var mid in v){
+              if (!v.hasOwnProperty(mid)) continue;
+              var m = v[mid] || {};
+              row.lastText = String(m.text || '');
+              row.lastTs   = Number(m.ts || 0);
+            }
+          }
+          rows.push(row);
+          pending--;
+          if (pending === 0){ finalize(); }
+        }).catch(function(_){
+          rows.push(row);
+          pending--;
+          if (pending === 0){ finalize(); }
+        });
+      });
+    })(i);
+  }
+
+  // 產出畫面：依最新訊息 ts 由新到舊排序（無訊息者放後面；同 ts 依原本順序）
+  function finalize(){
+    rows.sort(function(a,b){
+      var ta = Number(a.lastTs || 0), tb = Number(b.lastTs || 0);
+      if (ta === tb) return a.i - b.i;
+      return tb - ta; // 新的在上方
+    });
+
+    var html = '';
+    for (var j=0;j<rows.length;j++){
+      var r = rows[j];
+      var preview = r.lastText ? String(r.lastText).replace(/\s+/g,' ').trim() : '尚無訊息';
+      // 只顯示 8 個字
+      preview = preview.slice(0,8);
 
       html +=
         '<div class="dex-row">'+
-          '<img src="'+ avatar +'" alt="頭像" style="width:40px; height:40px; border-radius:50%; object-fit:cover; margin-right:8px;">'+
+          '<img src="'+ r.avatar +'" alt="頭像" style="width:40px; height:40px; border-radius:50%; object-fit:cover; margin-right:8px;">'+
           '<div class="dex-main">'+
-            '<div class="dex-name">'+ nickname +'<span id="unread_'+ username +'" title="有未讀訊息" style="display:none; margin-left:6px; color:#ffda33; font-weight:bold;">！</span></div>'+
-            '<div class="dex-sub">可傳訊息</div>'+
+            // 移除驚嘆號！ 只保留名稱
+            '<div class="dex-name">'+ r.nickname +'</div>'+
+            // 把「可傳訊息」改成「最新一行訊息（8 字，淡藍色）」
+            '<div class="dex-sub" style="color:#93c5fd;">'+ preview +'</div>'+
           '</div>'+
           '<div>'+
-            '<button class="opx" data-trade="'+ username +'">交易</button> '+
-            '<button class="opx" data-chat-with="'+ username +'">對話</button> '+
-            '<button class="opx" data-unfriend="'+ username +'">解除</button>'+
+            '<button class="opx" data-trade="'+ r.username +'">交易</button> '+
+            '<button class="opx" data-chat-with="'+ r.username +'">對話</button> '+
+            '<button class="opx" data-unfriend="'+ r.username +'">解除</button>'+
           '</div>'+
         '</div>';
+    }
 
-      pending--;
-      if (pending === 0){
-        box.innerHTML = html;
-
-        // ★ 生成未讀監聽（只比較「對方」最新訊息 ts 與我的最後閱讀 ts；視窗開著一律視為已讀）
-        try{
-          if (!window.DB || !DB.ref || !window.Auth || !Auth.currentUser) return;
-          var meObj = Auth.currentUser(); if (!meObj || !meObj.username) return;
-          var me = meObj.username;
-
-          function watchUnread(peer){
-            var k = pairKey(me, peer);
-            var latestOtherTs = 0;
-            var lastReadTs = 0;
-
-            function updateFlag(){
-              var el = qs('#unread_'+ peer);
-              // 若此時對話視窗正開在 peer，就不顯示驚嘆號
-              var isActive = (window.__activeChatPeer === peer);
-              var show = (!isActive && latestOtherTs && (latestOtherTs > lastReadTs));
-              if (el){ el.style.display = show ? 'inline' : 'none'; }
-            }
-
-            DB.ref('chats/'+k+'/messages').limitToLast(50).on('value', function(s1){
-              var v = (s1 && s1.exists()) ? (s1.val() || {}) : {};
-              var ts = 0;
-              for (var mid in v){
-                if (!v.hasOwnProperty(mid)) continue;
-                var m = v[mid] || {};
-                if ((m.from || '') === me) continue;
-                var t = Number(m.ts || 0);
-                if (t > ts) ts = t;
-              }
-              latestOtherTs = ts;
-              updateFlag();
-            });
-
-            DB.ref('characters/'+me+'/chatReads/'+peer).on('value', function(s2){
-              lastReadTs = Number((s2 && s2.exists()) ? s2.val() : 0);
-              updateFlag();
-            });
-          }
-
-          for (var i=0;i<arr.length;i++){
-            watchUnread(arr[i]);
-          }
-        }catch(_){}
-      }
-    });
-  });
+    box.innerHTML = html;
+  }
 }
+
 
 
 function renderInbox(arr){

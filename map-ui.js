@@ -128,57 +128,180 @@
     if (el) el.textContent = global.entered ? (locTxt + '（已進入）') : locTxt;
   }
 
-  function updateBossUI(){
-    var hint = qs('#slimeQuestHint');
-    var btnBoss = qs('#btnBoss');
-    if(!hint || !btnBoss) return;
+function updateBossUI(){
+  var hint = qs('#slimeQuestHint');
+  var btnBoss = qs('#btnBoss');
+  if(!hint || !btnBoss) return;
 
-    // 找到當前小地圖
-    var big = null, area = null, i, j;
-    for (i=0; i<global.MAPS.length; i++){
-      if (global.MAPS[i].id === global.curBig){ big = global.MAPS[i]; break; }
-    }
-    if (big && big.small){
-      for (j=0; j<big.small.length; j++){
-        if (big.small[j].id === global.curSmall){ area = big.small[j]; break; }
-      }
-    }
-
-    if(!area || !area.boss || !global.entered){
-      hint.style.display = 'none';
-      btnBoss.style.display = 'none';
-      return;
-    }
-
-    global.P = global.P || {};
-    global.P.mapProg = global.P.mapProg || {};
-    var progKey = area.id;
-    var prog = global.P.mapProg[progKey] || { kills:0, bossReady:false, bossDefeated:false };
-    var requiredKills = area.killsRequired || 10;
-
-    if(prog.kills >= requiredKills){
-      prog.bossReady = true;
-    }
-
-    if(prog.bossReady){
-      var statusPrefix = prog.bossDefeated ? '重新挑戰' : '首次挑戰';
-      hint.textContent = area.name + '：討伐已達 ' + prog.kills + '/' + requiredKills + ' → 可以' + statusPrefix + ' BOSS！';
-      hint.style.display = 'block';
-      btnBoss.style.display = 'inline-block';
-      btnBoss.textContent = statusPrefix + ' BOSS';
-      btnBoss.style.background = '#b91c1c';
-    }else{
-      var statusText = prog.bossDefeated 
-        ? (area.name + '：BOSS 已擊敗，需重新累積討伐進度 ' + prog.kills + '/' + requiredKills)
-        : (area.name + '：怪物討伐進度 ' + prog.kills + '/' + requiredKills + '（達成後將出現 BOSS）');
-      hint.textContent = statusText;
-      hint.style.display = 'block';
-      btnBoss.style.display = 'none';
-    }
-
-    // 寫回
-    global.P.mapProg[progKey] = prog;
+  // 找到當前小地圖
+  var big = null, area = null, i, j;
+  for (i=0; i<global.MAPS.length; i++){
+    if (global.MAPS[i].id === global.curBig){ big = global.MAPS[i]; break; }
   }
+  if (big && big.small){
+    for (j=0; j<big.small.length; j++){
+      if (big.small[j].id === global.curSmall){ area = big.small[j]; break; }
+    }
+  }
+
+  if(!area || !area.boss || !global.entered){
+    hint.style.display = 'none';
+    btnBoss.style.display = 'none';
+    return;
+  }
+
+  global.P = global.P || {};
+  global.P.mapProg = global.P.mapProg || {};
+  var progKey = area.id;
+  var prog = global.P.mapProg[progKey] || { kills:0, bossReady:false, bossDefeated:false };
+  var requiredKills = area.killsRequired || 10;
+
+  if(prog.kills >= requiredKills){
+    prog.bossReady = true;
+  }
+
+  // ===== 內部：建立／取得暗色系確認框（置中） =====
+  function ensureBossModal(){
+    var modal = document.getElementById('bossConfirmModal');
+    if (modal) return modal;
+
+    // 遮罩
+    modal = document.createElement('div');
+    modal.id = 'bossConfirmModal';
+    modal.style.position = 'fixed';
+    modal.style.left = '0';
+    modal.style.top = '0';
+    modal.style.right = '0';
+    modal.style.bottom = '0';
+    modal.style.background = 'rgba(0,0,0,0.55)';
+    modal.style.display = 'none';
+    modal.style.zIndex = '9999';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+
+    // 內框（暗色系）
+    var box = document.createElement('div');
+    box.style.minWidth = '260px';
+    box.style.maxWidth = '90vw';
+    box.style.background = '#0f172a'; // 深藍黑
+    box.style.color = '#e5e7eb';      // 淺灰字
+    box.style.border = '1px solid #334155';
+    box.style.borderRadius = '12px';
+    box.style.padding = '16px';
+    box.style.boxShadow = '0 10px 30px rgba(0,0,0,0.6)';
+
+    var title = document.createElement('div');
+    title.textContent = '挑戰 BOSS';
+    title.style.fontWeight = '700';
+    title.style.marginBottom = '8px';
+
+    var msg = document.createElement('div');
+    msg.id = 'bossConfirmMsg';
+    msg.style.marginBottom = '12px';
+    msg.textContent = '是否要挑戰 BOSS？將扣除體力 4。';
+
+    var btnRow = document.createElement('div');
+    btnRow.style.display = 'flex';
+    btnRow.style.gap = '8px';
+    btnRow.style.justifyContent = 'flex-end';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '取消';
+    cancelBtn.style.padding = '6px 12px';
+    cancelBtn.style.background = '#334155';
+    cancelBtn.style.color = '#e5e7eb';
+    cancelBtn.style.border = 'none';
+    cancelBtn.style.borderRadius = '8px';
+    cancelBtn.onclick = function(){ modal.style.display = 'none'; };
+
+    var okBtn = document.createElement('button');
+    okBtn.id = 'bossConfirmOK';
+    okBtn.textContent = '確定';
+    okBtn.style.padding = '6px 12px';
+    okBtn.style.background = '#b91c1c';
+    okBtn.style.color = '#fff';
+    okBtn.style.border = 'none';
+    okBtn.style.borderRadius = '8px';
+
+    btnRow.appendChild(cancelBtn);
+    btnRow.appendChild(okBtn);
+    box.appendChild(title);
+    box.appendChild(msg);
+    box.appendChild(btnRow);
+    modal.appendChild(box);
+    document.body.appendChild(modal);
+    return modal;
+  }
+
+  function openBossModal(){
+    var modal = ensureBossModal();
+    var msg = document.getElementById('bossConfirmMsg');
+    var okBtn = document.getElementById('bossConfirmOK');
+
+    var cur = (global.P && global.P.sta && typeof global.P.sta.cur==='number') ? global.P.sta.cur : 0;
+    if (cur < 4){
+      msg.textContent = '體力不足（需要 4）。';
+      okBtn.disabled = true;
+      okBtn.style.opacity = '0.6';
+    }else{
+      msg.textContent = '是否要挑戰 BOSS？將扣除體力 4。';
+      okBtn.disabled = false;
+      okBtn.style.opacity = '1';
+    }
+
+    // 綁一次 OK 行為：扣 4、更新條、發出事件讓外部開始戰鬥
+    okBtn.onclick = function(){
+      var now = (global.P && global.P.sta && typeof global.P.sta.cur==='number') ? global.P.sta.cur : 0;
+      if (now < 4){
+        // 再保險一次
+        msg.textContent = '體力不足（需要 4）。';
+        return;
+      }
+      global.P.sta.cur = now - 4;
+
+      if (typeof renderHeader === 'function') renderHeader();
+      if (typeof renderBars === 'function') renderBars();
+
+      modal.style.display = 'none';
+
+      // 發出自訂事件，讓原本頁面掛載的邏輯去真正啟動 BOSS 戰
+      try {
+        var ev = new CustomEvent('boss:confirm', { detail:{ areaId: area.id, bossId: area.boss } });
+        btnBoss.dispatchEvent(ev);
+      } catch(_e){}
+    };
+
+    modal.style.display = 'flex';
+  }
+
+  if(prog.bossReady){
+    var statusPrefix = prog.bossDefeated ? '重新挑戰' : '首次挑戰';
+    hint.textContent = area.name + '：討伐已達 ' + prog.kills + '/' + requiredKills + ' → 可以' + statusPrefix + ' BOSS！';
+    hint.style.display = 'block';
+    btnBoss.style.display = 'inline-block';
+    btnBoss.textContent = statusPrefix + ' BOSS';
+    btnBoss.style.background = '#b91c1c';
+
+    // 接管點擊：先跳確認框（不直接開戰）
+    // ⚠️ 注意：若你的頁面原本對 #btnBoss 有 inline onclick，此處會改為先彈框。
+    // 如需在確認後自動開戰，請在頁面其他程式碼監聽 `btnBoss.addEventListener('boss:confirm', ...)`。
+    btnBoss.onclick = function(e){
+      if (e && e.preventDefault) e.preventDefault();
+      openBossModal();
+    };
+  }else{
+    var statusText = prog.bossDefeated 
+      ? (area.name + '：BOSS 已擊敗，需重新累積討伐進度 ' + prog.kills + '/' + requiredKills)
+      : (area.name + '：怪物討伐進度 ' + prog.kills + '/' + requiredKills + '（達成後將出現 BOSS）');
+    hint.textContent = statusText;
+    hint.style.display = 'block';
+    btnBoss.style.display = 'none';
+  }
+
+  // 寫回
+  global.P.mapProg[progKey] = prog;
+}
+
 
   function updateActionPanel(){
     var btnEnter   = qs('#btnEnter');

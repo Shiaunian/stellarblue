@@ -15,11 +15,14 @@
   const DB = {
     // ---- 消耗品（Consumables）----
     consumables: [
-      { id: "hp_small", name: "小氣血丹",   effect: { hp: 25 },  price: 20,  icon: "https://i.ibb.co/Hfxz9394/image.png" },
-      { id: "hp_mid",   name: "中氣血丹",   effect: { hp: 70 },  price: 60,  icon: "https://i.ibb.co/Nd71zTVQ/image.png" },
-      { id: "hp_large", name: "大氣血丹",   effect: { hp: 140 }, price: 160, icon: "https://i.ibb.co/hxqHhB8M/image.png" },
-      { id: "hp_huge",  name: "巨顆氣血丹", effect: { hp: 300 }, price: 350, icon: "https://i.ibb.co/TMsHqmNX/image.png" },
-      { id: "mp_small", name: "靈氣丹",     effect: { mp: 25 },  price: 20,  icon: "" },
+      { id: "hp_small",   name: "小氣血丹",     effect: { hp: 25 },  price: 20,  icon: "https://i.ibb.co/Hfxz9394/image.png" },
+      { id: "hp_mid",     name: "中氣血丹",     effect: { hp: 70 },  price: 60,  icon: "https://i.ibb.co/Nd71zTVQ/image.png" },
+      { id: "hp_large",   name: "大氣血丹",     effect: { hp: 140 }, price: 160, icon: "https://i.ibb.co/hxqHhB8M/image.png" },
+      { id: "hp_huge",    name: "巨顆氣血丹",   effect: { hp: 300 }, price: 350, icon: "https://i.ibb.co/TMsHqmNX/image.png" },
+      { id: "mp_small",   name: "小靈氣丹",     effect: { mp: 25 },  price: 20,  icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758721126/%E5%B0%8F%E9%9D%88%E6%B0%A3%E4%B8%B9_amlneb.png" },
+      { id: "mp_small_1", name: "中靈氣丹",     effect: { mp: 50 },  price: 60,  icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758721126/%E4%B8%AD%E9%9D%88%E6%B0%A3%E4%B8%B9_aj1ddb.png" },
+      { id: "mp_small_2", name: "大靈氣丹",     effect: { mp: 75 },  price: 100, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758721125/%E5%A4%A7%E9%9D%88%E6%B0%A3%E4%B8%B9_ld9rhc.png" },
+      { id: "mp_small_3", name: "巨顆靈氣丹",   effect: { mp: 100 }, price: 150, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758721125/%E5%B7%A8%E9%A1%86%E6%B0%A3%E8%A1%80%E4%B8%B9_dfolpb.png" },
       // { id: "entry_ticket", name: "副本入場卷", effect: null, price: 0, icon: "" },
     ],
 

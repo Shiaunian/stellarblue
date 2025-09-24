@@ -1794,23 +1794,34 @@ qs('#btnEnter').onclick = ()=>{
   qs('#btnExplore').onclick = doExplore;
   qs('#btnFight').onclick   = startBattle;
 // BOSS 直進戰鬥（安全取當前小地圖）
-qs('#btnBoss').onclick = function(){
-  // 找到目前的小地圖資料
-  var big = null, s = null, i, j;
-  for (i=0;i<MAPS.length;i++){
-    if (MAPS[i].id === curBig){ big = MAPS[i]; break; }
-  }
-  if (big && big.small){
-    for (j=0;j<big.small.length;j++){
-      if (big.small[j].id === curSmall){ s = big.small[j]; break; }
-    }
-  }
-  var bossId = s && s.boss;
-  if (!bossId){ log('這區沒有 BOSS'); return; }
-  window.FORCE_MONSTER_ID = bossId; // 交給 startBattle 走既有流程
-  startBattle();
-};
+/* 監聽 map-ui.js 的 BOSS 確認事件，收到才正式開戰 */
+(function(){
+  var btnBoss = qs('#btnBoss');
+  if (!btnBoss) return;
 
+  btnBoss.addEventListener('boss:confirm', function(ev){
+    try{
+      var detail = (ev && ev.detail) || {};
+      var bossId = detail.bossId;
+
+      // 安全後備：若沒帶到 bossId，就用當前小地圖再抓一次
+      if(!bossId){
+        var big = null, s = null, i, j;
+        for (i=0;i<MAPS.length;i++){ if (MAPS[i].id === curBig){ big = MAPS[i]; break; } }
+        if (big && big.small){
+          for (j=0;j<big.small.length;j++){ if (big.small[j].id === curSmall){ s = big.small[j]; break; } }
+        }
+        bossId = s && s.boss;
+      }
+
+      if(!bossId){ log('這區沒有 BOSS'); return; }
+      window.FORCE_MONSTER_ID = bossId; // 交給 startBattle 走既有流程
+      startBattle(); // ★ 注意：體力已在確認框按下「確定」時扣除
+    }catch(_e){
+      console.error('boss:confirm handler error', _e);
+    }
+  });
+})();
 
 
 

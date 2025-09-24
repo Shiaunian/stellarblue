@@ -36,7 +36,7 @@ slime_young:{
     {type:'cards',  id:'S20-001S',   name:'パーティーの誘い アスナ SR', min:1,  max:1,  chance:0.60},
     {type:'cards',  id:'S20-002',   name:'《閃光》のアスナ RR', min:1,  max:1,  chance:0.60},
     {type:'earrings',id:'ear_smalljade', name:'小翠耳環',   min:1,  max:1,  chance:0.60},      // 掉落消耗品：小氣血丹，數量1，機率60%
-    {type:'accessory', id:'jade_ring',     name:'翠玉戒指',   min:1,  max:1,  chance:0.60}       // 掉落飾品：翠玉戒指，數量1，機率5%
+    {type:'accessory', id:'jade_ring',     name:'翠玉戒指',   min:1,  max:1,  chance:0.60}      // 掉落飾品：翠玉戒指，數量1，機率5%
   ]
 },
 

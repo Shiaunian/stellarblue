@@ -158,14 +158,18 @@ function loadLists(){
       }
 
       function finalize(){
-        var html = '';
+        var html = head;
         for (var j=0;j<rows.length;j++){
           var r = rows[j];
           html +=
             '<div class="dex-row">'+
               '<div class="dex-main">'+
-                '<div class="dex-name">'+ r.nickname +'</div>'+
-                '<div class="dex-sub">@'+ r.username +' 的好友邀請</div>'+
+                '<div class="dex-name">'+ r.name +'</div>'+
+                '<div class="dex-sub">點擊進入群聊</div>'+
+              '</div>'+
+              '<div>'+
+                '<button class="opx" data-chat-group="'+ r.gid +'">群聊</button>'+
+                '<button class="opx" data-leave-group="'+ r.gid +'" style="margin-left:6px; background:#b91c1c; color:#fff; border:1px solid rgba(255,255,255,.2);">退出</button>'+
               '</div>'+
             '</div>';
         }
@@ -313,13 +317,15 @@ function renderGroups(arr){
             '<div class="dex-sub">點擊進入群聊</div>'+
           '</div>'+
           '<div>'+
-            '<button class="opx" data-chat-group="'+ r.gid +'">群聊</button>'+
+            '<button class="opx" data-chat-group="'+ r.gid +'">群聊</button> '+
+            '<button class="opx" data-leave-group="'+ r.gid +'" style="background:#b91c1c; color:#fff; border:1px solid rgba(255,255,255,.2);">退出群組</button>'+
           '</div>'+
         '</div>';
     }
     box.innerHTML = html;
   }
 }
+
 
 
 
@@ -569,6 +575,105 @@ function renderGroups(arr){
       return;
     }
 
+        // === 退出群組（紅色按鈕）===
+    var btnLeaveGroup = t.closest ? t.closest('[data-leave-group]') : null;
+    if (btnLeaveGroup){
+      var gid = btnLeaveGroup.getAttribute('data-leave-group') || '';
+      if (!gid) return;
+
+      // 先抓群名
+      DB.ref('groups/'+gid).get().then(function(snap){
+        var gdata = (snap && snap.exists()) ? snap.val() : {};
+        var gname = (gdata && gdata.name) ? String(gdata.name) : '這個群組';
+
+        // 暗色小視窗：是 / 否
+        var overlay = document.createElement('div');
+        overlay.setAttribute('role','dialog');
+        overlay.setAttribute('aria-modal','true');
+        overlay.style.position = 'fixed';
+        overlay.style.left = '0';
+        overlay.style.top = '0';
+        overlay.style.right = '0';
+        overlay.style.bottom = '0';
+        overlay.style.background = 'rgba(0,0,0,.45)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = '9999';
+
+        var panel = document.createElement('div');
+        panel.style.width = 'min(92vw, 420px)';
+        panel.style.background = '#0b1020';
+        panel.style.border = '1px solid rgba(255,255,255,.15)';
+        panel.style.borderRadius = '12px';
+        panel.style.boxShadow = '0 10px 30px rgba(0,0,0,.35)';
+        panel.style.color = '#eaf2ff';
+        panel.style.padding = '16px';
+        panel.style.display = 'grid';
+        panel.style.gap = '12px';
+
+        var title = document.createElement('div');
+        title.textContent = '是否退出群組「'+ gname +'」？';
+        title.style.fontWeight = 'bold';
+        title.style.fontSize = '16px';
+
+        var buttons = document.createElement('div');
+        buttons.style.display = 'flex';
+        buttons.style.gap = '8px';
+        buttons.style.justifyContent = 'flex-end';
+
+        var btnNo = document.createElement('button');
+        btnNo.className = 'opx';
+        btnNo.textContent = '否';
+
+        var btnYes = document.createElement('button');
+        btnYes.className = 'opx';
+        btnYes.textContent = '是';
+        btnYes.style.background = '#b91c1c';
+        btnYes.style.color = '#fff';
+        btnYes.style.border = '1px solid rgba(255,255,255,.2)';
+        btnYes.style.borderRadius = '8px';
+        btnYes.style.padding = '6px 12px';
+
+        buttons.appendChild(btnNo);
+        buttons.appendChild(btnYes);
+        panel.appendChild(title);
+        panel.appendChild(buttons);
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+
+        function closeDlg(){
+          if (overlay && overlay.parentNode){ overlay.parentNode.removeChild(overlay); }
+        }
+        btnNo.onclick = function(){ closeDlg(); };
+        overlay.onclick = function(ev2){
+          if (ev2.target === overlay){ closeDlg(); }
+        };
+
+        btnYes.onclick = function(){
+          var updates = {};
+          updates['groupMembers/'+gid+'/'+me.username] = null;
+          updates['characters/'+me.username+'/groups/'+gid] = null;
+
+          DB.ref().update(updates).then(function(){
+            // 若當前正開著這個群聊，一併關閉回列表
+            try{
+              if (window.__activeGroupId === gid){
+                var back = qs('#btnBackFriends');
+                if (back && back.click){ back.click(); }
+              }
+            }catch(_){}
+            loadLists();
+            closeDlg();
+          }).catch(function(err){
+            alert('退出群組失敗：' + (err && err.message ? err.message : err));
+          });
+        };
+      });
+
+      return;
+    }
+
     // === 進入群聊 ===
     var btnChatGroup = t.closest ? t.closest('[data-chat-group]') : null;
     if (btnChatGroup){
@@ -593,20 +698,247 @@ function renderGroups(arr){
         sheet.style.width = 'min(96vw, 960px)';
         sheet.style.maxHeight = '98svh';
       }
-      // 放大聊天視窗高度
+      // 放大聊天視窗高度（預留標題與控制列）
       try{
         var chatLogEl = qs('#chatLog');
         if (chatLogEl){
-          chatLogEl.style.height = 'calc(98svh - 140px)';
+          chatLogEl.style.height = 'calc(98svh - 180px)';
         }
       }catch(_){}
 
       // 標記目前群組
       window.__activeGroupId = gid;
-      window.__activeChatPeer = null;
+      window.__activeChatPeer = null; // 清空單聊標記
 
+      var chatBox = qs('#chatBox');
       var logBox = qs('#chatLog');
       logBox.innerHTML = '';
+
+      // ====== 動態建立群組標題與「成員面板」控制 ======
+      try{
+        chatBox.style.position = 'relative';
+
+        // Header（顯示群名）
+        var hdr = qs('#groupHeader');
+        if (!hdr){
+          hdr = document.createElement('div');
+          hdr.id = 'groupHeader';
+          hdr.style.display = 'flex';
+          hdr.style.alignItems = 'center';
+          hdr.style.justifyContent = 'space-between';
+          hdr.style.gap = '8px';
+          hdr.style.padding = '6px 8px';
+          hdr.style.border = '1px solid rgba(255,255,255,.12)';
+          hdr.style.borderRadius = '8px';
+          hdr.style.background = 'rgba(255,255,255,.05)';
+          chatBox.insertBefore(hdr, chatBox.firstChild);
+        }
+
+        var titleSpan = hdr.querySelector ? hdr.querySelector('.gh-title') : null;
+        if (!titleSpan){
+          titleSpan = document.createElement('div');
+          titleSpan.className = 'gh-title';
+          titleSpan.style.fontWeight = '600';
+          titleSpan.style.letterSpacing = '.5px';
+          hdr.appendChild(titleSpan);
+        }
+
+        // 右側控制：成員按鈕 + 人數
+        var ctrl = hdr.querySelector ? hdr.querySelector('.gh-ctrl') : null;
+        if (!ctrl){
+          ctrl = document.createElement('div');
+          ctrl.className = 'gh-ctrl';
+          ctrl.style.display = 'flex';
+          ctrl.style.alignItems = 'center';
+          ctrl.style.gap = '6px';
+
+          var btn = document.createElement('button');
+          btn.id = 'toggleMembers';
+          btn.className = 'opx';
+          btn.textContent = '成員';
+          btn.style.background = '#1e3a8a';
+          btn.style.color = '#fff';
+          btn.style.border = '1px solid rgba(255,255,255,.2)';
+          btn.style.borderRadius = '8px';
+          btn.style.padding = '6px 10px';
+
+          var count = document.createElement('span');
+          count.id = 'memberCount';
+          count.style.opacity = '.85';
+          count.style.marginLeft = '2px';
+          count.textContent = '（0）';
+
+          ctrl.appendChild(btn);
+          ctrl.appendChild(count);
+          hdr.appendChild(ctrl);
+        }
+
+        // 成員面板容器（固定從右側滑出、寬度約半螢幕再小一點、可滾動）
+        var panel = qs('#groupMembersPanel');
+        if (!panel){
+          panel = document.createElement('div');
+          panel.id = 'groupMembersPanel';
+          panel.style.position = 'absolute';
+          panel.style.right = '8px';
+          panel.style.top = '48px';
+          panel.style.width = 'min(45vw, 420px)';   // 約半螢幕再小一點
+          panel.style.maxHeight = '60vh';
+          panel.style.overflowY = 'auto';
+          panel.style.overflowX = 'visible';
+          panel.style.background = '#0b1020';
+          panel.style.border = '1px solid rgba(255,255,255,.15)';
+          panel.style.borderRadius = '10px';
+          panel.style.boxShadow = '0 10px 30px rgba(0,0,0,.35)';
+          panel.style.padding = '10px 10px 10px 20px';
+          panel.style.display = 'none';
+          panel.style.transform = 'translateX(0)';
+          panel.style.textAlign = 'center';
+          chatBox.appendChild(panel);
+
+
+          // 左側小叉叉關閉
+          var closeX = document.createElement('div');
+          closeX.textContent = '✕';
+          closeX.title = '關閉';
+          closeX.style.position = 'absolute';
+          closeX.style.left = '-12px';
+          closeX.style.top = '8px';
+          closeX.style.width = '20px';
+          closeX.style.height = '20px';
+          closeX.style.lineHeight = '20px';
+          closeX.style.textAlign = 'center';
+          closeX.style.borderRadius = '50%';
+          closeX.style.background = '#0b1020';
+          closeX.style.border = '1px solid rgba(255,255,255,.35)';
+          closeX.style.color = '#fff';
+          closeX.style.cursor = 'pointer';
+          closeX.style.userSelect = 'none';
+          panel.appendChild(closeX);
+          closeX.onclick = function(){ panel.style.display = 'none'; };
+        }
+
+        // 顯示群名 + 成員列表（角色名稱）並更新人數
+        DB.ref('groups/'+gid).get().then(function(gs){
+          var gdata = (gs && gs.exists()) ? gs.val() : {};
+          var gname = (gdata && gdata.name) ? String(gdata.name) : gid;
+          titleSpan.textContent = gname;
+
+          DB.ref('groupMembers/'+gid).get().then(function(msnap){
+            var mem = (msnap && msnap.exists()) ? msnap.val() : {};
+            var ids = [];
+            for (var u in mem){ if (mem.hasOwnProperty(u) && mem[u]) ids.push(u); }
+            var countSpan = qs('#memberCount');
+            if (countSpan){ countSpan.textContent = '（'+ ids.length +'）'; }
+
+            if (!ids.length){
+              panel.innerHTML = '<div style="opacity:.8; text-align:center;">目前沒有成員</div>';
+              // 重新附加小叉叉（因為上行直接覆蓋了 innerHTML）
+              var closeX2 = document.createElement('div');
+              closeX2.textContent = '✕';
+              closeX2.title = '關閉';
+              closeX2.style.position = 'absolute';
+              closeX2.style.left = '-12px';
+              closeX2.style.top = '8px';
+              closeX2.style.width = '20px';
+              closeX2.style.height = '20px';
+              closeX2.style.lineHeight = '20px';
+              closeX2.style.textAlign = 'center';
+              closeX2.style.borderRadius = '50%';
+              closeX2.style.background = '#0b1020';
+              closeX2.style.border = '1px solid rgba(255,255,255,.35)';
+              closeX2.style.color = '#fff';
+              closeX2.style.cursor = 'pointer';
+              closeX2.style.userSelect = 'none';
+              panel.appendChild(closeX2);
+              closeX2.onclick = function(){ panel.style.display = 'none'; };
+              return;
+            }
+
+            var pending = ids.length;
+            var rows = [];
+            function fallbackAvatar(){
+              try{
+                if (window.Auth && Auth.defaultAvatar){
+                  var a = Auth.defaultAvatar();
+                  if (a) return a;
+                }
+              }catch(_){}
+              return 'https://via.placeholder.com/28';
+            }
+            function pushRow(u, data){
+              var nickname = (data && (data.nickname || data.name)) || u;
+              var avatar   = (data && data.avatar && String(data.avatar).trim())
+                           || (data && data.avatarUrl && String(data.avatarUrl).trim())
+                           || fallbackAvatar();
+              rows.push({ nickname: nickname, avatar: avatar });
+              pending--;
+              if (pending === 0){ finalizeMembers(); }
+            }
+            for (var i=0;i<ids.length;i++){
+              (function(idx){
+                var u = ids[idx];
+                DB.ref('characters/'+u).get().then(function(snap){
+                  var d = (snap && snap.exists()) ? snap.val() : {};
+                  pushRow(u, d);
+                }).catch(function(_){ pushRow(u, {}); });
+              })(i);
+            }
+
+            function finalizeMembers(){
+              var countSpan2 = qs('#memberCount');
+              if (countSpan2){ countSpan2.textContent = '（'+ rows.length +'）'; }
+              var html = '<div style="font-weight:600; margin-bottom:8px; text-align:center;">成員（'+ rows.length +'）</div>';
+              for (var j=0;j<rows.length;j++){
+                var r = rows[j];
+                html += ''
+                  + '<div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:6px 0;">'
+                  +   '<img src="'+ r.avatar +'" alt="" style="width:26px; height:26px; border-radius:50%; object-fit:cover;">'
+                  +   '<div>'+ r.nickname +'</div>'
+                  + '</div>';
+              }
+              panel.innerHTML = html;
+
+              // 重新附加小叉叉（因為 innerHTML 被覆蓋）
+              var closeX3 = document.createElement('div');
+              closeX3.textContent = '✕';
+              closeX3.title = '關閉';
+              closeX3.style.position = 'absolute';
+              closeX3.style.left = '-12px';
+              closeX3.style.top = '8px';
+              closeX3.style.width = '20px';
+              closeX3.style.height = '20px';
+              closeX3.style.lineHeight = '20px';
+              closeX3.style.textAlign = 'center';
+              closeX3.style.borderRadius = '50%';
+              closeX3.style.background = '#0b1020';
+              closeX3.style.border = '1px solid rgba(255,255,255,.35)';
+              closeX3.style.color = '#fff';
+              closeX3.style.cursor = 'pointer';
+              closeX3.style.userSelect = 'none';
+              panel.appendChild(closeX3);
+              closeX3.onclick = function(){ panel.style.display = 'none'; };
+            }
+          });
+        });
+
+        // 綁定按鈕：顯示 / 隱藏（固定從右側滑出）
+        var btnToggle = qs('#toggleMembers');
+        if (btnToggle){
+          btnToggle.onclick = function(){
+            if (!panel) return;
+            if (panel.style.display === 'none'){
+              panel.style.display = 'block';
+              panel.style.transform = 'translateX(20px)';
+              setTimeout(function(){
+                panel.style.transform = 'translateX(0)';
+                panel.style.transition = 'transform .18s ease-out';
+              }, 0);
+            }else{
+              panel.style.display = 'none';
+            }
+          };
+        }
+      }catch(_){}
 
       // 我的頭像
       var myAvatar = '';
@@ -755,8 +1087,10 @@ function renderGroups(arr){
         inp.value = '';
       };
 
-      // 返回：還原清單與 tabs/群組區塊
+      // 返回：還原清單與 tabs/群組區塊，同時關閉面板
       qs('#btnBackFriends').onclick = function(){
+        var panel = qs('#groupMembersPanel');
+        if (panel){ panel.style.display = 'none'; }
         qs('#chatBox').style.display = 'none';
         if (tabs){ tabs.style.display = 'flex'; }
         if (groupsBox){ groupsBox.style.display = ''; }
@@ -771,6 +1105,7 @@ function renderGroups(arr){
 
       return;
     }
+
 
     // === 單聊：進入對話 ===
     var btnChat = t.closest ? t.closest('[data-chat-with]') : null;

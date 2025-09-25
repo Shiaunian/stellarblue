@@ -38,10 +38,12 @@
       '<div class="sheet" role="dialog" aria-labelledby="friendsTitle" style="position:fixed; top:0; left:50%; transform:translateX(-50%); width:min(96vw, 420px); max-height:98svh; display:grid; grid-template-rows:auto 1fr; overflow:hidden;">' +
         '<div class="sec-title" id="friendsTitle">好 友<div class="close" data-close="friends">✕</div></div>' +
         '<div class="body" style="display:grid; gap:8px; overflow:auto;">' +
-          '<div class="bag-tabs">' +
+          '<div class="bag-tabs" style="display:flex; align-items:center; gap:8px;">' +
             '<span class="bag-tab active" data-f-tab="list">好友</span>' +
             '<span class="bag-tab" data-f-tab="inbox">邀請</span>' +
+            '<button id="btnNewGroup" class="opx" style="margin-left:auto;">＋ 群組</button>' +
           '</div>' +
+          '<div id="groupsList" class="bag-list" style="max-height:unset;"></div>' +
           '<div id="friendsList" class="bag-list" style="max-height:unset;"></div>' +
           '<div id="friendsInbox" class="bag-list" style="display:none; max-height:unset;"></div>' +
           '<div id="chatBox" style="display:none; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:8px; gap:8px;">' +
@@ -74,14 +76,17 @@
       qs('#friendsList').style.display  = (tab==='list') ? '' : 'none';
       qs('#friendsInbox').style.display = (tab==='inbox') ? '' : 'none';
       qs('#chatBox').style.display = 'none';
+      // 群組清單在兩個分頁都顯示（保持常駐）
+      var g = qs('#groupsList'); if (g) g.style.display = '';
     });
 
     return m;
   }
 
 
+
   // ===== 讀清單 =====
-  function loadLists(){
+function loadLists(){
     if (!window.DB || !DB.ref || !window.Auth || !Auth.currentUser) return;
     var me = Auth.currentUser(); if(!me || !me.username) return;
 
@@ -100,7 +105,76 @@
       for (var k in val){ if (val.hasOwnProperty(k) && val[k]) list.push(k); }
       renderInbox(list);
     });
+
+    // 群組清單（常駐於視窗）
+    DB.ref('characters/'+me.username+'/groups').get().then(function(snap){
+      var val = (snap && snap.exists()) ? snap.val() : {};
+      var list = [];
+      for (var k in val){ if (val.hasOwnProperty(k) && val[k]) list.push(k); }
+      renderGroups(list);
+    });
+
+    // ====== 補上缺失的函式：渲染邀請清單（收件匣） ======
+    function renderInbox(arr){
+      var box = qs('#friendsInbox'); if(!box) return;
+      if(!arr || !arr.length){
+        box.innerHTML = '<div style="opacity:.8;">目前沒有邀請。</div>';
+        return;
+      }
+
+      var rows = [];
+      var pending = arr.length;
+
+      function fallbackAvatar(){
+        try{
+          if (window.Auth && Auth.defaultAvatar){
+            var a = Auth.defaultAvatar();
+            if (a) return a;
+          }
+        }catch(_){}
+        return 'https://via.placeholder.com/28';
+      }
+
+      function pushRow(username, data){
+        var nickname = (data && (data.nickname || data.name)) || username;
+        var avatar   = (data && data.avatar && String(data.avatar).trim())
+                     || (data && data.avatarUrl && String(data.avatarUrl).trim())
+                     || fallbackAvatar();
+        rows.push({ username: username, nickname: nickname, avatar: avatar });
+        pending--;
+        if (pending === 0){ finalize(); }
+      }
+
+      for (var i=0;i<arr.length;i++){
+        (function(idx){
+          var u = arr[idx];
+          DB.ref('characters/'+u).get().then(function(snap){
+            var data = (snap && snap.exists()) ? snap.val() : {};
+            pushRow(u, data);
+          }).catch(function(_){
+            pushRow(u, {});
+          });
+        })(i);
+      }
+
+      function finalize(){
+        var html = '';
+        for (var j=0;j<rows.length;j++){
+          var r = rows[j];
+          html +=
+            '<div class="dex-row">'+
+              '<div class="dex-main">'+
+                '<div class="dex-name">'+ r.nickname +'</div>'+
+                '<div class="dex-sub">@'+ r.username +' 的好友邀請</div>'+
+              '</div>'+
+            '</div>';
+        }
+        box.innerHTML = html;
+      }
+    }
   }
+
+
 
 function renderFriends(arr){
   var box = qs('#friendsList'); if(!box) return;
@@ -174,8 +248,8 @@ function renderFriends(arr){
     for (var j=0;j<rows.length;j++){
       var r = rows[j];
       var preview = r.lastText ? String(r.lastText).replace(/\s+/g,' ').trim() : '尚無訊息';
-      // 只顯示 8 個字
-      preview = preview.slice(0,8);
+      // 依寬度自動裁切（以 CSS ellipsis 顯示 …，約 12～16 字）
+      // 不再用固定 slice(0,8)
 
       html +=
         '<div class="dex-row">'+
@@ -183,8 +257,8 @@ function renderFriends(arr){
           '<div class="dex-main">'+
             // 移除驚嘆號！ 只保留名稱
             '<div class="dex-name">'+ r.nickname +'</div>'+
-            // 把「可傳訊息」改成「最新一行訊息（8 字，淡藍色）」
-            '<div class="dex-sub" style="color:#93c5fd;">'+ preview +'</div>'+
+            // 最新一行訊息（CSS 省略號，依寬度裁切）
+            '<div class="dex-sub" title="'+ preview +'" style="color:#93c5fd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:12em;">'+ preview +'</div>'+
           '</div>'+
           '<div>'+
             '<button class="opx" data-trade="'+ r.username +'">交易</button> '+
@@ -200,46 +274,53 @@ function renderFriends(arr){
 
 
 
-function renderInbox(arr){
-    var box = qs('#friendsInbox'); if(!box) return;
-    if(!arr || !arr.length){ box.innerHTML = '<div style="opacity:.8;">目前沒有待處理的邀請。</div>'; return; }
-    var html = '';
-    var pending = arr.length;
-    arr.forEach(function(username){
-      DB.ref('characters/'+username).get().then(function(snap){
+
+function renderGroups(arr){
+  var box = qs('#groupsList'); if(!box) return;
+  // 區塊抬頭
+  var head = '<div style="opacity:.9; font-weight:600; margin:6px 0 2px 0;">群組</div>';
+  if(!arr || !arr.length){ box.innerHTML = head + '<div style="opacity:.7;">目前沒有群組。</div>'; return; }
+
+  var rows = [];
+  var pending = arr.length;
+
+  for (var i=0;i<arr.length;i++){
+    (function(idx){
+      var gid = arr[idx];
+      // 讀群組基本資料
+      DB.ref('groups/'+gid).get().then(function(snap){
         var data = (snap && snap.exists()) ? snap.val() : {};
-        var nickname = data.nickname || data.name || '這位用戶';
-        html +=
-          '<div class="dex-row">'+
-            '<div class="dex-main">'+
-              '<div class="dex-name">'+ nickname +'</div>'+
-              '<div class="dex-sub">邀請你成為好友</div>'+
-            '</div>'+
-            '<div>'+
-              '<button class="opx primary" data-accept="'+ username +'">接受</button> '+
-              '<button class="opx" data-reject="'+ username +'">拒絕</button>'+
-            '</div>'+
-          '</div>';
+        var gname = data && data.name ? String(data.name) : ('群組 ' + gid.slice(-4));
+        rows.push({ gid: gid, name: gname });
         pending--;
-        if (pending === 0){ box.innerHTML = html; }
+        if (pending === 0){ finalize(); }
       }).catch(function(_){
-        // 取不到資料時避免露出帳號，顯示通用稱呼
-        html +=
-          '<div class="dex-row">'+
-            '<div class="dex-main">'+
-              '<div class="dex-name">這位用戶</div>'+
-              '<div class="dex-sub">邀請你成為好友</div>'+
-            '</div>'+
-            '<div>'+
-              '<button class="opx primary" data-accept="'+ username +'">接受</button> '+
-              '<button class="opx" data-reject="'+ username +'">拒絕</button>'+
-            '</div>'+
-          '</div>';
+        rows.push({ gid: gid, name: ('群組 ' + gid.slice(-4)) });
         pending--;
-        if (pending === 0){ box.innerHTML = html; }
+        if (pending === 0){ finalize(); }
       });
-    });
+    })(i);
   }
+
+  function finalize(){
+    var html = head;
+    for (var j=0;j<rows.length;j++){
+      var r = rows[j];
+      html +=
+        '<div class="dex-row">'+
+          '<div class="dex-main">'+
+            '<div class="dex-name">'+ r.name +'</div>'+
+            '<div class="dex-sub">點擊進入群聊</div>'+
+          '</div>'+
+          '<div>'+
+            '<button class="opx" data-chat-group="'+ r.gid +'">群聊</button>'+
+          '</div>'+
+        '</div>';
+    }
+    box.innerHTML = html;
+  }
+}
+
 
 
   // ===== 對外 API =====
@@ -252,7 +333,7 @@ function renderInbox(arr){
   };
   window.Friends = Friends;
 
-  // ===== 全域委派：打開好友面板 / 接受 / 拒絕 / 解除 / 對話 =====
+  // ===== 全域委派：打開好友面板 / 接受 / 拒絕 / 解除 / 對話 / 建群 / 群聊 =====
   document.addEventListener('click', function(e){
     var t = e.target;
 
@@ -262,6 +343,169 @@ function renderInbox(arr){
 
     if (!window.DB || !DB.ref || !window.Auth || !Auth.currentUser) return;
     var me = Auth.currentUser(); if(!me || !me.username) return;
+
+    // === 建立群組：打開建立面板（簡易對話框：輸入群名 + 勾選好友） ===
+    var btnNewGroup = t.closest ? t.closest('#btnNewGroup') : null;
+    if (btnNewGroup){
+      // 讀好友清單供選擇
+      DB.ref('characters/'+me.username+'/friends').get().then(function(snap){
+        var val = (snap && snap.exists()) ? snap.val() : {};
+        var list = [];
+        for (var k in val){ if (val.hasOwnProperty(k) && val[k]) list.push(k); }
+
+        // 動態生成簡易選單
+        var overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.left = '0'; overlay.style.top = '0';
+        overlay.style.right = '0'; overlay.style.bottom = '0';
+        overlay.style.background = 'rgba(0,0,0,.45)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = '9999';
+
+        var panel = document.createElement('div');
+        panel.style.width = 'min(92vw, 420px)';
+        panel.style.background = '#0b1020';
+        panel.style.border = '1px solid rgba(255,255,255,.15)';
+        panel.style.borderRadius = '12px';
+        panel.style.boxShadow = '0 10px 30px rgba(0,0,0,.35)';
+        panel.style.color = '#eaf2ff';
+        panel.style.padding = '16px';
+        panel.style.display = 'grid';
+        panel.style.gap = '10px';
+
+        var title = document.createElement('div');
+        title.textContent = '建立群組';
+        title.style.fontWeight = 'bold';
+
+        var nameInp = document.createElement('input');
+        nameInp.type = 'text';
+        nameInp.placeholder = '輸入群組名稱';
+        nameInp.style.padding = '8px';
+        nameInp.style.borderRadius = '8px';
+        nameInp.style.border = '1px solid rgba(255,255,255,.2)';
+        nameInp.style.background = '#fff';
+        nameInp.style.color = '#111';
+
+        var listBox = document.createElement('div');
+        listBox.style.maxHeight = '40vh';
+        listBox.style.overflow = 'auto';
+        listBox.style.border = '1px solid rgba(255,255,255,.12)';
+        listBox.style.borderRadius = '8px';
+        listBox.style.padding = '8px';
+        listBox.style.background = 'rgba(255,255,255,.04)';
+        if (!list.length){
+          listBox.innerHTML = '<div style="opacity:.8;">目前沒有可加入的好友。</div>';
+        } else {
+          for (var i=0;i<list.length;i++){
+            (function(idx){
+              var u = list[idx];
+              var row = document.createElement('label');
+              row.style.display = 'flex';
+              row.style.alignItems = 'center';
+              row.style.gap = '8px';
+              row.style.margin = '4px 0';
+
+              var cb = document.createElement('input');
+              cb.type = 'checkbox';
+              cb.value = u;
+
+              var span = document.createElement('span');
+              span.textContent = '載入中…';
+
+              row.appendChild(cb);
+              row.appendChild(span);
+              listBox.appendChild(row);
+
+              // 讀取角色暱稱/名稱，顯示在清單上（不要顯示帳號）
+              DB.ref('characters/'+u).get().then(function(csnap){
+                var cdata = (csnap && csnap.exists()) ? csnap.val() : {};
+                var nickname = cdata && cdata.nickname ? String(cdata.nickname) : '';
+                var cname = cdata && cdata.name ? String(cdata.name) : '';
+                var showName = nickname || cname || '這位用戶';
+                span.textContent = showName;
+              }).catch(function(_){
+                span.textContent = '這位用戶';
+              });
+            })(i);
+          }
+        }
+
+        var btns = document.createElement('div');
+        btns.style.display = 'flex';
+        btns.style.justifyContent = 'flex-end';
+        btns.style.gap = '8px';
+
+        var cancel = document.createElement('button');
+        cancel.className = 'opx';
+        cancel.textContent = '取消';
+
+        var ok = document.createElement('button');
+        ok.className = 'opx primary';
+        ok.textContent = '建立';
+
+        btns.appendChild(cancel);
+        btns.appendChild(ok);
+
+        panel.appendChild(title);
+        panel.appendChild(nameInp);
+        panel.appendChild(listBox);
+        panel.appendChild(btns);
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+
+        function closeDlg(){
+          if (overlay && overlay.parentNode){ overlay.parentNode.removeChild(overlay); }
+        }
+        cancel.onclick = function(){ closeDlg(); };
+
+        ok.onclick = function(){
+          var gname = String(nameInp.value||'').trim();
+          if (!gname){ alert('請輸入群組名稱'); return; }
+
+          // 收集選取成員（仍以帳號為值）
+          var picks = [];
+          var cbs = listBox.querySelectorAll('input[type=checkbox]');
+          for (var j=0;j<cbs.length;j++){ if (cbs[j].checked){ picks.push(cbs[j].value); } }
+
+          // 建群：一次性原子更新，避免重整時資料未送完
+          var gidRef = DB.ref('groups').push();
+          var gid = gidRef.key;
+          var now = Date.now();
+
+          var updates = {};
+          updates['groups/'+gid] = { name: gname, owner: me.username, createdAt: now };
+          updates['groupMembers/'+gid+'/'+me.username] = true;
+          updates['characters/'+me.username+'/groups/'+gid] = true;
+          for (var k=0;k<picks.length;k++){
+            var u2 = picks[k];
+            updates['groupMembers/'+gid+'/'+u2] = true;
+            updates['characters/'+u2+'/groups/'+gid] = true;
+          }
+
+          // 防止重複點擊
+          ok.disabled = true; ok.textContent = '建立中…';
+
+          DB.ref().update(updates).then(function(){
+            // 再次確認群組節點已可讀（避免網路延遲你剛 F5 就看不到）
+            return DB.ref('groups/'+gid).get();
+          }).then(function(snap){
+            if (!snap || !snap.exists()){
+              throw new Error('群組節點尚未可讀（可能被安全規則或網路延遲影響）');
+            }
+            loadLists();
+            closeDlg();
+          }).catch(function(err){
+            ok.disabled = false; ok.textContent = '建立';
+            alert('建立群組失敗：' + (err && err.message ? err.message : err));
+          });
+        };
+
+      });
+      return;
+    }
+
 
     // 接受
     var btnAcc = t.closest ? t.closest('[data-accept]') : null;
@@ -325,366 +569,530 @@ function renderInbox(arr){
       return;
     }
 
+    // === 進入群聊 ===
+    var btnChatGroup = t.closest ? t.closest('[data-chat-group]') : null;
+    if (btnChatGroup){
+      var gid = btnChatGroup.getAttribute('data-chat-group') || '';
+      if (!gid) return;
 
+      var m = ensureModal();
+      // 讓群聊視圖佔滿整個好友面板：隱藏 tabs 與群組清單
+      var sheet = m.querySelector('.sheet');
+      var tabs  = m.querySelector('.bag-tabs');
+      var groupsBox = qs('#groupsList');
 
+      if (tabs){ tabs.style.display = 'none'; }
+      if (groupsBox){ groupsBox.style.display = 'none'; }
 
- // 進入對話
-var btnChat = t.closest ? t.closest('[data-chat-with]') : null;
-if (btnChat){
-  var peer = btnChat.getAttribute('data-chat-with') || '';
-  if (!peer) return;
-  var m = ensureModal();
-  qs('#friendsList').style.display = 'none';
-  qs('#friendsInbox').style.display = 'none';
-  qs('#chatBox').style.display = '';
+      qs('#friendsList').style.display = 'none';
+      qs('#friendsInbox').style.display = 'none';
+      qs('#chatBox').style.display = '';
 
-  // ★ 標記目前對話對象（視窗開著時視為已讀，不顯示驚嘆號）
-  window.__activeChatPeer = peer;
-
-  var logBox = qs('#chatLog');
-  logBox.innerHTML = '';
-  var key = pairKey(me.username, peer);
-
-  // ★ 進入對話先把清單上的驚嘆號隱藏；已讀時間待抓到最新訊息 ts 後再寫入
-  try{
-    var mark = qs('#unread_'+ peer);
-    if (mark){ mark.style.display = 'none'; }
-  }catch(_){}
-
-  // ★ 初始化高度調整控制（顯示/套用目前高度）
-  (function(){
-    var hInput = qs('#chatHeightPx');
-    var hBtn   = qs('#applyChatHeight');
-    var hNow   = qs('#chatHeightNow');
-    if (hInput && hBtn){
-      var cur = 460;
-      try{
-        var raw = (qs('#chatLog').style.height || '').replace('px','');
-        cur = parseInt(raw || '460', 10);
-        if (isNaN(cur) || cur <= 0) cur = 460;
-      }catch(_){ cur = 460; }
-      hInput.value = cur;
-      if (hNow){ hNow.innerHTML = '目前：<b>'+ cur +'</b> px'; }
-      hInput.oninput = function(){
-        var v = parseInt(hInput.value||'0',10);
-        if (hNow){ hNow.innerHTML = '目前：<b>'+ v +'</b> px'; }
-      };
-      hBtn.onclick = function(){
-        var v = parseInt(hInput.value||'0',10);
-        if (!isNaN(v) && v >= 200 && v <= 1200){
-          qs('#chatLog').style.height = v + 'px';
-          if (hNow){ hNow.innerHTML = '目前：<b>'+ v +'</b> px'; }
-          var lb = qs('#chatLog'); if (lb){ lb.scrollTop = lb.scrollHeight; }
-        }
-      };
-    }
-  })();
-
-  // 對方暱稱/頭像、我方頭像
-  var peerNick = '';
-  var peerAvatar = '';
-  var myAvatar = '';
-  var lastLog = {};
-
-  function fallbackAvatar(){
-    try{
-      if (window.Auth && Auth.defaultAvatar){
-        var a = Auth.defaultAvatar();
-        if (a) return a;
+      // 放大容器（只調整寬高，不動定位）
+      if (sheet){
+        sheet.style.width = 'min(96vw, 960px)';
+        sheet.style.maxHeight = '98svh';
       }
-    }catch(_){}
-    return 'https://via.placeholder.com/28';
-  }
+      // 放大聊天視窗高度
+      try{
+        var chatLogEl = qs('#chatLog');
+        if (chatLogEl){
+          chatLogEl.style.height = 'calc(98svh - 140px)';
+        }
+      }catch(_){}
 
-  // 先抓我自己的頭像
-  DB.ref('characters/'+me.username).get().then(function(msnap){
-    var mdata = (msnap && msnap.exists()) ? msnap.val() : {};
-    myAvatar = (mdata.avatar && String(mdata.avatar).trim())
-            || (mdata.avatarUrl && String(mdata.avatarUrl).trim())
-            || fallbackAvatar();
-  });
+      // 標記目前群組
+      window.__activeGroupId = gid;
+      window.__activeChatPeer = null;
 
-  // 取得對方暱稱與頭像（移除「你正在與…對話」文字）
-  DB.ref('characters/'+peer).get().then(function(snap){
-    var data = (snap && snap.exists()) ? snap.val() : {};
-    peerNick = data.nickname || data.name || peer;
-    peerAvatar = (data.avatar && String(data.avatar).trim())
-              || (data.avatarUrl && String(data.avatarUrl).trim())
-              || fallbackAvatar();
+      var logBox = qs('#chatLog');
+      logBox.innerHTML = '';
 
-    // 有了暱稱/頭像後再渲染一次
-    renderLog(lastLog);
-  });
-
-// 渲染器：25px 頭像；分日（台灣時區）＋久未發言插入時間條；不顯示名字
-function renderLog(val){
-  var html = '';
-
-  // 先把訊息按 ts 正序排列（避免 Firebase 物件鍵序不穩）
-  var arr = [];
-  for (var k in val){
-    if (!val.hasOwnProperty(k)) continue;
-    arr.push({ id:k, msg: val[k] || {} });
-  }
-  arr.sort(function(a,b){
-    var ta = Number(a.msg.ts || 0); var tb = Number(b.msg.ts || 0);
-    return ta - tb;
-  });
-
-  // 工具：台灣時間的「年月日字串」與「完整日期+時間」
-  function dayKeyTW(ts){
-    return new Date(ts).toLocaleDateString('zh-TW', { timeZone:'Asia/Taipei', year:'numeric', month:'2-digit', day:'2-digit' });
-  }
-  function dayLabelTW(ts){
-    // 例：8月15日
-    return new Date(ts).toLocaleDateString('zh-TW', { timeZone:'Asia/Taipei', month:'long', day:'numeric' });
-  }
-  function dateTimeLabelTW(ts){
-    // 例：8月15日 20:43（24h）
-    return new Date(ts).toLocaleString('zh-TW', { timeZone:'Asia/Taipei', month:'long', day:'numeric', hour12:false, hour:'2-digit', minute:'2-digit' });
-  }
-
-  var prevDay = '';
-  var prevTs  = 0;
-
-  for (var i=0; i<arr.length; i++){
-    var id   = arr[i].id;
-    var mmsg = arr[i].msg || {};
-    var isMe = (mmsg.from === me.username);
-    var ts   = Number(mmsg.ts || 0);
-
-    // 每到新的一天（依台灣時間）插入「日期分隔條」
-    var curDay = dayKeyTW(ts);
-    if (curDay !== prevDay){
-      html += '<div class="sep" style="text-align:center; opacity:.8; font-size:11px; margin:8px 0;">' + dayLabelTW(ts) + '</div>';
-      prevDay = curDay;
-      prevTs = 0; // 新的一天，重置間隔
-    }
-
-    // 若與上一則訊息間隔 > 10 分鐘，插入「日期時間分隔條」
-    if (prevTs && (ts - prevTs) > 600000){
-      html += '<div class="sep" style="text-align:center; opacity:.65; font-size:10px; margin:6px 0;">' + dateTimeLabelTW(ts) + '</div>';
-    }
-
-    // 頭像來源：我方優先 myAvatar；對方優先 fromAvatar -> peerAvatar
-    var av = isMe
-      ? (myAvatar || fallbackAvatar())
-      : (mmsg.fromAvatar || peerAvatar || fallbackAvatar());
-
-    if (!isMe){
-      // 對方：頭像在左、灰黑底訊息泡泡
-      html += ''
-        + '<div class="item msg" data-msg-id="'+ id +'" data-from="'+ (mmsg.from||'') +'" data-ts="'+ ts +'" style="display:flex; justify-content:flex-start; align-items:flex-end; gap:8px; margin:6px 0;">'
-        +   '<img src="'+ av +'" alt="avatar" style="width:35px; height:35px; border-radius:50%; object-fit:cover; flex:0 0 25px;">'
-        +   '<div class="msg-bubble" style="max-width:72%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:#eaf2ff; border-radius:12px; padding:6px 10px; line-height:1.5; word-break:break-word;">'
-        +     (mmsg.text || '') 
-        +   '</div>'
-        + '</div>';
-    } else {
-      // 自己：整列靠右、亮色泡泡、頭像在右
-      html += ''
-        + '<div class="item msg" data-msg-id="'+ id +'" data-from="'+ (mmsg.from||'') +'" data-ts="'+ ts +'" style="display:flex; justify-content:flex-end; align-items:flex-end; gap:8px; margin:6px 0;">'
-        +   '<div class="msg-bubble" style="max-width:72%; background:linear-gradient(135deg, var(--accent,#8b5cf6), var(--accent2,#22d3ee)); color:#fff; border:1px solid rgba(255,255,255,.18); border-radius:12px; padding:6px 10px; line-height:1.5; word-break:break-word;">'
-        +     (mmsg.text || '') 
-        +   '</div>'
-        +   '<img src="'+ av +'" alt="avatar" style="width:35px; height:35px; border-radius:50%; object-fit:cover; flex:0 0 25px;">'
-        + '</div>';
-    }
-
-    prevTs = ts;
-  }
-
-  logBox.innerHTML = html;
-  logBox.scrollTop = logBox.scrollHeight;
-}
-
-
-
-// 即時監聽（含 300 則上限 & 自動清舊）
-DB.ref('chats/'+key+'/messages').off();
-DB.ref('chats/'+key+'/messages').on('value', function(snap){
-  var val = (snap && snap.exists()) ? (snap.val() || {}) : {};
-  var items = [];
-  for (var k in val){
-    if (!val.hasOwnProperty(k)) continue;
-    var msg = val[k] || {};
-    var ts  = Number(msg.ts || 0);
-    items.push({ id:k, ts:ts, msg:msg });
-  }
-  // 依 ts 由舊到新排序（ts 缺失則當 0）
-  items.sort(function(a,b){ return a.ts - b.ts; });
-
-  var over = items.length - 300;
-  var viewObj = {};
-  if (over > 0){
-    // 先畫面只顯示「最新 300」
-    var keep = items.slice(items.length - 300);
-    for (var i=0; i<keep.length; i++){ viewObj[ keep[i].id ] = keep[i].msg; }
-    lastLog = viewObj;
-    renderLog(lastLog);
-
-    // 小字提示（3 秒回復）
-    var tip = qs('#chatRetentionTip');
-    if (tip){
-      tip.textContent = '僅保留最近 300 則訊息（較舊訊息已自動清理）';
-      setTimeout(function(){ tip.textContent = '僅保留最近 300 則訊息'; }, 3000);
-    }
-
-    // 真的刪除多餘的舊訊息
-    for (var j=0; j<over; j++){
-      var delId = items[j].id;
-      DB.ref('chats/'+key+'/messages/'+delId).remove();
-    }
-  }else{
-    lastLog = val;
-    renderLog(lastLog);
-  }
-
-  // ★ 用「最新訊息的 ts」作為已讀時間，避免時鐘差導致未讀紅點復活
-  try{
-    var latestTs = items.length ? Number(items[items.length - 1].ts || 0) : 0;
-    DB.ref('characters/'+me.username+'/chatReads/'+peer).set(latestTs);
-    var mark2 = qs('#unread_'+ peer);
-    if (mark2){ mark2.style.display = 'none'; }
-  }catch(_){}
-});
-
-
-
-// 點擊訊息 → 嘗試收回（只限「我」在 5 分鐘內；顯示自訂確認小視窗）
-logBox.onclick = function(ev){
-  var target = ev.target;
-  var row = target.closest ? target.closest('.msg') : null;
-  if (!row) return;
-
-  var from = row.getAttribute('data-from') || '';
-  var mid  = row.getAttribute('data-msg-id') || '';
-  var ts   = Number(row.getAttribute('data-ts') || '0');
-
-  if (!mid) return;
-  if (from !== me.username) return;
-
-  // 5 分鐘內可收回
-  var now = Date.now();
-  if (now - ts > 300000) return; // 超時則無動作
-
-  // 自訂確認小視窗（暗色系；是=紅、否=藍）
-  var overlay = document.createElement('div');
-  overlay.setAttribute('role','dialog');
-  overlay.setAttribute('aria-modal','true');
-  overlay.style.position = 'fixed';
-  overlay.style.left = '0';
-  overlay.style.top = '0';
-  overlay.style.right = '0';
-  overlay.style.bottom = '0';
-  overlay.style.background = 'rgba(0,0,0,.45)';
-  overlay.style.display = 'flex';
-  overlay.style.alignItems = 'center';
-  overlay.style.justifyContent = 'center';
-  overlay.style.zIndex = '9999';
-
-  var panel = document.createElement('div');
-  panel.style.width = 'min(92vw, 360px)';
-  panel.style.background = '#0b1020';
-  panel.style.border = '1px solid rgba(255,255,255,.15)';
-  panel.style.borderRadius = '12px';
-  panel.style.boxShadow = '0 10px 30px rgba(0,0,0,.35)';
-  panel.style.color = '#eaf2ff';
-  panel.style.padding = '16px';
-  panel.style.display = 'grid';
-  panel.style.gap = '12px';
-
-  var title = document.createElement('div');
-  title.textContent = '是否收回這則訊息？';
-  title.style.fontWeight = 'bold';
-  title.style.fontSize = '16px';
-
-  var buttons = document.createElement('div');
-  buttons.style.display = 'flex';
-  buttons.style.gap = '8px';
-  buttons.style.justifyContent = 'flex-end';
-
-  var btnNo = document.createElement('button');
-  btnNo.className = 'opx';
-  btnNo.textContent = '否';
-  btnNo.style.background = '#1e3a8a'; // 藍色
-  btnNo.style.color = '#fff';
-  btnNo.style.border = '1px solid rgba(255,255,255,.2)';
-  btnNo.style.borderRadius = '8px';
-  btnNo.style.padding = '6px 12px';
-
-  var btnYes = document.createElement('button');
-  btnYes.className = 'opx';
-  btnYes.textContent = '是';
-  btnYes.style.background = '#b91c1c'; // 紅色
-  btnYes.style.color = '#fff';
-  btnYes.style.border = '1px solid rgba(255,255,255,.2)';
-  btnYes.style.borderRadius = '8px';
-  btnYes.style.padding = '6px 12px';
-
-  buttons.appendChild(btnNo);
-  buttons.appendChild(btnYes);
-  panel.appendChild(title);
-  panel.appendChild(buttons);
-  overlay.appendChild(panel);
-  document.body.appendChild(overlay);
-
-  function closeDlg(){
-    if (overlay && overlay.parentNode){ overlay.parentNode.removeChild(overlay); }
-  }
-
-  btnNo.onclick = function(){ closeDlg(); };
-  overlay.onclick = function(ev2){
-    if (ev2.target === overlay){ closeDlg(); }
-  };
-  btnYes.onclick = function(){
-    // 確認後才真的刪除該訊息
-    DB.ref('chats/'+key+'/messages/'+mid).remove();
-    closeDlg();
-  };
-};
-
-
-
-  // 送出
-  qs('#btnSendFriend').onclick = function(){
-    var inp = qs('#chatInputFriend');
-    var text = (inp && inp.value) ? String(inp.value).trim() : '';
-    if (!text) return;
-
-    var key2 = pairKey(me.username, peer);
-    var ref = DB.ref('chats/'+key2+'/messages').push();
-
-    // 寫入我的暱稱與頭像（讓對方那邊也能直接顯示）
-    DB.ref('characters/'+me.username).get().then(function(msnap){
-      var mdata = (msnap && msnap.exists()) ? msnap.val() : {};
-      var myNick = mdata.nickname || mdata.name || me.username;
-      var myAv   = (mdata.avatar && String(mdata.avatar).trim())
-                 || (mdata.avatarUrl && String(mdata.avatarUrl).trim())
-                 || fallbackAvatar();
-
-      ref.set({
-        from: me.username,
-        to: peer,
-        text: text,
-        ts: Date.now(),
-        fromNickname: myNick,
-        fromAvatar: myAv
+      // 我的頭像
+      var myAvatar = '';
+      function fallbackAvatar(){
+        try{
+          if (window.Auth && Auth.defaultAvatar){
+            var a = Auth.defaultAvatar();
+            if (a) return a;
+          }
+        }catch(_){}
+        return 'https://via.placeholder.com/28';
+      }
+      DB.ref('characters/'+me.username).get().then(function(msnap){
+        var mdata = (msnap && msnap.exists()) ? msnap.val() : {};
+        myAvatar = (mdata.avatar && String(mdata.avatar).trim())
+                || (mdata.avatarUrl && String(mdata.avatarUrl).trim())
+                || fallbackAvatar();
       });
+
+      function renderGroupLog(val){
+        var html = '';
+        var arr = [];
+        for (var k in val){ if (val.hasOwnProperty(k)) arr.push({ id:k, msg: val[k]||{} }); }
+        arr.sort(function(a,b){
+          var ta = Number(a.msg.ts || 0); var tb = Number(b.msg.ts || 0);
+          return ta - tb;
+        });
+
+        function dayKeyTW(ts){
+          return new Date(ts).toLocaleDateString('zh-TW', { timeZone:'Asia/Taipei', year:'numeric', month:'2-digit', day:'2-digit' });
+        }
+        function dayLabelTW(ts){
+          return new Date(ts).toLocaleDateString('zh-TW', { timeZone:'Asia/Taipei', month:'long', day:'numeric' });
+        }
+        function dateTimeLabelTW(ts){
+          return new Date(ts).toLocaleString('zh-TW', { timeZone:'Asia/Taipei', month:'long', day:'numeric', hour12:false, hour:'2-digit', minute:'2-digit' });
+        }
+
+        var prevDay = '';
+        var prevTs  = 0;
+
+        for (var i=0;i<arr.length;i++){
+          var id = arr[i].id;
+          var mmsg = arr[i].msg || {};
+          var isMe = (mmsg.from === me.username);
+          var ts   = Number(mmsg.ts || 0);
+          var nick = mmsg.fromNickname || mmsg.from || '';
+
+          var curDay = dayKeyTW(ts);
+          if (curDay !== prevDay){
+            html += '<div class="sep" style="text-align:center; opacity:.8; font-size:11px; margin:8px 0;">' + dayLabelTW(ts) + '</div>';
+            prevDay = curDay;
+            prevTs = 0;
+          }
+          if (prevTs && (ts - prevTs) > 600000){
+            html += '<div class="sep" style="text-align:center; opacity:.65; font-size:10px; margin:6px 0;">' + dateTimeLabelTW(ts) + '</div>';
+          }
+
+          var av = isMe ? (myAvatar || fallbackAvatar()) : (mmsg.fromAvatar || fallbackAvatar());
+
+          if (!isMe){
+            html += ''
+              + '<div class="item msg" data-msg-id="'+ id +'" data-from="'+ (mmsg.from||'') +'" data-ts="'+ ts +'" style="display:flex; justify-content:flex-start; align-items:flex-start; gap:8px; margin:6px 0;">'
+              +   '<img src="'+ av +'" alt="avatar" style="width:35px; height:35px; border-radius:50%; object-fit:cover; flex:0 0 25px;">'
+              +   '<div style="max-width:72%;">'
+              +     '<div style="opacity:.8; font-size:11px; margin:0 0 2px 4px;">'+ nick +'</div>'
+              +     '<div class="msg-bubble" style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:#eaf2ff; border-radius:12px; padding:6px 10px; line-height:1.5; word-break:break-word;">'
+              +       (mmsg.text || '') 
+              +     '</div>'
+              +   '</div>'
+              + '</div>';
+          }else{
+            html += ''
+              + '<div class="item msg" data-msg-id="'+ id +'" data-from="'+ (mmsg.from||'') +'" data-ts="'+ ts +'" style="display:flex; justify-content:flex-end; align-items:flex-end; gap:8px; margin:6px 0;">'
+              +   '<div class="msg-bubble" style="max-width:72%; background:linear-gradient(135deg, var(--accent,#8b5cf6), var(--accent2,#22d3ee)); color:#fff; border:1px solid rgba(255,255,255,.18); border-radius:12px; padding:6px 10px; line-height:1.5; word-break:break-word;">'
+              +     (mmsg.text || '') 
+              +   '</div>'
+              +   '<img src="'+ av +'" alt="avatar" style="width:35px; height:35px; border-radius:50%; object-fit:cover; flex:0 0 25px;">'
+              + '</div>';
+          }
+
+          prevTs = ts;
+        }
+
+        logBox.innerHTML = html;
+        logBox.scrollTop = logBox.scrollHeight;
+      }
+
+      // 監聽群組訊息
+      DB.ref('groupChats/'+gid+'/messages').off();
+      DB.ref('groupChats/'+gid+'/messages').on('value', function(snap){
+        var val = (snap && snap.exists()) ? (snap.val() || {}) : {};
+        var items = [];
+        for (var k in val){
+          if (!val.hasOwnProperty(k)) continue;
+          var msg = val[k] || {};
+          var ts  = Number(msg.ts || 0);
+          items.push({ id:k, ts:ts, msg:msg });
+        }
+        items.sort(function(a,b){ return a.ts - b.ts; });
+
+        var over = items.length - 300;
+        var viewObj = {};
+        if (over > 0){
+          var keep = items.slice(items.length - 300);
+          for (var i=0;i<keep.length;i++){ viewObj[ keep[i].id ] = keep[i].msg; }
+          renderGroupLog(viewObj);
+          for (var j=0;j<over;j++){
+            var delId = items[j].id;
+            DB.ref('groupChats/'+gid+'/messages/'+delId).remove();
+          }
+        }else{
+          var obj = {};
+          for (var z=0; z<items.length; z++){ obj[items[z].id] = items[z].msg; }
+          renderGroupLog(obj);
+        }
+
+        try{
+          var latestTs = items.length ? Number(items[items.length - 1].ts || 0) : 0;
+          DB.ref('groupReads/'+me.username+'/'+gid).set(latestTs);
+        }catch(_){}
+      });
+
+      // 送出（覆蓋為群組送出）
+      qs('#btnSendFriend').onclick = function(){
+        var inp = qs('#chatInputFriend');
+        var text = (inp && inp.value) ? String(inp.value).trim() : '';
+        if (!text) return;
+        var ref = DB.ref('groupChats/'+gid+'/messages').push();
+
+        DB.ref('characters/'+me.username).get().then(function(msnap){
+          var mdata = (msnap && msnap.exists()) ? msnap.val() : {};
+          var myNick = mdata.nickname || mdata.name || me.username;
+          var myAv   = (mdata.avatar && String(mdata.avatar).trim())
+                     || (mdata.avatarUrl && String(mdata.avatarUrl).trim())
+                     || 'https://via.placeholder.com/28';
+          ref.set({
+            from: me.username,
+            text: text,
+            ts: Date.now(),
+            fromNickname: myNick,
+            fromAvatar: myAv
+          });
+        });
+
+        inp.value = '';
+      };
+
+      // 返回：還原清單與 tabs/群組區塊
+      qs('#btnBackFriends').onclick = function(){
+        qs('#chatBox').style.display = 'none';
+        if (tabs){ tabs.style.display = 'flex'; }
+        if (groupsBox){ groupsBox.style.display = ''; }
+        qs('#friendsList').style.display = '';
+        qs('#friendsInbox').style.display = 'none';
+        if (sheet){
+          sheet.style.width = 'min(96vw, 420px)';
+          sheet.style.maxHeight = '98svh';
+        }
+        window.__activeGroupId = null;
+      };
+
+      return;
+    }
+
+    // === 單聊：進入對話 ===
+    var btnChat = t.closest ? t.closest('[data-chat-with]') : null;
+    if (btnChat){
+      // （以下為你原有的私聊流程，未改動）
+      var peer = btnChat.getAttribute('data-chat-with') || '';
+      if (!peer) return;
+      var m = ensureModal();
+      qs('#friendsList').style.display = 'none';
+      qs('#friendsInbox').style.display = 'none';
+      qs('#chatBox').style.display = '';
+
+      window.__activeChatPeer = peer;
+      window.__activeGroupId = null;
+
+      var logBox = qs('#chatLog');
+      logBox.innerHTML = '';
+      var key = pairKey(me.username, peer);
+
+      try{
+        var mark = qs('#unread_'+ peer);
+        if (mark){ mark.style.display = 'none'; }
+      }catch(_){}
+
+      (function(){
+        var hInput = qs('#chatHeightPx');
+        var hBtn   = qs('#applyChatHeight');
+        var hNow   = qs('#chatHeightNow');
+        if (hInput && hBtn){
+          var cur = 460;
+          try{
+            var raw = (qs('#chatLog').style.height || '').replace('px','');
+            cur = parseInt(raw || '460', 10);
+            if (isNaN(cur) || cur <= 0) cur = 460;
+          }catch(_){ cur = 460; }
+          hInput.value = cur;
+          if (hNow){ hNow.innerHTML = '目前：<b>'+ cur +'</b> px'; }
+          hInput.oninput = function(){
+            var v = parseInt(hInput.value||'0',10);
+            if (hNow){ hNow.innerHTML = '目前：<b>'+ v +'</b> px'; }
+          };
+          hBtn.onclick = function(){
+            var v = parseInt(hInput.value||'0',10);
+            if (!isNaN(v) && v >= 200 && v <= 1200){
+              qs('#chatLog').style.height = v + 'px';
+              if (hNow){ hNow.innerHTML = '目前：<b>'+ v +'</b> px'; }
+              var lb = qs('#chatLog'); if (lb){ lb.scrollTop = lb.scrollHeight; }
+            }
+          };
+        }
+      })();
+
+      var peerNick = '';
+      var peerAvatar = '';
+      var myAvatar = '';
+      var lastLog = {};
+
+      function fallbackAvatar(){
+        try{
+          if (window.Auth && Auth.defaultAvatar){
+            var a = Auth.defaultAvatar();
+            if (a) return a;
+          }
+        }catch(_){}
+        return 'https://via.placeholder.com/28';
+      }
+
+      DB.ref('characters/'+me.username).get().then(function(msnap){
+        var mdata = (msnap && msnap.exists()) ? msnap.val() : {};
+        myAvatar = (mdata.avatar && String(mdata.avatar).trim())
+                || (mdata.avatarUrl && String(mdata.avatarUrl).trim())
+                || fallbackAvatar();
+      });
+
+      DB.ref('characters/'+peer).get().then(function(snap){
+        var data = (snap && snap.exists()) ? snap.val() : {};
+        peerNick = data.nickname || data.name || peer;
+        peerAvatar = (data.avatar && String(data.avatar).trim())
+                  || (data.avatarUrl && String(data.avatarUrl).trim())
+                  || fallbackAvatar();
+        renderLog(lastLog);
+      });
+
+      function renderLog(val){
+        var html = '';
+        var arr = [];
+        for (var k in val){
+          if (!val.hasOwnProperty(k)) continue;
+          arr.push({ id:k, msg: val[k] || {} });
+        }
+        arr.sort(function(a,b){
+          var ta = Number(a.msg.ts || 0); var tb = Number(b.msg.ts || 0);
+          return ta - tb;
+        });
+
+        function dayKeyTW(ts){
+          return new Date(ts).toLocaleDateString('zh-TW', { timeZone:'Asia/Taipei', year:'numeric', month:'2-digit', day:'2-digit' });
+        }
+        function dayLabelTW(ts){
+          return new Date(ts).toLocaleDateString('zh-TW', { timeZone:'Asia/Taipei', month:'long', day:'numeric' });
+        }
+        function dateTimeLabelTW(ts){
+          return new Date(ts).toLocaleString('zh-TW', { timeZone:'Asia/Taipei', month:'long', day:'numeric', hour12:false, hour:'2-digit', minute:'2-digit' });
+        }
+
+        var prevDay = '';
+        var prevTs  = 0;
+
+        for (var i=0; i<arr.length; i++){
+          var id   = arr[i].id;
+          var mmsg = arr[i].msg || {};
+          var isMe = (mmsg.from === me.username);
+          var ts   = Number(mmsg.ts || 0);
+
+        var curDay = dayKeyTW(ts);
+        if (curDay !== prevDay){
+          html += '<div class="sep" style="text-align:center; opacity:.8; font-size:11px; margin:8px 0;">' + dayLabelTW(ts) + '</div>';
+          prevDay = curDay;
+          prevTs = 0;
+        }
+        if (prevTs && (ts - prevTs) > 600000){
+          html += '<div class="sep" style="text-align:center; opacity:.65; font-size:10px; margin:6px 0;">' + dateTimeLabelTW(ts) + '</div>';
+        }
+
+        var av = isMe
+          ? (myAvatar || fallbackAvatar())
+          : (mmsg.fromAvatar || peerAvatar || fallbackAvatar());
+
+        if (!isMe){
+          html += ''
+            + '<div class="item msg" data-msg-id="'+ id +'" data-from="'+ (mmsg.from||'') +'" data-ts="'+ ts +'" style="display:flex; justify-content:flex-start; align-items:flex-end; gap:8px; margin:6px 0;">'
+            +   '<img src="'+ av +'" alt="avatar" style="width:35px; height:35px; border-radius:50%; object-fit:cover; flex:0 0 25px;">'
+            +   '<div class="msg-bubble" style="max-width:72%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:#eaf2ff; border-radius:12px; padding:6px 10px; line-height:1.5; word-break:break-word;">'
+            +     (mmsg.text || '') 
+            +   '</div>'
+            + '</div>';
+        } else {
+          html += ''
+            + '<div class="item msg" data-msg-id="'+ id +'" data-from="'+ (mmsg.from||'') +'" data-ts="'+ ts +'" style="display:flex; justify-content:flex-end; align-items:flex-end; gap:8px; margin:6px 0;">'
+            +   '<div class="msg-bubble" style="max-width:72%; background:linear-gradient(135deg, var(--accent,#8b5cf6), var(--accent2,#22d3ee)); color:#fff; border:1px solid rgba(255,255,255,.18); border-radius:12px; padding:6px 10px; line-height:1.5; word-break:break-word;">'
+            +     (mmsg.text || '') 
+            +   '</div>'
+            +   '<img src="'+ av +'" alt="avatar" style="width:35px; height:35px; border-radius:50%; object-fit:cover; flex:0 0 25px;">'
+            + '</div>';
+        }
+
+        prevTs = ts;
+      }
+
+      logBox.innerHTML = html;
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    DB.ref('chats/'+key+'/messages').off();
+    DB.ref('chats/'+key+'/messages').on('value', function(snap){
+      var val = (snap && snap.exists()) ? (snap.val() || {}) : {};
+      var items = [];
+      for (var k in val){
+        if (!val.hasOwnProperty(k)) continue;
+        var msg = val[k] || {};
+        var ts  = Number(msg.ts || 0);
+        items.push({ id:k, ts:ts, msg:msg });
+      }
+      items.sort(function(a,b){ return a.ts - b.ts; });
+
+      var over = items.length - 300;
+      var viewObj = {};
+      if (over > 0){
+        var keep = items.slice(items.length - 300);
+        for (var i=0;i<keep.length;i++){ viewObj[ keep[i].id ] = keep[i].msg; }
+        lastLog = viewObj;
+        renderLog(lastLog);
+
+        var tip = qs('#chatRetentionTip');
+        if (tip){
+          tip.textContent = '僅保留最近 300 則訊息（較舊訊息已自動清理）';
+          setTimeout(function(){ tip.textContent = '僅保留最近 300 則訊息'; }, 3000);
+        }
+
+        for (var j=0; j<over; j++){
+          var delId = items[j].id;
+          DB.ref('chats/'+key+'/messages/'+delId).remove();
+        }
+      }else{
+        lastLog = val;
+        renderLog(lastLog);
+      }
+
+      try{
+        var latestTs = items.length ? Number(items[items.length - 1].ts || 0) : 0;
+        DB.ref('characters/'+me.username+'/chatReads/'+peer).set(latestTs);
+        var mark2 = qs('#unread_'+ peer);
+        if (mark2){ mark2.style.display = 'none'; }
+      }catch(_){}
     });
 
-    inp.value = '';
-  };
+    logBox.onclick = function(ev){
+      var target = ev.target;
+      var row = target.closest ? target.closest('.msg') : null;
+      if (!row) return;
 
-  // 返回
-  qs('#btnBackFriends').onclick = function(){
-    qs('#chatBox').style.display = 'none';
-    qs('#friendsList').style.display = '';
-    qs('#friendsInbox').style.display = 'none';
-  };
-}
+      var from = row.getAttribute('data-from') || '';
+      var mid  = row.getAttribute('data-msg-id') || '';
+      var ts   = Number(row.getAttribute('data-ts') || '0');
 
+      if (!mid) return;
+      if (from !== me.username) return;
 
+      var now = Date.now();
+      if (now - ts > 300000) return;
+
+      var overlay = document.createElement('div');
+      overlay.setAttribute('role','dialog');
+      overlay.setAttribute('aria-modal','true');
+      overlay.style.position = 'fixed';
+      overlay.style.left = '0';
+      overlay.style.top = '0';
+      overlay.style.right = '0';
+      overlay.style.bottom = '0';
+      overlay.style.background = 'rgba(0,0,0,.45)';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+      overlay.style.zIndex = '9999';
+
+      var panel = document.createElement('div');
+      panel.style.width = 'min(92vw, 360px)';
+      panel.style.background = '#0b1020';
+      panel.style.border = '1px solid rgba(255,255,255,.15)';
+      panel.style.borderRadius = '12px';
+      panel.style.boxShadow = '0 10px 30px rgba(0,0,0,.35)';
+      panel.style.color = '#eaf2ff';
+      panel.style.padding = '16px';
+      panel.style.display = 'grid';
+      panel.style.gap = '12px';
+
+      var title = document.createElement('div');
+      title.textContent = '是否收回這則訊息？';
+      title.style.fontWeight = 'bold';
+      title.style.fontSize = '16px';
+
+      var buttons = document.createElement('div');
+      buttons.style.display = 'flex';
+      buttons.style.gap = '8px';
+      buttons.style.justifyContent = 'flex-end';
+
+      var btnNo = document.createElement('button');
+      btnNo.className = 'opx';
+      btnNo.textContent = '否';
+      btnNo.style.background = '#1e3a8a';
+      btnNo.style.color = '#fff';
+      btnNo.style.border = '1px solid rgba(255,255,255,.2)';
+      btnNo.style.borderRadius = '8px';
+      btnNo.style.padding = '6px 12px';
+
+      var btnYes = document.createElement('button');
+      btnYes.className = 'opx';
+      btnYes.textContent = '是';
+      btnYes.style.background = '#b91c1c';
+      btnYes.style.color = '#fff';
+      btnYes.style.border = '1px solid rgba(255,255,255,.2)';
+      btnYes.style.borderRadius = '8px';
+      btnYes.style.padding = '6px 12px';
+
+      buttons.appendChild(btnNo);
+      buttons.appendChild(btnYes);
+      panel.appendChild(title);
+      panel.appendChild(buttons);
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+
+      function closeDlg(){
+        if (overlay && overlay.parentNode){ overlay.parentNode.removeChild(overlay); }
+      }
+
+      btnNo.onclick = function(){ closeDlg(); };
+      overlay.onclick = function(ev2){
+        if (ev2.target === overlay){ closeDlg(); }
+      };
+      btnYes.onclick = function(){
+        DB.ref('chats/'+key+'/messages/'+mid).remove();
+        closeDlg();
+      };
+    };
+
+    qs('#btnSendFriend').onclick = function(){
+      var inp = qs('#chatInputFriend');
+      var text = (inp && inp.value) ? String(inp.value).trim() : '';
+      if (!text) return;
+
+      var key2 = pairKey(me.username, peer);
+      var ref = DB.ref('chats/'+key2+'/messages').push();
+
+      DB.ref('characters/'+me.username).get().then(function(msnap){
+        var mdata = (msnap && msnap.exists()) ? msnap.val() : {};
+        var myNick = mdata.nickname || mdata.name || me.username;
+        var myAv   = (mdata.avatar && String(mdata.avatar).trim())
+                   || (mdata.avatarUrl && String(mdata.avatarUrl).trim())
+                   || 'https://via.placeholder.com/28';
+
+        ref.set({
+          from: me.username,
+          to: peer,
+          text: text,
+          ts: Date.now(),
+          fromNickname: myNick,
+          fromAvatar: myAv
+        });
+      });
+
+      inp.value = '';
+    };
+
+    qs('#btnBackFriends').onclick = function(){
+      qs('#chatBox').style.display = 'none';
+      qs('#friendsList').style.display = '';
+      qs('#friendsInbox').style.display = 'none';
+      window.__activeChatPeer = null;
+    };
+
+    return;
+  }
   });
 
   // 啟動紅點監聽

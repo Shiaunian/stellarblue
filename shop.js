@@ -16,14 +16,85 @@
 #shopModal .bag-tab { padding:4px 10px; border-radius:8px; background:rgba(255,255,255,.06); }
 #shopModal .bag-tab.active { background:rgba(255,255,255,.14); }
 #shopModal .bag-list, #shopModal #merchantBox, #shopModal #shopList { max-height:62svh; overflow:auto; }
-#shopModal .item-row, #buyModal .item-row { display:flex; gap:10px; align-items:center; }
-#shopModal .item-thumb img { width:48px; height:48px; object-fit:cover; border-radius:8px; }
-.badge{ display:inline-block; padding:2px 6px; border-radius:6px; background:#334155; font-size:12px; margin-left:6px; }
+
+/* 每列卡片外觀與排版（示意圖風格） */
+#shopModal .item-row, #buyModal .item-row{
+  display:flex; gap:14px; align-items:center;
+  background:rgba(23,32,46,.96);            /* 深色卡片底 */
+  border-radius:16px;
+  padding:10px 14px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+}
+
+/* 固定縮圖框，避免被外部 img 樣式撐爆 */
+#shopModal .item-thumb, #buyModal .item-thumb {
+  width:48px; height:48px; flex:0 0 48px;
+  border-radius:10px; overflow:hidden;
+  background:radial-gradient(120% 120% at 20% 20%, rgba(255,255,255,.08), rgba(0,0,0,.0));
+}
+
+/* 圖片填滿框且不變形；!important 防止被外部樣式覆蓋 */
+#shopModal .item-thumb img, #buyModal .item-thumb img {
+  width:100% !important; height:100% !important;
+  object-fit:cover; display:block; border-radius:10px;
+}
+
+/* 右側主體排版 */
+#shopModal .item-main, #buyModal .item-main{ flex:1; min-width:0; }
+#shopModal .item-title, #buyModal .item-title{
+  display:flex; align-items:center; gap:8px;
+  margin:2px 0 6px 0;
+}
+
+/* 名稱做成膠囊（灰藍） */
+#shopModal .item-title .item-name, #buyModal .item-title .item-name{
+  display:inline-block;
+  padding:2px 10px;
+  border-radius:9999px;
+  background:rgba(255,255,255,.10);
+  color:#d1d5db;
+  font-weight:600;
+  line-height:1.4;
+}
+
+/* 效果標籤（紅膠囊 / 深藍膠囊） */
+.badge{ display:inline-block; padding:2px 8px; border-radius:9999px;
+  background:#334155; color:#e5e7eb; font-size:12px; margin-left:8px;
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.25);
+}
 .badge.hp{ background:#7f1d1d; color:#fff; }
+
+/* 下排：價格（灰字） + 右側按鈕 */
+#shopModal .item-sub, #buyModal .item-sub{
+  display:flex; align-items:center; justify-content:space-between;
+}
+#shopModal .item-sub .sub-left, #buyModal .item-sub .sub-left{
+  color:#94a3b8; font-size:12px; letter-spacing:.2px;
+}
+
+/* 藍色膠囊購買按鈕（靠右） */
+#shopModal .item-sub .opx.primary, #buyModal .item-sub .opx.primary{
+  border:0; outline:0;
+  padding:8px 16px;
+  border-radius:9999px;
+  background:#4f67ff;
+  color:#fff; font-weight:700;
+  box-shadow:0 2px 0 rgba(0,0,0,.25), inset 0 -2px 0 rgba(0,0,0,.12);
+  cursor:pointer;
+}
+#shopModal .item-sub .opx.primary:hover, #buyModal .item-sub .opx.primary:hover{
+  filter:brightness(1.05);
+}
+#shopModal .item-sub .opx.primary:active, #buyModal .item-sub .opx.primary:active{
+  transform:translateY(1px);
+}
+
     `;
     var s = document.createElement('style'); s.id = 'shop-style'; s.textContent = css;
     document.head.appendChild(s);
   }
+
+
 
   // 生成 DOM（商店 / 購買）
   function ensureDOM(){

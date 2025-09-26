@@ -114,7 +114,7 @@ function loadLists(){
       renderGroups(list);
     });
 
-    // ====== 補上缺失的函式：渲染邀請清單（收件匣） ======
+    // ====== 渲染邀請清單（收件匣）— 修正為好友邀請樣式 ======
     function renderInbox(arr){
       var box = qs('#friendsInbox'); if(!box) return;
       if(!arr || !arr.length){
@@ -145,7 +145,7 @@ function loadLists(){
         if (pending === 0){ finalize(); }
       }
 
-      for (var i=0;i<arr.length;i++){
+      for (var i=0; i<arr.length; i++){
         (function(idx){
           var u = arr[idx];
           DB.ref('characters/'+u).get().then(function(snap){
@@ -158,18 +158,19 @@ function loadLists(){
       }
 
       function finalize(){
-        var html = head;
-        for (var j=0;j<rows.length;j++){
+        var html = '';
+        for (var j=0; j<rows.length; j++){
           var r = rows[j];
           html +=
             '<div class="dex-row">'+
+              '<img src="'+ r.avatar +'" alt="頭像" style="width:40px; height:40px; border-radius:50%; object-fit:cover; margin-right:8px;">'+
               '<div class="dex-main">'+
-                '<div class="dex-name">'+ r.name +'</div>'+
-                '<div class="dex-sub">點擊進入群聊</div>'+
+                '<div class="dex-name">'+ r.nickname +'</div>'+
+                '<div class="dex-sub">好友邀請</div>'+
               '</div>'+
               '<div>'+
-                '<button class="opx" data-chat-group="'+ r.gid +'">群聊</button>'+
-                '<button class="opx" data-leave-group="'+ r.gid +'" style="margin-left:6px; background:#b91c1c; color:#fff; border:1px solid rgba(255,255,255,.2);">退出</button>'+
+                '<button class="opx primary" data-accept="'+ r.username +'">接受</button> '+
+                '<button class="opx" data-reject="'+ r.username +'" style="background:#b91c1c; color:#fff; border:1px solid rgba(255,255,255,.2);">拒絕</button>'+
               '</div>'+
             '</div>';
         }
@@ -743,7 +744,7 @@ function renderGroups(arr){
           hdr.appendChild(titleSpan);
         }
 
-        // 右側控制：成員按鈕 + 人數
+        // 右側控制：成員按鈕 + 人數（新增：加入好友）
         var ctrl = hdr.querySelector ? hdr.querySelector('.gh-ctrl') : null;
         if (!ctrl){
           ctrl = document.createElement('div');
@@ -751,6 +752,17 @@ function renderGroups(arr){
           ctrl.style.display = 'flex';
           ctrl.style.alignItems = 'center';
           ctrl.style.gap = '6px';
+
+          // 新增：加入好友按鈕（左側）
+          var btnInvite = document.createElement('button');
+          btnInvite.id = 'inviteFriends';
+          btnInvite.className = 'opx';
+          btnInvite.textContent = '加入好友';
+          btnInvite.style.background = '#0ea5e9';
+          btnInvite.style.color = '#fff';
+          btnInvite.style.border = '1px solid rgba(255,255,255,.2)';
+          btnInvite.style.borderRadius = '8px';
+          btnInvite.style.padding = '6px 10px';
 
           var btn = document.createElement('button');
           btn.id = 'toggleMembers';
@@ -768,10 +780,12 @@ function renderGroups(arr){
           count.style.marginLeft = '2px';
           count.textContent = '（0）';
 
+          ctrl.appendChild(btnInvite);
           ctrl.appendChild(btn);
           ctrl.appendChild(count);
           hdr.appendChild(ctrl);
         }
+
 
         // 成員面板容器（固定從右側滑出、寬度約半螢幕再小一點、可滾動）
         var panel = qs('#groupMembersPanel');
@@ -938,7 +952,179 @@ function renderGroups(arr){
             }
           };
         }
+
+        // 新增：加入好友（邀請尚未在群組內的好友，清單只顯示角色名稱不顯示帳號）
+        var btnInvite = qs('#inviteFriends');
+        if (btnInvite){
+          btnInvite.onclick = function(){
+            // 讀我自己的好友清單
+            DB.ref('characters/'+me.username+'/friends').get().then(function(fsnap){
+              var fval = (fsnap && fsnap.exists()) ? fsnap.val() : {};
+              var myFriends = [];
+              for (var k in fval){ if (fval.hasOwnProperty(k) && fval[k]) myFriends.push(k); }
+
+              // 讀取目前群組成員
+              return DB.ref('groupMembers/'+gid).get().then(function(msnap){
+                var mval = (msnap && msnap.exists()) ? msnap.val() : {};
+                var memberSet = {};
+                for (var u in mval){ if (mval.hasOwnProperty(u) && mval[u]) memberSet[u] = true; }
+
+                // 過濾出「尚未在群組內」的好友
+                var candidates = [];
+                for (var i=0;i<myFriends.length;i++){
+                  var uid = myFriends[i];
+                  if (!memberSet[uid]) candidates.push(uid);
+                }
+
+                // 建立選擇面板
+                var overlay = document.createElement('div');
+                overlay.style.position = 'fixed';
+                overlay.style.left = '0'; overlay.style.top = '0';
+                overlay.style.right = '0'; overlay.style.bottom = '0';
+                overlay.style.background = 'rgba(0,0,0,.45)';
+                overlay.style.display = 'flex';
+                overlay.style.alignItems = 'center';
+                overlay.style.justifyContent = 'center';
+                overlay.style.zIndex = '9999';
+
+                var panel2 = document.createElement('div');
+                panel2.style.width = 'min(92vw, 420px)';
+                panel2.style.background = '#0b1020';
+                panel2.style.border = '1px solid rgba(255,255,255,.15)';
+                panel2.style.borderRadius = '12px';
+                panel2.style.boxShadow = '0 10px 30px rgba(0,0,0,.35)';
+                panel2.style.color = '#eaf2ff';
+                panel2.style.padding = '16px';
+                panel2.style.display = 'grid';
+                panel2.style.gap = '10px';
+
+                var title2 = document.createElement('div');
+                title2.textContent = '邀請好友加入群組';
+                title2.style.fontWeight = 'bold';
+
+                var listBox2 = document.createElement('div');
+                listBox2.style.maxHeight = '40vh';
+                listBox2.style.overflow = 'auto';
+                listBox2.style.border = '1px solid rgba(255,255,255,.12)';
+                listBox2.style.borderRadius = '8px';
+                listBox2.style.padding = '8px';
+                listBox2.style.background = 'rgba(255,255,255,.04)';
+
+                if (!candidates.length){
+                  listBox2.innerHTML = '<div style="opacity:.8;">沒有可邀請的好友（所有好友都在群組內了）。</div>';
+                } else {
+                  for (var j=0;j<candidates.length;j++){
+                    (function(idx){
+                      var u3 = candidates[idx];
+                      var row = document.createElement('label');
+                      row.style.display = 'flex';
+                      row.style.alignItems = 'center';
+                      row.style.gap = '8px';
+                      row.style.margin = '4px 0';
+
+                      var cb = document.createElement('input');
+                      cb.type = 'checkbox';
+                      cb.value = u3;
+
+                      var span = document.createElement('span');
+                      span.textContent = '載入中…';
+
+                      row.appendChild(cb);
+                      row.appendChild(span);
+                      listBox2.appendChild(row);
+
+                      // 顯示角色名稱（nickname > name），不顯示帳號
+                      DB.ref('characters/'+u3).get().then(function(csnap){
+                        var cdata = (csnap && csnap.exists()) ? csnap.val() : {};
+                        var nickname = cdata && cdata.nickname ? String(cdata.nickname) : '';
+                        var cname = cdata && cdata.name ? String(cdata.name) : '';
+                        var showName = nickname || cname || '這位用戶';
+                        span.textContent = showName;
+                      }).catch(function(_){
+                        span.textContent = '這位用戶';
+                      });
+                    })(j);
+                  }
+                }
+
+                var btns2 = document.createElement('div');
+                btns2.style.display = 'flex';
+                btns2.style.justifyContent = 'flex-end';
+                btns2.style.gap = '8px';
+
+                var cancel2 = document.createElement('button');
+                cancel2.className = 'opx';
+                cancel2.textContent = '取消';
+
+                var ok2 = document.createElement('button');
+                ok2.className = 'opx primary';
+                ok2.textContent = '邀請';
+
+                btns2.appendChild(cancel2);
+                btns2.appendChild(ok2);
+
+                panel2.appendChild(title2);
+                panel2.appendChild(listBox2);
+                panel2.appendChild(btns2);
+                overlay.appendChild(panel2);
+                document.body.appendChild(overlay);
+
+                function closeDlg2(){
+                  if (overlay && overlay.parentNode){ overlay.parentNode.removeChild(overlay); }
+                }
+                cancel2.onclick = function(){ closeDlg2(); };
+                overlay.onclick = function(evx){
+                  if (evx.target === overlay){ closeDlg2(); }
+                };
+
+                ok2.onclick = function(){
+                  var picks2 = [];
+                  var cbs2 = listBox2.querySelectorAll('input[type=checkbox]');
+                  for (var z=0; z<cbs2.length; z++){ if (cbs2[z].checked){ picks2.push(cbs2[z].value); } }
+                  if (!picks2.length){ closeDlg2(); return; }
+
+                  ok2.disabled = true; ok2.textContent = '邀請中…';
+
+                  var updates2 = {};
+                  var now2 = Date.now();
+                  for (var p=0; p<picks2.length; p++){
+                    var u4 = picks2[p];
+                    updates2['groupMembers/'+gid+'/'+u4] = true;
+                    updates2['characters/'+u4+'/groups/'+gid] = true;
+                  }
+
+                  DB.ref().update(updates2).then(function(){
+                    // 更新成員數顯示與清單
+                    try{
+                      var countSpan3 = qs('#memberCount');
+                      if (countSpan3){
+                        var curTxt = countSpan3.textContent || '';
+                        var m = curTxt.match(/（(\d+)）/);
+                        var n = m ? parseInt(m[1]||'0',10) : 0;
+                        n = n + picks2.length;
+                        countSpan3.textContent = '（'+ n +'）';
+                      }
+                      // 若面板已開，重新載入一次成員面板
+                      if (panel && panel.style.display !== 'none'){
+                        panel.style.display = 'none';
+                        setTimeout(function(){
+                          if (qs('#toggleMembers') && qs('#toggleMembers').click){ qs('#toggleMembers').click(); }
+                        }, 0);
+                      }
+                    }catch(_){}
+                    loadLists();
+                    closeDlg2();
+                  }).catch(function(err){
+                    ok2.disabled = false; ok2.textContent = '邀請';
+                    alert('邀請失敗：' + (err && err.message ? err.message : err));
+                  });
+                };
+              });
+            });
+          };
+        }
       }catch(_){}
+
 
       // 我的頭像
       var myAvatar = '';

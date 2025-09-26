@@ -15,23 +15,26 @@
       m.setAttribute('aria-hidden','true');
       m.innerHTML =
         '<div class="mask" data-close="rank"></div>'+
-        '<div class="sheet" role="dialog" aria-labelledby="rankTitle">'+
+        '<div class="sheet" role="dialog" aria-labelledby="rankTitle" style="height:460px;max-height:460px;">'+
           '<div class="sec-title" id="rankTitle">排行榜<div class="close" data-close="rank">✕</div></div>'+
-          '<div class="body">'+
-            '<table id="rankTable" style="width:100%;border-collapse:collapse;">'+
-              '<thead><tr>'+
-                '<th style="text-align:center;font-size:12px;">#</th>'+
-                '<th style="text-align:center;font-size:12px;">名稱</th>'+
-                '<th style="text-align:center;font-size:12px;">性別</th>'+
-                '<th style="text-align:center;font-size:12px;">元素</th>'+
-                '<th style="text-align:center;font-size:12px;">等級</th>'+
-                '<th style="text-align:center;font-size:12px;min-width:96px;">戰力</th>'+
-              '</tr></thead>'+
-              '<tbody><tr><td colspan="6" style="padding:10px;opacity:.8;">尚無資料</td></tr></tbody>'+
-            '</table>'+
+          '<div class="body" style="height:420px;display:flex;flex-direction:column;">'+
+            '<div id="rankScroll" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;">'+
+              '<table id="rankTable" style="width:100%;border-collapse:collapse;table-layout:fixed;">'+
+                '<thead><tr>'+
+                  '<th style="text-align:center;font-size:12px;">#</th>'+
+                  '<th style="text-align:left;font-size:12px;min-width:220px;">名稱</th>'+
+                  '<th style="text-align:center;font-size:12px;">性別</th>'+
+                  '<th style="text-align:center;font-size:12px;">元素</th>'+
+                  '<th style="text-align:center;font-size:12px;">等級</th>'+
+                  '<th style="text-align:center;font-size:12px;min-width:96px;">戰力</th>'+
+                '</tr></thead>'+
+                '<tbody><tr><td colspan="6" style="padding:10px;opacity:.8;">尚無資料</td></tr></tbody>'+
+              '</table>'+
+            '</div>'+
             '<div id="rankHint" style="margin-top:6px;opacity:.8;font-size:12px;"></div>'+
           '</div>'+
         '</div>';
+
       document.body.appendChild(m);
 
       // 關閉（委派：遮罩 & 右上角 ✕）
@@ -146,9 +149,9 @@ function normalizePlayer(username, data){
       var elemText = elemOne[ekey] || '無';
       var avatar = r.avatar || 'https://picsum.photos/seed/xian/64';
 
-      // 名稱欄位：頭像 + 名稱（可點擊開啟對方資訊）
+      // 名稱欄位：頭像 + 名稱（可點擊開啟對方資訊）→ 兩欄 Grid 固定對齊
       var nameCell =
-        '<div style="display:flex; align-items:center; justify-content:center; gap:8px; min-width:0;">' +
+        '<div style="display:grid; grid-template-columns:40px 1fr; align-items:center; gap:8px; min-width:0;">' +
           '<button class="rank-prof" data-view-profile="'+ (r.username || '') +'" style="all:unset;cursor:pointer;border-radius:50%;">' +
             '<img src="'+ avatar +'" alt="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.2)">' +
           '</button>' +
@@ -158,16 +161,18 @@ function normalizePlayer(username, data){
           '</button>' +
         '</div>';
 
+
       // 性別以「男 / 女」顯示
       var genderText = (r.gender === 'F') ? '女' : '男';
 
       tr.innerHTML =
         '<td style="padding:6px 8px; white-space:nowrap; text-align:center; font-size:11px;">'+ (i+1) +'</td>'+
-        '<td style="padding:6px 8px; max-width:180px; text-align:center;">'+ nameCell +'</td>'+
+        '<td style="padding:6px 8px; width:260px; text-align:left;">'+ nameCell +'</td>'+
         '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ genderText +'</td>'+
         '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ elemText +'</td>'+
         '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ fmt(r.level) +'</td>'+
         '<td style="padding:6px 8px; font-weight:600; text-align:center; font-size:11px; min-width:96px; white-space:nowrap;">'+ fmt(r.power) +'</td>';
+
 
       tbody.appendChild(tr);
       i = i + 1;

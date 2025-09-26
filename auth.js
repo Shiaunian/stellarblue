@@ -13,6 +13,11 @@ var ACCOUNTS = [
   { username: "little05", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758477022/%E9%BA%A5%E9%BA%A5_ejnwjn.png" }, // 麥麥
   { username: "little06", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758477022/%E8%89%BE%E5%80%AB_gqzfst.png" }, // 艾倫
   { username: "little07", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758477022/%E5%AE%89%E8%BF%AA%E5%93%A5_bfprfd.png" }, //安迪哥
+  { username: "little08", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758903546/%E5%8A%89%E6%9B%B8%E8%AA%9E_ztkhgi.jpg" }, // 劉書語
+  { username: "little09", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758903546/%E6%88%80%E9%9B%AA_cniunb.jpg" }, // 戀雪
+  { username: "little10", password: "5126", avatar: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758903546/%E8%8E%89%E8%8E%89_l5a7np.jpg" }, // 莉莉
+  { username: "little11", password: "5126", avatar: "" }, //
+  { username: "little12", password: "5126", avatar: "" }, //
   { username: "9031", password: "1123", avatar: "https://example.com/avatars/9031.png" },
   { username: "7905", password: "0824", avatar: "https://example.com/avatars/7905.png" },
   { username: "0592", password: "0825", avatar: "https://example.com/avatars/0592.png" }
@@ -140,7 +145,7 @@ async createCharacter(name, element='none', gender='M', avatarOverride=''){
   character.bag.appearances.push({ id: startSkin, count: 1 });
 
   // ★ 管理員專屬配給（帳號 0017）
-  var isAdmin = (u && u.username === '0017','little01','little02','little03','little03','little04','little05','little06','little07');
+  var isAdmin = (u && u.username === '0017','little01','little02','little03','little03','little04','little05','little06','little07','little08','little09','little10');
   if (isAdmin) {
     try {
   

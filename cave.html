@@ -326,25 +326,30 @@ function wire(){
   var back = document.getElementById('btnBackCity');
   if (back){ back.addEventListener('click', function(){ location.href='game.html'; }); }
 
-  var pvp = document.getElementById('btnPVP'); 
+  var pvp = document.getElementById('btnPvpToggle');
   if(pvp){ pvp.addEventListener('click', function(){
     if (!state.player) return;
     state.player.pvp = !state.player.pvp;
     var on = !!state.player.pvp;
     this.classList.toggle('on', on);
-    this.textContent = on ? 'PVP' : 'PVP';
+    this.setAttribute('aria-pressed', on ? 'true' : 'false');
+    this.title = on ? 'PVP：開' : 'PVP：關';
     saveNow();
+    render(state.player);
   });}
 
-  var def = document.getElementById('btnDefend'); 
+  var def = document.getElementById('btnDefendToggle');
   if(def){ def.addEventListener('click', function(){
     if (!state.player) return;
     state.player.defend = !state.player.defend;
     var on = !!state.player.defend;
     this.classList.toggle('on', on);
-    this.textContent = on ? '參與防守' : '參與防守';
+    this.setAttribute('aria-pressed', on ? 'true' : 'false');
+    this.title = on ? '參與防守：開' : '參與防守：關';
     saveNow();
+    render(state.player);
   });}
+
 
   // 區域按鈕：改成能開啟「招募大廳」
   var zone = document.getElementById('zone');

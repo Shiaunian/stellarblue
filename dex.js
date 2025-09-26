@@ -74,8 +74,10 @@
       var elabel = (global.ELEMENT_LABEL && ELEMENT_LABEL[ek]) ? ELEMENT_LABEL[ek] : '無元素';
       // 若是單一中文字（例：體/火/冰/水），補上「元素」；但「無元素」保持不變
       if (elabel !== '無元素' && elabel && elabel.length === 1) { elabel = elabel + '元素'; }
-      // 防止換行擠壓：加上 nowrap
-      var elemPill = '<span class="pill elem '+ ek +'" style="white-space:nowrap;">'+ elabel +'</span>';
+      // 固定樣式：同一行、統一高度/圓角/內距，避免個別 class 造成大小不一
+      var elemPill = '<span class="pill elem '+ ek +'" style="display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;height:20px;line-height:20px;padding:0 8px;border-radius:999px;box-sizing:border-box;font-size:12px;font-weight:500;vertical-align:middle;">'+ elabel +'</span>';
+
+
 
       // 檢查是否已遇到（遇到過＝顯示、未遇到＝影子）
       var seen = false;
@@ -105,10 +107,12 @@
       row.innerHTML =
         '<div class="dex-thumb">'+ thumbImg +'</div>' +
         '<div class="dex-main">' +
-          '<div class="dex-name">'+ (m.name||m.id) +' '+ elemPill +'</div>' +
+          '<div class="dex-name" style="display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0;">'+ (m.name||m.id) + elemPill +'</div>' +
           '<div class="dex-sub">'+ dropsLine +'</div>' +
         '</div>' +
         '<div class="dex-lv">'+ lvText(m.level||1) +'</div>';
+
+
 
 
       (function(mon){

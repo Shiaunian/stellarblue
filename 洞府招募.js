@@ -1,3 +1,4 @@
+
 (function(global){
   'use strict';
   // ===== 洞府招募（Recruitment for Cave） =====
@@ -431,10 +432,20 @@
       var pass = Math.floor((now - (it.startAt||now)) / 1000);
       var remain = (it.totalSec|0) - pass;
       if (remain <= 0){
+        // 從隊列移除
         q.splice(i,1);
         changed = true;
-        // TODO：完成後把單位加入你的隊伍資料結構
+
+        // 完成後把單位加入洞府軍隊（p.army：{ [monId]: count }）
+        p.army = p.army || {};
+        var key = it.monId;
+        var add = it.qty || 1;
+        if (key) {
+          var cur = p.army[key] || 0;
+          p.army[key] = cur + add;
+        }
       }
+
     }
     if (changed){
       try{ if (MOD.ctx && typeof MOD.ctx.save === 'function') MOD.ctx.save(); }catch(_){}

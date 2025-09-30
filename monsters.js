@@ -832,4 +832,3 @@ function expFor(mon, playerLevel){
 
 })();
 
-

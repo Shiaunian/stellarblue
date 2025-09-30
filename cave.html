@@ -194,6 +194,8 @@
   <script src="monsters.js"></script>
   <script src="map-data.js"></script>
   <script src="洞府招募.js"></script>
+  <script src="cave-army.js"></script>
+
 
 
   <script>
@@ -273,9 +275,10 @@
         }
       }
 
-      // === 洞府戰力（只在參與防守=開 時，計入玩家個人戰力） ===
+      // === 洞府戰力（玩家個人 + 軍隊；玩家部分僅在參與防守=開 時計入） ===
       var powEl = q('uiCavePower');
       if (powEl){
+        // 玩家個人戰力
         var final = {}, k;
         for (k in base){ if (Object.prototype.hasOwnProperty.call(base,k)) final[k] = Number(base[k]||0); }
         for (k in bonus){ if (Object.prototype.hasOwnProperty.call(bonus,k)) final[k] = (final[k]||0) + Number(bonus[k]||0); }
@@ -287,8 +290,35 @@
           else if (k.indexOf('真元上限') !== -1) score += Math.floor(v/10);
           else score += v;
         }
-        powEl.textContent = p.defend ? Math.max(0, score|0) : 0;
+
+        // 軍隊戰力（所有單位皆屬於參與防守）
+        var armyScore = 0;
+        var army = p.army || {};
+        var mid;
+        for (mid in army){
+          if (!Object.prototype.hasOwnProperty.call(army, mid)) continue;
+          var cnt = Number(army[mid] || 0);
+          if (!cnt || cnt <= 0) continue;
+          var def = (window.MonsterDB && typeof MonsterDB.get === 'function') ? MonsterDB.get(mid) : null;
+          var st = def && def.stats ? def.stats : null;
+          var one = 0;
+          if (st){
+            // 與玩家權重對齊：HP/5 + MP/10 + 主要攻防
+            one += Math.floor((Number(st.hp||0))/5);
+            one += Math.floor((Number(st.mp||0))/10);
+            one += Number(st.atk||0) + Number(st.matk||0) + Number(st.def||0) + Number(st.mdef||0);
+          } else {
+            // 萬一找不到定義，用等級近似
+            var lvl = def && def.level ? def.level : 1;
+            one += lvl * 10;
+          }
+          armyScore += one * cnt;
+        }
+
+        var totalScore = (p.defend ? (score|0) : 0) + (armyScore|0);
+        powEl.textContent = Math.max(0, totalScore);
       }
+
 
       // 進度條寬度
       var bft = q('barFort'); if(bft) bft.style.width = (p.fort.max ? ((p.fort.cur / p.fort.max) * 100).toFixed(1) : 0) + '%';
@@ -351,7 +381,7 @@ function wire(){
   });}
 
 
-  // 區域按鈕：改成能開啟「招募大廳」
+  // 區域按鈕：改成能開啟「招募大廳 / 軍隊」
   var zone = document.getElementById('zone');
   if (zone){
     zone.addEventListener('click', function(e){
@@ -373,10 +403,24 @@ function wire(){
         return;
       }
 
+      // 軍隊（原 data-act="farm"）
+      if (act === 'farm'){
+        if (window['洞府軍隊'] && typeof window['洞府軍隊'].open === 'function'){
+          window['洞府軍隊'].open({
+            getPlayer: function(){ return state.player || null; },
+            save:      function(){ try{ saveNow(); }catch(_e){} }
+          });
+        }else{
+          alert('軍隊模組未載入。');
+        }
+        return;
+      }
+
       // 其他仍維持「施工中」提示
       alert('「' + title + '」功能施工中，敬請期待！');
     });
   }
+
 }
 
 

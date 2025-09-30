@@ -180,6 +180,11 @@
   }
   .kv .k{ opacity:.85; font-size:12px; }
   .kv .v{ font-variant-numeric: tabular-nums; font-size:12px; }
+  /* 🟢 影響能力值高亮：中文與數字一起變綠 */
+  .kv .item.aff .k,
+  .kv .item.aff .v { color:#22c55e; }
+
+
 
   /* 禁止屬性面板內容被選取：避免「整塊反白」 */
   #attrModal .sheet, #attrModal .sheet *{ user-select:none; -webkit-user-select:none; }
@@ -674,19 +679,42 @@ window.Game = (()=>{
         const val = P.attributes[key] ?? 10;
         const row = document.createElement('div'); row.className='attr-row';
         row.innerHTML = `
-          <div class="attr-name">${name}</div>
+          <div class="attr-name" data-key="${key}">${name}</div>
           <div class="attr-val" id="val_${key}">${val}</div>
           <div class="attr-bar"><div class="attr-fill" id="bar_${key}" style="width:${Math.min(100,val)}%"></div></div>
           <div class="attr-plus" id="btn_${key}" data-key="${key}">＋</div>
         `;
         list.appendChild(row);
       });
+
+      // 🟢 懸浮/點擊基本屬性名稱 → 高亮對應能力值
+      var nameEls = list.querySelectorAll('.attr-name');
+      for (var i=0; i<nameEls.length; i++){
+        (function(el){
+          var baseKey = el.getAttribute('data-key');
+          el.addEventListener('mouseenter', function(){ applyAttrHighlight(baseKey); });
+          el.addEventListener('click', function(){
+            window.__attrHighlightKey = baseKey;
+            applyAttrHighlight(baseKey);
+          });
+        })(nameEls[i]);
+      }
+      // 滑出面板時恢復為最後一次點擊的高亮（或清除）
+      var panel = document.getElementById('attrModal');
+      if (panel && !panel.dataset.attrHoverBound){
+        panel.addEventListener('mouseleave', function(){
+          if (window.__attrHighlightKey) applyAttrHighlight(window.__attrHighlightKey);
+          else clearAttrHighlight();
+        });
+        panel.dataset.attrHoverBound = '1';
+      }
     }
 
     if(qs('#ptRemain')) qs('#ptRemain').textContent = P.unspentPoints ?? 0;
     updatePlusButtons();
     renderDerived();
   }
+
 
   function renderDerived(){
     var P = state.player; if(!P) return;
@@ -709,7 +737,43 @@ window.Game = (()=>{
       item.innerHTML = '<div class="k">' + k + '</div><div class="v">' + v + '</div>';
       box.appendChild(item);
     }
+
+    // 重新套用目前的高亮狀態（若有）
+    if (window.__attrHighlightKey) { applyAttrHighlight(window.__attrHighlightKey); }
   }
+
+  // ===== 🟢 基本屬性 → 影響能力值之高亮 =====
+  var AFFECT_BY_BASE = {
+    str: ['物理攻擊','破甲'],
+    vit: ['氣血上限','物理防禦','回血/回合'],
+    dex: ['物理防禦','命中率','閃避','行動條速度'],
+    int: ['法術攻擊','真元上限','法術防禦','法穿'],
+    wis: ['法術攻擊','真元上限','法術防禦','回氣/回合'],
+    luk: ['暴擊率','暴擊傷害']
+  };
+
+  window.__attrHighlightKey = '';
+
+  function clearAttrHighlight(){
+    var items = document.querySelectorAll('#statList .item');
+    for (var i=0;i<items.length;i++){ items[i].classList.remove('aff'); }
+  }
+
+  function applyAttrHighlight(baseKey){
+    clearAttrHighlight();
+    if (!baseKey) return;
+    var list = AFFECT_BY_BASE[baseKey] || [];
+    var items = document.querySelectorAll('#statList .item');
+    for (var i=0;i<items.length;i++){
+      var it = items[i];
+      var kEl = it.querySelector ? it.querySelector('.k') : null;
+      var name = kEl ? (kEl.textContent || '').trim() : '';
+      for (var j=0;j<list.length;j++){
+        if (name === list[j]) { it.classList.add('aff'); break; }
+      }
+    }
+  }
+
 
 
   function updatePlusButtons(){

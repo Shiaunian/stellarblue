@@ -19,14 +19,24 @@
       { id: "hp_mid",     name: "中氣血丹",     effect: { hp: 70 },  price: 60,  icon: "https://i.ibb.co/Nd71zTVQ/image.png" },
       { id: "hp_large",   name: "大氣血丹",     effect: { hp: 140 }, price: 160, icon: "https://i.ibb.co/hxqHhB8M/image.png" },
       { id: "hp_huge",    name: "巨顆氣血丹",   effect: { hp: 300 }, price: 350, icon: "https://i.ibb.co/TMsHqmNX/image.png" },
+      { id: "jade_qixue_dan",    name: "玉質氣血丹",   effect: { hp: 400 }, price: 500, icon: "https://i.ibb.co/TMsHqmNX/image.png" },
+      { id: "phoenix_blood_pill",    name: "鳳血丹",   effect: { hp: 600 }, price: 750, icon: "https://i.ibb.co/TMsHqmNX/image.png" },
+      { id: "crimson_life_elixir",    name: "赤命氣血",   effect: { hp: 1000 }, price: 1300, icon: "https://i.ibb.co/TMsHqmNX/image.png" },
       { id: "mp_small",   name: "小靈氣丹",     effect: { mp: 25 },  price: 20,  icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758721126/%E5%B0%8F%E9%9D%88%E6%B0%A3%E4%B8%B9_amlneb.png" },
       { id: "mp_small_1", name: "中靈氣丹",     effect: { mp: 50 },  price: 60,  icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758721126/%E4%B8%AD%E9%9D%88%E6%B0%A3%E4%B8%B9_aj1ddb.png" },
       { id: "mp_small_2", name: "大靈氣丹",     effect: { mp: 75 },  price: 100, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758721125/%E5%A4%A7%E9%9D%88%E6%B0%A3%E4%B8%B9_ld9rhc.png" },
       { id: "mp_small_3", name: "巨顆靈氣丹",   effect: { mp: 100 }, price: 150, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758721125/%E5%B7%A8%E9%A1%86%E6%B0%A3%E8%A1%80%E4%B8%B9_dfolpb.png" },
       { id: "food_apple",      name: "蘋果",   effect: { sta: 5  }, price: 10,  icon: "https://upload.wikimedia.org/wikipedia/commons/1/15/Red_Apple.jpg" },
-      { id: "food_strawberry", name: "草莓",   effect: { sta: 10 }, price: 20,  icon: "https://upload.wikimedia.org/wikipedia/commons/2/29/PerfectStrawberry.jpg" },
-      { id: "food_banana",     name: "香蕉",   effect: { sta: 15 }, price: 30,  icon: "https://upload.wikimedia.org/wikipedia/commons/8/8a/Banana-Single.jpg" },
-      { id: "food_greenapple", name: "青蘋果", effect: { sta: 20 }, price: 40,  icon: "https://upload.wikimedia.org/wikipedia/commons/f/f4/Granny_smith_and_cross_section.jpg" },
+      { id: "food_strawberry", name: "草莓",   effect: { sta: 3 }, price: 20,  icon: "https://upload.wikimedia.org/wikipedia/commons/2/29/PerfectStrawberry.jpg" },
+      { id: "food_banana",     name: "香蕉",   effect: { sta: 6 }, price: 30,  icon: "https://upload.wikimedia.org/wikipedia/commons/8/8a/Banana-Single.jpg" },
+      { id: "food_greenapple", name: "青蘋果", effect: { sta: 8, hp: 10 }, price: 50,  icon: "https://upload.wikimedia.org/wikipedia/commons/f/f4/Granny_smith_and_cross_section.jpg" },
+      { id: "Original_rice_balls", name: "原味飯糰", effect: { sta: 20 }, price: 40,  icon: "" },
+      { id: "Tuna_Rice_Balls", name: "鮪魚飯糰", effect: { sta: 20 }, price: 40,  icon: "" },
+      { id: "Pea_Rice_Balls", name: "豌豆飯糰", effect: { sta: 20 }, price: 40,  icon: "" },
+      { id: "Plum_Rice_Balls", name: "梅子飯糰", effect: { sta: 20 }, price: 40,  icon: "" },
+      { id: "Caviar_Rice_Balls", name: "魚子醬飯糰", effect: { sta: 20 }, price: 40,  icon: "" },
+      { id: "Fried_shrimp_rice_balls", name: "炸蝦飯糰", effect: { sta: 20 }, price: 40,  icon: "" },
+      { id: "Scrambled_Egg_Rice_Balls", name: "滑蛋飯糰", effect: { sta: 20 }, price: 40,  icon: "" },
 
       // { id: "entry_ticket", name: "副本入場卷", effect: null, price: 0, icon: "" },
     ],
@@ -50,8 +60,8 @@
     // ---- 耳環（Earrings）----
     earrings: [
       { id: "ear_smalljade", name: "小翠耳環", rarity: "普", level: 1, effect: { hp: 20 }, price: 80, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758465744/%E5%B0%8F%E7%BF%A0%E8%80%B3%E7%92%B01LV_ggjgpk.png", desc: "靈玉雕製的耳環，帶微靈氣。" },
-      { id: "ear_ice", name: "冰痕耳環", rarity: "普", level: 2, effect: { mp: 40, int: 1 }, price: 160, icon: "https://i.ibb.co/SNQwMfL/ear-ice.png", desc: "如霜凝結的冰晶耳飾，提升悟性。" },
-      { id: "ear_shadow", name: "影縛耳環", rarity: "普", level: 4, effect: { mp: 60, agi: 2 }, price: 300, icon: "https://i.ibb.co/n8bkZJ1/ear-shadow.png", desc: "由陰影之絲編製而成，強化反應力。" },
+      { id: "ear_ice", name: "冰痕耳環", rarity: "普", level: 2, effect: { mp: 40, int: 1 }, price: 160, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759326369/%E5%86%B0%E7%97%95%E8%80%B3%E7%92%B02LV_q2vy4r.png", desc: "如霜凝結的冰晶耳飾，提升悟性。" },
+      { id: "ear_shadow", name: "影縛耳環", rarity: "普", level: 3, effect: { hp: 60, eva: 3 }, price: 300, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759326369/%E5%BD%B1%E7%B8%9B%E8%80%B3%E7%92%B03LV_ho36bt.png", desc: "由陰影之絲編製而成，強化反應力。" },
     ],
 
     // ---- 披風（Cloaks）----

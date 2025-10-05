@@ -91,10 +91,13 @@
       '.card-cell .name{position:absolute;left:4px;right:36px;bottom:4px;text-align:center;font-size:12px;color:#fff;background:rgba(0,0,0,.55);padding:2px 4px;border-radius:6px}'+
       '.card-cell .qty{position:absolute;right:4px;bottom:4px;background:#222;color:#fff;padding:2px 6px;border-radius:999px;font-size:12px}'+
       '.shelf{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}'+
-      '.shelf .slot{position:relative;aspect-ratio:3/4;border:1px dashed #bbb;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center}'+
+      '.shelf .slot{position:relative;aspect-ratio:3/4;border:1px dashed #bbb;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}'+
       '.shelf .slot.filled{border-style:solid;border-color:#666}'+
       '.shelf .slot .remove{position:absolute;right:6px;top:6px;background:#000;color:#fff;border-radius:999px;line-height:1;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer}'+
+      '.shelf .col-thumb{padding:0;width:100%;height:100%}'+
+      '.shelf .col-thumb img{width:100%;height:100%;object-fit:cover;display:block}'+
       '@media (max-width:640px){ .card-grid{grid-template-columns:repeat(auto-fill,minmax(80px,1fr));} }';
+
     document.head.appendChild(css);
   }
 
@@ -235,11 +238,35 @@ gridList.addEventListener('click', function(e){
   var shownName = officialName || card.name || ('卡片 #'+id);
   var shownDesc = officialDesc || '尚無說明';
 
-  // 填充卡片資訊（使用 imgUrl、名稱、說明）
+// 填充卡片資訊（使用 imgUrl、名稱、說明 + 加成欄位）
+  // 先組加成顯示（亮綠色）：hp→加氣血、mp→加真元、atk→攻擊、spd→速度
+  var bonusHtml = '';
+  (function(){
+    try{
+      var arrB = (window.ItemDB && ItemDB.DB && ItemDB.DB.cards) ? ItemDB.DB.cards : [];
+      for (var i=0;i<arrB.length;i++){
+        var itB = arrB[i] || {};
+        if (String(itB.id) === String(id)) {
+          var b = itB.bonus || {};
+          var parts = [];
+          if (b.hp)  parts.push('氣血 +' + b.hp);
+          if (b.mp)  parts.push('真元 +' + b.mp);
+          if (b.atk) parts.push('攻擊 +' + b.atk);
+          if (b.spd) parts.push('速度 +' + b.spd);
+          if (parts.length){
+            bonusHtml = '<div style="text-align:center;margin-top:4px;font-size:12px;color:#2ecc71">'+ parts.join('　') +'</div>';
+          }
+          break;
+        }
+      }
+    }catch(_){}
+  })();
+
   var html = ''
     + '<img src="'+imgUrl+'" style="width:80%;height:auto;aspect-ratio:80/106.67;object-fit:contain;display:block;margin:auto" />'
     + '<h3 style="text-align:center">'+ shownName +'</h3>'
-    + '<p style="text-align:center">卡片介紹：'+ shownDesc +'</p>';
+    + '<p style="text-align:center;font-size:14px">卡片說明：'+ shownDesc +'</p>'
+    + bonusHtml;
   qs('#cardInfoContent').innerHTML = html;
 
 
@@ -250,10 +277,37 @@ qs('#btnAddToShelf').onclick = function(){
 
     var pos = -1;
     for(var i=0;i<5;i++){ if(!shelf[i]){ pos=i; break; } }
-    if (pos===-1){
+if (pos===-1){
+      // 中央紅框提示：展示架已滿（最多五張），約 1.5 秒自動消失
+      try{
+        var tip = document.createElement('div');
+        tip.setAttribute('role','alert');
+        tip.textContent = '展示架已滿，最多五張';
+        tip.style.position = 'fixed';
+        tip.style.left = '50%';
+        tip.style.top = '50%';
+        tip.style.transform = 'translate(-50%, -50%)';
+        tip.style.background = 'rgba(0,0,0,.7)';          // 深色底，襯出紅框
+        tip.style.color = '#fff';
+        tip.style.border = '2px solid #ef4444';          // 紅框
+        tip.style.padding = '10px 16px';
+        tip.style.borderRadius = '12px';
+        tip.style.fontWeight = '900';
+        tip.style.letterSpacing = '2px';
+        tip.style.boxShadow = '0 8px 24px rgba(0,0,0,.35)';
+        tip.style.zIndex = '2000';                        // 高於 modal
+        tip.style.pointerEvents = 'none';
+        tip.style.maxWidth = '90vw';
+        tip.style.textAlign = 'center';
+        document.body.appendChild(tip);
+        setTimeout(function(){
+          if (tip && tip.parentNode) tip.parentNode.removeChild(tip);
+        }, 1500);
+      }catch(_){}
       api.log('展示架已滿（最多 5 張）','warn');
       return;
     }
+
 
     // 不動原始 dataAll.count，只在展示架記錄
     shelf[pos] = id;
@@ -628,8 +682,9 @@ function renderShelf(){
 
       slot.classList.add('filled');
       slot.innerHTML =
-        '<div class="remove">×</div>'+
-        '<div class="col-thumb"><img alt="'+name+'" src="'+img+'" style="width:100%;height:auto;aspect-ratio:80/106.67;object-fit:contain;display:block;margin:auto" /><div style="font-size:12px;text-align:center">'+name+'</div></div>';
+        '<div class="col-thumb"><img alt="'+name+'" src="'+img+'" style="width:100%;height:100%;object-fit:cover;display:block" /></div>';
+
+
     }
   }
 
@@ -707,12 +762,17 @@ function renderShelf(){
     }, 0);
   }
 
-  function closeCardInfo(){
-    var m = qs('#cardInfoModal');
-    if (!m) return;
-    m.setAttribute('aria-hidden','true');
-    m.classList.remove('show');
-  }
+function closeCardInfo(){
+  var m = qs('#cardInfoModal');
+  if (!m) return;
+  try {
+    var active = document.activeElement;
+    if (active && m.contains(active)) active.blur(); // 先把焦點移出 modal
+  } catch(_){}
+  m.classList.remove('show');
+  m.setAttribute('aria-hidden','true');
+}
+
 
   document.body.addEventListener('click', function(e){
     if (e.target.dataset.close==='cardInfo'){

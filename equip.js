@@ -420,7 +420,7 @@ function _calcBonusesFor(P){
       else if (k === 'mdef') { out['法術防禦']   = (out['法術防禦']||0)   + v; }
       else if (k === 'atk')  { out['物理攻擊']   = (out['物理攻擊']||0)   + v; }
       else if (k === 'matk') { out['法術攻擊']   = (out['法術攻擊']||0)   + v; }
-      else if (k === 'aspd') { out['行動條速度'] = (out['行動條速度']||0) + v; }
+      else if (k === 'aspd' || k === 'spd') { out['行動條速度'] = (out['行動條速度']||0) + v; }
       else if (k === 'eva')  { out['閃避']       = (out['閃避']||0)       + v; }
       else if (k === 'acc')  { out['命中率']     = (out['命中率']||0)     + v; }
       else if (k === 'crit') { out['暴擊率']     = (out['暴擊率']||0)     + v; }

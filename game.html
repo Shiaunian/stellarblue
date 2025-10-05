@@ -96,7 +96,7 @@
   }
 
   .divider{height:1px; background:rgba(255,255,255,.08); margin:6px 0;}
-  .main{flex:1; display:flex; flex-direction:column; gap:10px; padding:8px 12px 0; overflow:auto;}
+  .main{flex:1; display:flex; flex-direction:column; gap:10px; padding:1px 12px 0; overflow:auto;}
   .bars{display:grid; gap:0px;}
   .stat-row{display:grid; grid-template-columns:48px 1fr 56px; align-items:center; gap:8px;}
   .label{font-size:14px; color:#e2e8f0; text-align:right;}
@@ -110,7 +110,7 @@
   }
   .fill{height:100%; width:0%;} .fill.sta{background:linear-gradient(90deg,#eab308,#f59e0b);} .fill.exp{background:linear-gradient(90deg,#16a34a,#4ade80);} .fill.hp{background:linear-gradient(90deg,#ef4444,#b91c1c);} .fill.mp{background:linear-gradient(90deg,#3b82f6,#1d4ed8);}
   .actions{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding-top:6px;}
-  .gbtn{padding:5px 0; text-align:center; border-radius:10px; font-size: 12px;  font-weight:800; letter-spacing:2px; color:#fff; background:linear-gradient(#a6783e,#7f5626); border:1px solid #5e3d1a; box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 2px 0 rgba(0,0,0,.2);}
+  .gbtn{padding:3px 0; text-align:center; border-radius:10px; font-size: 12px;  font-weight:800; letter-spacing:2px; color:#fff; background:linear-gradient(#a6783e,#7f5626); border:1px solid #5e3d1a; box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 2px 0 rgba(0,0,0,.2);}
   .title{text-align:center; color:#c7d2fe; font-weight:900; letter-spacing:6px; padding-top:4px;}
   .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; padding-bottom:6px;}
   .card{background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:2px; display:grid; grid-template-columns:52px 1fr; gap:10px; align-items:center;}
@@ -131,7 +131,9 @@
   .dock { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
   .modal{ position:fixed; inset:0; display:none; place-items:center; z-index:999; }
   .modal.show{ display:grid; }
-  .modal .mask{ position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter: blur(2px); }
+    .modal .mask{ position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter: blur(2px); }
+  /* 覆寫：儲物袋與卡片收藏打開時，背景不要模糊 */
+  #bagModal .mask, #collectionModal .mask{ backdrop-filter: none; }
   .sheet{ position:relative; width:min(92vw, 520px); border-radius:16px; overflow:hidden; background:var(--panel-2); border:1px solid rgba(255,255,255,.12); box-shadow: var(--shadow); color:var(--text); }
   .sheet .sec-title{ background:rgba(255,255,255,.06); border-bottom:1px solid rgba(255,255,255,.08); text-align:center; font-weight:900; letter-spacing:4px; padding:8px 12px; position:relative; }
   .sheet .close{ position:absolute; right:10px; top:50%; transform:translateY(-50%); width:24px; height:24px; border-radius:999px; display:grid; place-items:center; background:#ef4444; color:#fff; font-weight:900; cursor:pointer; user-select:none; }
@@ -180,10 +182,7 @@
   }
   .kv .k{ opacity:.85; font-size:12px; }
   .kv .v{ font-variant-numeric: tabular-nums; font-size:12px; }
-  /* 🟢 影響能力值高亮：中文與數字一起變綠 */
-  .kv .item.aff .k,
-  .kv .item.aff .v { color:#22c55e; }
-
+  .kv .item.affect .k, .kv .item.affect .v{ color:#22c55e; font-weight:900; } /* 受影響 → 轉綠 */
 
 
   /* 禁止屬性面板內容被選取：避免「整塊反白」 */
@@ -193,6 +192,20 @@
   .bag-tabs{display:flex; gap:6px; padding:6px; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.08);}
   .bag-tab{padding:4px 8px; border-radius:8px; font-weight:700; font-size:11px; cursor:pointer; user-select:none; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);}
   .bag-tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff;}
+  /* ★ 儲物袋（僅限 #bagModal）固定高度 + 分頁兩列排版 */
+  #bagModal .bag-tabs{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);  /* 三欄自動換行：6 個標籤會成 2 行；多了也會自動再開新行 */
+    gap:6px;
+    padding:6px;
+    background:rgba(255,255,255,.04);
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  #bagModal .bag-tab{ text-align:center; }
+
+  /* 固定清單高度；內容超出用滾動條（你的 .bag-list 已經有 overflow:auto） */
+  #bagModal .bag-list{ min-height:120px; overflow:auto; }
+
   /* ⚠ 原本寫 .bag-body 但你的 HTML 用的是 .bag-list，這裡改成 .bag-list 才會生效 */
   .bag-list{padding:8px; display:grid; gap:6px; max-height:65vh; overflow:auto;}
 
@@ -306,6 +319,26 @@
   position: absolute;
   inset: -8px;                         /* 外擴 8px 的隱形熱區 */
 }
+/* 讓儲物袋彈窗限制高度，清單區固定可捲動（與屬性面板一致的策略） */
+#bagModal .sheet{
+  max-height: min(86svh, 640px);
+  display: grid;
+  grid-template-rows: auto auto;  /* 少量物品時身高跟內容走；多時交給 .body 的 max-height 捲動 */
+  overflow: hidden;               /* 捲動交給 .body */
+}
+#bagModal .sheet .body{
+  max-height: min(70svh, 520px);
+  overflow: auto;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+/* 清單區本身保底高度，實際高度由外層 grid 分配；避免小量物品時視覺過扁、或某些分頁把外層撐爆 */
+#bagModal .bag-list{
+  min-height: 0;
+  overflow: visible;
+}
+
+
 /* ========== Dex（圖鑑） ========== */
 .dex-row{
   display:grid; grid-template-columns:44px 1fr auto; gap:8px; align-items:center;
@@ -362,15 +395,19 @@
     </div>
 
     <div class="body">
-      <div class="bag-tabs">
+<div class="bag-tabs">
         <span class="bag-tab active" data-bag-tab="consumable">消耗品</span>
         <span class="bag-tab" data-bag-tab="weapon">武器</span>
-        <span class="bag-tab" data-bag-tab="equip">裝備</span>
         <span class="bag-tab" data-bag-tab="ornament">飾品</span>
+        <span class="bag-tab" data-bag-tab="cloak">披風</span>
+        <span class="bag-tab" data-bag-tab="armor">衣服</span>
+        <span class="bag-tab" data-bag-tab="shoes">鞋子</span>
         <span class="bag-tab" data-bag-tab="hidden">暗器</span>
         <span class="bag-tab" data-bag-tab="material">材料</span>
         <span class="bag-tab" data-bag-tab="medal">勳章</span>
       </div>
+
+
       <div id="bagList" class="bag-list"></div>
     </div>
   </div>
@@ -495,11 +532,11 @@
       <div class="grid">
         <div class="card" data-mod="cave"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758672981/%E6%B4%9E%E5%BA%9C_uwdego.png" alt="施工中"></div><div><div class="ctitle">洞府</div><div class="csub">目前待開發中</div></div></div>
         <div class="card" data-mod="map"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757814967/%E9%87%8E%E5%A4%96%E5%9C%B0%E5%9C%96_hwvssk.png" alt="施工中"></div><div><div class="ctitle">野外地圖</div><div class="csub">充滿著未知個人冒險</div></div></div>
-        <div class="card" data-mod="library"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">藏經閣</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="library"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759627471/%E9%8A%80%E8%A1%8C_ralqzp.png" alt="施工中"></div><div><div class="ctitle">銀行</div><div class="csub">目前待開發中</div></div></div>
         <div class="card" data-mod="tower"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E8%A9%A6%E7%85%89%E5%A1%94_ojkzmo.png" alt="施工中"></div><div><div class="ctitle">試煉塔</div><div class="csub">目前待開發中</div></div></div>
-        <div class="card" data-mod="war"><div class="thumb"><img src="https://i.ibb.co/C5FsQQSq/2025.png" alt="施工中"></div><div><div class="ctitle">規模戰</div><div class="csub">目前待開發中</div></div></div>
-        <div class="card" data-mod="collection"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758257795/%E5%8D%A1%E7%89%87%E8%92%90%E8%97%8F_ivhky7.png" alt="施工中"></div><div><div class="ctitle">卡片收藏</div><div class="csub">目前待開發中</div></div></div>
-        <div class="card" data-mod="dex"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E5%9C%96%E9%91%91_adcdkl.png" alt="施工中"></div><div><div class="ctitle">圖鑑</div><div class="csub">點擊開啟圖鑑</div></div></div>
+        <div class="card" data-mod="war"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759543422/%E6%88%B0%E9%AC%A5_sjfkdq.png" alt="施工中"></div><div><div class="ctitle">規模戰</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="collection"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758257795/%E5%8D%A1%E7%89%87%E8%92%90%E8%97%8F_ivhky7.png" alt="施工中"></div><div><div class="ctitle">卡片收藏</div><div class="csub">卡片收納與展示</div></div></div>
+        <div class="card" data-mod="dex"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E5%9C%96%E9%91%91_adcdkl.png" alt="施工中"></div><div><div class="ctitle">圖鑑</div><div class="csub">怪物圖鑑，裡面有各種掉落物</div></div></div>
         <div class="card" data-mod="shop"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E5%95%86%E5%9F%8E_efzk1i.png" alt="施工中"></div><div><div class="ctitle">商城</div><div class="csub">目前待開發中</div></div></div>
       </div>
 
@@ -679,35 +716,14 @@ window.Game = (()=>{
         const val = P.attributes[key] ?? 10;
         const row = document.createElement('div'); row.className='attr-row';
         row.innerHTML = `
-          <div class="attr-name" data-key="${key}">${name}</div>
+          <div class="attr-name" data-attr-key="${key}" title="點一下顯示受影響的能力值" tabindex="0">${name}</div>
           <div class="attr-val" id="val_${key}">${val}</div>
           <div class="attr-bar"><div class="attr-fill" id="bar_${key}" style="width:${Math.min(100,val)}%"></div></div>
           <div class="attr-plus" id="btn_${key}" data-key="${key}">＋</div>
         `;
+
         list.appendChild(row);
       });
-
-      // 🟢 懸浮/點擊基本屬性名稱 → 高亮對應能力值
-      var nameEls = list.querySelectorAll('.attr-name');
-      for (var i=0; i<nameEls.length; i++){
-        (function(el){
-          var baseKey = el.getAttribute('data-key');
-          el.addEventListener('mouseenter', function(){ applyAttrHighlight(baseKey); });
-          el.addEventListener('click', function(){
-            window.__attrHighlightKey = baseKey;
-            applyAttrHighlight(baseKey);
-          });
-        })(nameEls[i]);
-      }
-      // 滑出面板時恢復為最後一次點擊的高亮（或清除）
-      var panel = document.getElementById('attrModal');
-      if (panel && !panel.dataset.attrHoverBound){
-        panel.addEventListener('mouseleave', function(){
-          if (window.__attrHighlightKey) applyAttrHighlight(window.__attrHighlightKey);
-          else clearAttrHighlight();
-        });
-        panel.dataset.attrHoverBound = '1';
-      }
     }
 
     if(qs('#ptRemain')) qs('#ptRemain').textContent = P.unspentPoints ?? 0;
@@ -715,62 +731,53 @@ window.Game = (()=>{
     renderDerived();
   }
 
-
   function renderDerived(){
     var P = state.player; if(!P) return;
     var base  = (window.derivedFrom && typeof window.derivedFrom === 'function') ? derivedFrom(P) : {};
     var bonus = (window.Equip && Equip.getBonuses) ? Equip.getBonuses() : {};
     var final = {};
     var keys = Object.keys(base);
-    for(var i = 0; i < keys.length; i++){
-      var k = keys[i];
-      final[k] = (base[k]||0) + (bonus[k]||0);
+    var i=0;
+
+    // 計算最終能力值
+    while(i<keys.length){
+      var k1 = keys[i];
+      final[k1] = (base[k1]||0) + (bonus[k1]||0);
+      i=i+1;
     }
 
+    // 目前被點到的主屬性（由點擊事件設定）
+    var highlight = window._attrHighlightKey || '';
+
+    // 主屬性 -> 會受影響的能力值列表
+    function affectedBy(baseKey){
+      if (baseKey === 'str') return ['物理攻擊','破甲'];
+      if (baseKey === 'vit') return ['氣血上限','物理防禦','回血/回合'];
+      if (baseKey === 'dex') return ['物理防禦','命中率','閃避','行動條速度'];
+      if (baseKey === 'int') return ['法術攻擊','真元上限','法術防禦','法穿'];
+      if (baseKey === 'wis') return ['法術攻擊','真元上限','回氣/回合','法術防禦'];
+      if (baseKey === 'luk') return ['暴擊率','暴擊傷害'];
+      return [];
+    }
+
+    // 構成查表，加速判定
+    var affectMap = {};
+    var list = affectedBy(highlight);
+    var a=0; while(a<list.length){ affectMap[list[a]] = 1; a=a+1; }
+
+    // 渲染
     var box = qs('#statList'); if(!box) return;
     box.innerHTML = '';
     var entries = Object.keys(final);
-    for(var j = 0; j < entries.length; j++){
+    var j=0;
+    while(j<entries.length){
       var k = entries[j];
       var v = final[k];
-      var item = document.createElement('div'); item.className='item';
+      var item = document.createElement('div');
+      item.className = 'item' + (affectMap[k] ? ' affect' : '');
       item.innerHTML = '<div class="k">' + k + '</div><div class="v">' + v + '</div>';
       box.appendChild(item);
-    }
-
-    // 重新套用目前的高亮狀態（若有）
-    if (window.__attrHighlightKey) { applyAttrHighlight(window.__attrHighlightKey); }
-  }
-
-  // ===== 🟢 基本屬性 → 影響能力值之高亮 =====
-  var AFFECT_BY_BASE = {
-    str: ['物理攻擊','破甲'],
-    vit: ['氣血上限','物理防禦','回血/回合'],
-    dex: ['物理防禦','命中率','閃避','行動條速度'],
-    int: ['法術攻擊','真元上限','法術防禦','法穿'],
-    wis: ['法術攻擊','真元上限','法術防禦','回氣/回合'],
-    luk: ['暴擊率','暴擊傷害']
-  };
-
-  window.__attrHighlightKey = '';
-
-  function clearAttrHighlight(){
-    var items = document.querySelectorAll('#statList .item');
-    for (var i=0;i<items.length;i++){ items[i].classList.remove('aff'); }
-  }
-
-  function applyAttrHighlight(baseKey){
-    clearAttrHighlight();
-    if (!baseKey) return;
-    var list = AFFECT_BY_BASE[baseKey] || [];
-    var items = document.querySelectorAll('#statList .item');
-    for (var i=0;i<items.length;i++){
-      var it = items[i];
-      var kEl = it.querySelector ? it.querySelector('.k') : null;
-      var name = kEl ? (kEl.textContent || '').trim() : '';
-      for (var j=0;j<list.length;j++){
-        if (name === list[j]) { it.classList.add('aff'); break; }
-      }
+      j=j+1;
     }
   }
 
@@ -828,6 +835,18 @@ document.querySelectorAll('.card').forEach(c=>{
   // 聊天：送出按鈕與 Enter 送出
   qs('#btnSend')?.addEventListener('click', sendChat);
   qs('#chatInput')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendChat(); });
+
+    /* ★ 新增：點擊基本屬性名稱 → 高亮受影響的能力值 */
+  document.addEventListener('click', function(e){
+    var t = e && e.target ? e.target : null;
+    if (!t) return;
+    if (t.classList && t.classList.contains('attr-name')){
+      var k = t.getAttribute('data-attr-key') || '';
+      window._attrHighlightKey = k;   // 記住目前高亮的主屬性
+      renderDerived();                // 重新渲染能力值（把對應項目轉綠）
+    }
+  });
+
 
   // 打開／關閉角色屬性面板
   qs('#uiAvatar')?.addEventListener('click', openAttr);

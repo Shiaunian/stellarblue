@@ -172,20 +172,118 @@
   var merchants = [
     {
       name: '藥鋪小李',
-      icon: 'https://i.ibb.co/3fNzHbn/apothecary.png',
+      icon: 'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759631237/%E8%97%A5%E9%8B%AA%E5%B0%8F%E6%9D%8E_yy7wxb.png',
+      // 每個商人都內含 isOpen 判定（使用台北/台灣時區 UTC+8）
+      isOpen: function(){
+        var d = new Date();
+        var utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+        var now = new Date(utc + 8 * 60 * 60000); // 台北時間
+        // 藥鋪小李：每週一到週日都開（也就是每天都開）
+        return true;
+      },
+      // items 回傳固定三種商品（count 由 getDailyCount 控制）
       items: function(){
-        var src = (global.ItemDB && ItemDB.DB && Array.isArray(ItemDB.DB.consumables))
-          ? ItemDB.DB.consumables : [];
-        return src.filter(function(it){
-          var hp = it && it.effect && it.effect.hp;
-          var mp = it && it.effect && it.effect.mp;
-          return (hp && hp>0) || (mp && mp>0);
-        });
+        return [
+          { id: 'hp_small', name: '小氣血丹', price: 20, icon: 'https://i.ibb.co/Hfxz9394/image.png', effect: { hp:25 }, kind: 'consumables', count: 20 },
+          { id: 'hp_mid', name: '中氣血丹', price: 60, icon: 'https://i.ibb.co/Nd71zTVQ/image.png', effect: { hp:70 }, kind: 'consumables', count: 20 },
+          { id: 'mp_small', name: '小靈氣丹', price: 20, icon: 'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758721126/%E5%B0%8F%E9%9D%88%E6%B0%A3%E4%B8%B9_amlneb.png', effect: { mp:25 }, kind: 'consumables', count: 20 }
+        ];
+      },
+      // 每日持有數量（fallback，item 本身也有 count）
+      getDailyCount: function(itemId){
+        return 20;
       }
     },
+
+
+    {
+      name: '水果小古',
+      icon: 'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759631237/%E6%B0%B4%E6%9E%9C%E5%B0%8F%E5%8F%A4_h6k3yp.png',
+      // 每週一到週四顯示開放（台灣時間）
+      isOpen: function(){
+        var d = new Date();
+        var utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+        var now = new Date(utc + 8 * 60 * 60000); // 台北時間
+        var day = now.getDay(); // 0=Sun,1=Mon,...6=Sat
+        return (day >= 1 && day <= 4); // Mon-Thu
+      },
+      // 固定三樣水果類商品
+      items: function(){
+        return [
+          { id: 'food_apple', name: '蘋果', price: 10, icon: 'https://upload.wikimedia.org/wikipedia/commons/1/15/Red_Apple.jpg', effect: { sta:5 }, kind: 'consumables', count: 20 },
+          { id: 'food_banana', name: '香蕉', price: 30, icon: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Banana-Single.jpg', effect: { sta:6 }, kind: 'consumables', count: 20 },
+          { id: 'food_greenapple', name: '青蘋果', price: 50, icon: 'https://upload.wikimedia.org/wikipedia/commons/f/f4/Granny_smith_and_cross_section.jpg', effect: { sta:8, hp:10 }, kind: 'consumables', count: 20 }
+        ];
+      },
+      getDailyCount: function(itemId){
+        return 20;
+      }
+    },
+
+
+    {
+      name: '氣血神秘商人',
+      icon: 'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759631237/%E6%B0%A3%E8%A1%80%E7%A5%9E%E7%A7%98%E5%95%86%E4%BA%BA_mch3k0.png',
+      // 每天有兩個時段：13:00~15:00 與 20:00~21:00（台灣時間）
+      isOpen: function(){
+        var d = new Date();
+        var utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+        var now = new Date(utc + 8 * 60 * 60000); // 台北時間
+        var mins = now.getHours() * 60 + now.getMinutes();
+        if (mins >= (13*60) && mins < (15*60)) return true;
+        if (mins >= (20*60) && mins < (21*60)) return true;
+        return false;
+      },
+      // 固定販售三種高回復藥劑
+      items: function(){
+        return [
+          { id: 'hp_large', name: '大氣血丹', price: 160, icon: 'https://i.ibb.co/hxqHhB8M/image.png', effect: { hp:140 }, kind: 'consumables', count: 20 },
+          { id: 'jade_qixue_dan', name: '玉質氣血丹', price: 500, icon: 'https://i.ibb.co/TMsHqmNX/image.png', effect: { hp:400 }, kind: 'consumables', count: 20 },
+          { id: 'phoenix_blood_pill', name: '鳳血丹', price: 750, icon: 'https://i.ibb.co/TMsHqmNX/image.png', effect: { hp:600 }, kind: 'consumables', count: 20 }
+        ];
+      },
+      getDailyCount: function(itemId){
+        return 20;
+      }
+    },
+
+
+    // ★ 管理員專用商人（只有管理員看得到）  --- ※ 我完全保留原內容（不改動）
+    {
+      name: '管理員商店',
+      icon: 'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759631238/%E7%AE%A1%E7%90%86%E5%93%A1%E5%95%86%E5%BA%97_jhywic.png',
+      lockedText: '管理員限定',
+      unlock: function(){
+        try{ return !!(global.Auth && Auth.isAdminUser && Auth.isAdminUser()); }
+        catch(_){ return false; }
+      },
+      items: function(){
+        var kinds = ['consumables','materials','weapons','ornaments','earrings','cloaks','armors','boots','medals','cards','hidden'];
+        var out = [];
+        if (global.ItemDB && ItemDB.list){
+          for (var i=0;i<kinds.length;i++){
+            var arr = ItemDB.list(kinds[i]);
+            if (!Array.isArray(arr)) arr = [];
+            for (var j=0;j<arr.length;j++){
+              var it = arr[j] || {};
+              out.push({
+                id: it.id,
+                name: it.name,
+                price: it.price || 0,
+                icon: it.icon || '',
+                effect: it.effect || null,
+                kind: kinds[i]   // 供購買時判斷加入哪個袋子/欄位
+              });
+            }
+          }
+        }
+        return out;
+      }
+    },
+
     {
       name: '洞窟補給商',
-      icon: 'https://i.ibb.co/QnLR7VN/cave-merchant.png',
+      icon: 'https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759631238/%E6%B4%9E%E7%AA%9F%E8%A3%9C%E7%B5%A6%E5%95%86_tjyzzg.png',
       lockedText: '尚未解鎖',
       unlock: function(){
         try{
@@ -199,6 +297,8 @@
     }
   ];
 
+
+
   function renderMerchants(){
     var box = qs('#merchantBox'); if(!box) return;
     box.innerHTML = '';
@@ -206,19 +306,25 @@
       var row = document.createElement('div');
       row.className = 'item-row';
       var unlocked = typeof m.unlock==='function' ? !!m.unlock() : true;
-      row.style.filter = unlocked ? 'none' : 'grayscale(1) opacity(.5)';
+      var open = typeof m.isOpen === 'function' ? !!m.isOpen() : true;
+      // 如果未解鎖或非開放時段，顯示灰階
+      row.style.filter = (unlocked && open) ? 'none' : 'grayscale(1) opacity(.5)';
+      var statusText = '';
+      if (!unlocked) statusText = (m.lockedText || '尚未解鎖');
+      else statusText = open ? '販售中' : '休息中';
       row.innerHTML = ''
         + '<div class="item-thumb"><img src="'+m.icon+'" alt="'+m.name+'"></div>'
         + '<div class="item-main">'
         + '  <div class="item-title"><span class="item-name">'+m.name+'</span></div>'
-        + '  <div class="item-sub"><span class="sub-left">'+(unlocked? '販售用品' : (m.lockedText||'尚未解鎖'))+'</span></div>'
+        + '  <div class="item-sub"><span class="sub-left">'+(statusText)+'</span></div>'
         + '</div>';
-      if (unlocked){
+      if (unlocked && open){
         row.addEventListener('click', function(){ openMerchant(m.name, toArray(m.items)); });
       }
       box.appendChild(row);
     });
   }
+
 
   function openMerchant(name, items){
     var list = qs('#merchantList'), page = qs('#merchantShop');

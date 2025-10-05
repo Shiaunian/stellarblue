@@ -67,10 +67,33 @@ async login(username, password) {
 
   // 到雲端看是否已有存檔
   var snap = await window.DB.ref(charPath(username)).get();
-  _cache.character = snap.exists() ? snap.val() : null;
+  var ch = snap.exists() ? snap.val() : null;
+
+  // ★ 相容處理：DB 內若是陣列，登入時轉回 {id:count} 物件
+  if (ch){
+    try{
+      var cards = ch.cards;
+      if (Array.isArray(cards)){
+        var map = {};
+        var i=0; while(i<cards.length){
+          var it = cards[i] || {};
+          var k = it.id!=null ? String(it.id) : null;
+          var c = it.count!=null ? parseInt(it.count,10) : 0;
+          if (k && c>0){ map[k] = (map[k]||0) + c; }
+          i = i+1;
+        }
+        ch.cards = map;
+      } else if (!cards || typeof cards!=='object'){
+        ch.cards = {};
+      }
+    }catch(_){}
+  }
+
+  _cache.character = ch;
 
   return { success:true, hasCharacter: !!_cache.character };
 },
+
 
 
   logout(){
@@ -81,6 +104,20 @@ async login(username, password) {
     try { return JSON.parse(localStorage.getItem(STORE_USER) || 'null'); }
     catch { return null; }
   },
+
+    // 管理員判定（AUTH：管理員專屬配給）
+  // 名單依照你檔案中原本寫在「管理員專屬配給（帳號 0017）」那段的帳號字樣，不做臆測
+  isAdminUser(){
+    var u = this.currentUser(); if(!u) return false;
+    var list = ['0017','little01','little02','little03','little03','little04','little05','little06','little07','little08','little09','little10'];
+    var i = 0;
+    while(i < list.length){
+      if(list[i] === u.username) return true;
+      i = i + 1;
+    }
+    return false;
+  },
+
 
 defaultAvatar(){
   var u = this.currentUser();
@@ -144,11 +181,9 @@ async createCharacter(name, element='none', gender='M', avatarOverride=''){
   var startSkin = (safeGender === 'F') ? 'skin_qing_f' : 'skin_qing_m';
   character.bag.appearances.push({ id: startSkin, count: 1 });
 
-  // ★ 管理員專屬配給（帳號 0017）
-  var isAdmin = (u && u.username === '0017','little01','little02','little03','little03','little04','little05','little06','little07','little08','little09','little10');
-  if (isAdmin) {
+  // ★ 管理員專屬配給（AUTH.isAdminUser）
+  if (this.isAdminUser && this.isAdminUser()) {
     try {
-  
       // 額外外觀
       character.bag.appearances.push({ id: 'night_yu', count: 1 });
       character.bag.appearances.push({ id: 'skin_qing_f', count: 1 });
@@ -177,12 +212,13 @@ async createCharacter(name, element='none', gender='M', avatarOverride=''){
           character.bag.consumables.push({ id:'hp_mid',   count:100 });
         }
       } else {
-        // 萬一 items.js 未載入（保底）：先塞入 id + 數量
+        // 萬一 items.js 未載入（保底）
         character.bag.consumables.push({ id:'hp_large', count:50 });
         character.bag.consumables.push({ id:'hp_mid',   count:100 });
       }
     } catch(_){}
   }
+
 
   await window.DB.ref(charPath(u.username)).set(character);
   _cache.character = character;
@@ -197,9 +233,32 @@ getCharacter(){
 async loadCharacter(){
   var u = this.currentUser(); if(!u){ _cache.character=null; return null; }
   var snap = await window.DB.ref(charPath(u.username)).get();
-  _cache.character = snap.exists() ? snap.val() : null;
+  var ch = snap.exists() ? snap.val() : null;
+
+  // ★ 卡片欄位相容：DB 內以陣列存，載入時轉回 { id:count } 物件
+  if (ch){
+    try{
+      var cards = ch.cards;
+      if (Array.isArray(cards)){
+        var map = {};
+        var i=0; while(i<cards.length){
+          var it = cards[i] || {};
+          var k = it.id!=null ? String(it.id) : null;
+          var c = it.count!=null ? parseInt(it.count,10) : 0;
+          if (k && c>0){ map[k] = (map[k]||0) + c; }
+          i = i+1;
+        }
+        ch.cards = map;
+      } else if (!cards || typeof cards!=='object'){
+        ch.cards = {};
+      }
+    }catch(_){}
+  }
+
+  _cache.character = ch;
   return _cache.character;
 },
+
 
 
 hasCharacter(){
@@ -210,10 +269,27 @@ hasCharacter(){
 async saveCharacter(character){
   var u = this.currentUser(); if(!u) return false;
   try { character._updatedAt = Date.now(); } catch(e) {}
-  _cache.character = character; // 先更新快取，讓其它頁面立刻拿到最新
-  await window.DB.ref(charPath(u.username)).set(character);
+
+  // ★ 存檔安全：將 cards 由物件轉成陣列，避免含有 '/', '.', '#', '$', '[', ']' 的 key 造成 Realtime DB 拒絕
+  var send = JSON.parse(JSON.stringify(character));
+  try{
+    var outList = [];
+    var cards = send.cards;
+    if (cards && typeof cards==='object' && !Array.isArray(cards)){
+      for (var k in cards){
+        if (!Object.prototype.hasOwnProperty.call(cards,k)) continue;
+        var cnt = parseInt(cards[k],10) || 0;
+        if (cnt>0){ outList.push({ id: String(k), count: cnt }); }
+      }
+      send.cards = outList;
+    }
+  }catch(_){}
+
+  _cache.character = character; // 保持記憶體內仍是物件型式
+  await window.DB.ref(charPath(u.username)).set(send);
   return true;
 },
+
 
 
 

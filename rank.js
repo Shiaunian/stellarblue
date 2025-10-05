@@ -22,18 +22,20 @@
               '<table id="rankTable" style="width:100%;border-collapse:collapse;table-layout:fixed;">'+
                 '<thead><tr>'+
                   '<th style="text-align:center;font-size:12px;">#</th>'+
+                  '<th style="text-align:center;font-size:12px;min-width:48px;">頭像</th>'+
                   '<th style="text-align:left;font-size:12px;min-width:220px;">名稱</th>'+
-                  '<th style="text-align:center;font-size:12px;">性別</th>'+
-                  '<th style="text-align:center;font-size:12px;">元素</th>'+
-                  '<th style="text-align:center;font-size:12px;">等級</th>'+
+                  '<th style="text-align:center;font-size:12px;min-width:36px;">性別</th>'+
+                  '<th style="text-align:center;font-size:12px;min-width:36px;">元素</th>'+
+                  '<th style="text-align:center;font-size:12px;min-width:52px;">等級</th>'+
                   '<th style="text-align:center;font-size:12px;min-width:96px;">戰力</th>'+
                 '</tr></thead>'+
-                '<tbody><tr><td colspan="6" style="padding:10px;opacity:.8;">尚無資料</td></tr></tbody>'+
+                '<tbody><tr><td colspan="7" style="padding:10px;opacity:.8;">尚無資料</td></tr></tbody>'+
               '</table>'+
             '</div>'+
             '<div id="rankHint" style="margin-top:6px;opacity:.8;font-size:12px;"></div>'+
           '</div>'+
         '</div>';
+
 
       document.body.appendChild(m);
 
@@ -149,17 +151,18 @@ function normalizePlayer(username, data){
       var elemText = elemOne[ekey] || '無';
       var avatar = r.avatar || 'https://picsum.photos/seed/xian/64';
 
-      // 名稱欄位：頭像 + 名稱（可點擊開啟對方資訊）→ 兩欄 Grid 固定對齊
+      // 分欄：頭像（第二欄）＋ 名稱（第三欄）
+      var avatarCell =
+        '<button class="rank-prof" data-view-profile="'+ (r.username || '') +'" style="all:unset;cursor:pointer;border-radius:50%;">' +
+          '<img src="'+ avatar +'" alt="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.2)">' +
+        '</button>';
+
       var nameCell =
-        '<div style="display:grid; grid-template-columns:40px 1fr; align-items:center; gap:8px; min-width:0;">' +
-          '<button class="rank-prof" data-view-profile="'+ (r.username || '') +'" style="all:unset;cursor:pointer;border-radius:50%;">' +
-            '<img src="'+ avatar +'" alt="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.2)">' +
-          '</button>' +
-          '<button class="rank-prof" data-view-profile="'+ (r.username || '') +'" '+
-                  'style="all:unset;cursor:pointer;color:#eaf2ff;font-weight:700;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
-            + (r.name || '(未命名)') +
-          '</button>' +
-        '</div>';
+        '<button class="rank-prof" data-view-profile="'+ (r.username || '') +'" '+
+                'style="all:unset;cursor:pointer;color:#eaf2ff;font-weight:700;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
+          + (r.name || '(未命名)') +
+        '</button>';
+
 
 
       // 性別以「男 / 女」顯示
@@ -167,11 +170,13 @@ function normalizePlayer(username, data){
 
       tr.innerHTML =
         '<td style="padding:6px 8px; white-space:nowrap; text-align:center; font-size:11px;">'+ (i+1) +'</td>'+
+        '<td style="padding:6px 4px; width:48px; text-align:center;">'+ avatarCell +'</td>'+
         '<td style="padding:6px 8px; width:260px; text-align:left;">'+ nameCell +'</td>'+
-        '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ genderText +'</td>'+
-        '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ elemText +'</td>'+
+        '<td style="padding:6px 6px; text-align:center; font-size:11px; white-space:nowrap;">'+ genderText +'</td>'+
+        '<td style="padding:6px 6px; text-align:center; font-size:11px; white-space:nowrap;">'+ elemText +'</td>'+
         '<td style="padding:6px 8px; text-align:center; font-size:11px;">'+ fmt(r.level) +'</td>'+
         '<td style="padding:6px 8px; font-weight:600; text-align:center; font-size:11px; min-width:96px; white-space:nowrap;">'+ fmt(r.power) +'</td>';
+
 
 
       tbody.appendChild(tr);
@@ -220,7 +225,7 @@ function normalizePlayer(username, data){
     },
       refresh: function(){
         var tbody = qs('#rankTable tbody');
-        if (tbody){ tbody.innerHTML = '<tr><td colspan="6" style="padding:10px; opacity:.8;">讀取中…</td></tr>'; }
+        if (tbody){ tbody.innerHTML = '<tr><td colspan="7" style="padding:10px; opacity:.8;">讀取中…</td></tr>'; }
         fetchAllCharacters(function(list){
           list.sort(sortRank);
           if (list.length > 50){ list = list.slice(0,50); }

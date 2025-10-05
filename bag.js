@@ -17,8 +17,12 @@ function renderBag(k){
     renderConsumables(box, P);
   } else if (k === 'weapon') {
     renderWeapons(box, P);
-  } else if (k === 'equip') {
-    renderEquip(box, P);           // ← 新增這行
+  } else if (k === 'cloak') {
+    renderCloaks(box, P);
+  } else if (k === 'armor') {
+    renderArmors(box, P);
+  } else if (k === 'shoes') {
+    renderBoots(box, P);
   } else if (k === 'ornament') {
     renderOrnaments(box, P);       // ← 只剩戒指/耳環（下一步會改）
   } else if (k === 'hidden') {
@@ -153,6 +157,72 @@ function renderMaterials(box, P){
     box.appendChild(tip);
   }
 }
+/* === 依分類過濾的飾品清單（披風／衣服／鞋子） === */
+function renderOrnamentKind(box, P, kind){
+  var items = Array.isArray(P.bag && P.bag.ornaments) ? P.bag.ornaments : [];
+  function isUrl(s){ return typeof s==='string' && /^https?:\/\//.test(s); }
+  var found = 0;
+
+  for (var i=0;i<items.length;i++){
+    var o = items[i] || {};
+    var defK = (window.ItemDB && ItemDB.getDef) ? ItemDB.getDef(kind, o.id) : null;
+    if (!defK) continue;   // 只顯示該分類的物品
+
+    var name    = (o.name!=null ? o.name : (defK.name!=null ? defK.name : o.id));
+    var iconUrl = isUrl(o.icon) ? o.icon : (isUrl(defK.icon) ? defK.icon : '');
+    var bonus   = o.bonus || defK.bonus || {};
+    var effect  = o.effect || defK.effect || {};
+    var parts   = [];
+
+    // bonus
+    for (var bk in bonus){
+      if(!Object.prototype.hasOwnProperty.call(bonus, bk)) continue;
+      var bv = bonus[bk];
+      if (typeof bv === 'number' && bv){ parts.push(bk + (bv>0?('+'+bv):bv)); }
+    }
+    // effect
+    function add(label, v){ if (typeof v==='number' && v){ parts.push(label + (v>0?('+'+v):v)); } }
+    add('氣血', effect.hp); add('真元', effect.mp); add('物攻', effect.atk); add('法攻', effect.matk);
+    add('防禦', effect.def); add('法防', effect.mdef); add('命中', (effect.acc!=null?effect.acc:effect.hit));
+    add('閃避', (effect.eva!=null?effect.eva:effect.evd)); add('暴擊', (effect.crit!=null?effect.crit:effect.cri));
+    add('攻速', (effect.aspd!=null?effect.aspd:effect.spd)); add('力', effect.str); add('體', effect.vit);
+    add('悟', effect.int); add('敏', effect.agi);
+    if (typeof effect.dmg==='number' && effect.dmg){ parts.push('傷害 ' + effect.dmg); }
+
+    var subLeft = parts.length ? parts.join(' / ') : '無額外屬性';
+    var price   = (o.price!=null ? o.price : (defK.price||0));
+
+    var row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.type = 'ornament';      // ⚠ 開啟操作面板時沿用「飾品」邏輯（不用改 openBagAction）
+    row.dataset.idx  = String(i);
+
+    row.innerHTML =
+      '<div class="item-thumb">' + (iconUrl?('<img src="'+iconUrl+'" alt="'+name+'">'):'') + '</div>' +
+      '<div class="item-main">' +
+        '<div class="item-title equip"><span class="item-name">'+ name +'</span></div>' +
+        '<div class="item-sub">' +
+          '<span class="sub-left">'+ subLeft +'</span>' +
+          '<span class="sub-right">販售價格 ' + price + '</span>' +
+        '</div>' +
+      '</div>';
+
+    box.appendChild(row);
+    found++;
+  }
+
+  if (!found){
+    var tip = document.createElement('div'); tip.className='item-sub';
+    var label = (kind==='cloaks'?'披風':(kind==='armors'?'衣服':(kind==='boots'?'鞋子':'此分類')));
+    tip.textContent = '尚無' + label;
+    box.appendChild(tip);
+  }
+}
+
+function renderCloaks(box, P){ renderOrnamentKind(box, P, 'cloaks'); }
+function renderArmors(box, P){ renderOrnamentKind(box, P, 'armors'); }
+function renderBoots(box, P){ renderOrnamentKind(box, P, 'boots'); }
+
 
 function renderOrnaments(box, P){
   // 僅使用「正式」存放的 P.bag.ornaments，避免索引錯亂
@@ -170,26 +240,59 @@ function renderOrnaments(box, P){
 
   for (var i=0;i<items.length;i++){
     var o = items[i] || {};
-    // 允許 def 缺失（不因此整個不顯示）
+    // 僅限「飾品分頁」：只顯示戒指/耳環（含 ornaments 別名）
     var def = ItemDB.getDef('ornaments', o.id)
           || ItemDB.getDef('earrings',  o.id)
           || ItemDB.getDef('rings',     o.id)
-          || ItemDB.getDef('cloaks',    o.id)
-          || ItemDB.getDef('armors',    o.id)
-          || ItemDB.getDef('boots',     o.id)
-          || ItemDB.getDef('medals',    o.id)
-          || {};
+          || null;
+    if (!def) { continue; } // 不是戒指/耳環 → 在此分頁不顯示
+
 
     var name    = (o.name!=null ? o.name : (def.name!=null ? def.name : o.id));
     var iconUrl = isUrl(o.icon) ? o.icon : (isUrl(def.icon) ? def.icon : '');
     var bonus   = o.bonus || def.bonus || {};
     var effect  = o.effect || def.effect || {};
-    var mp = 0, hp = 0;
-    if (effect.mp) mp += effect.mp;
-    if (effect.hp) hp += effect.hp;
-    if (bonus['真元上限']) mp += bonus['真元上限'];
-    if (bonus['氣血上限']) hp += bonus['氣血上限'];
-    var subLeft  = [mp?('真元+'+mp):'', hp?('氣血+'+hp):''].filter(Boolean).join(' ');
+    // 重新組合清單顯示：將 bonus/effect 的所有非 0 屬性以「 / 」串接
+    var parts = [];
+
+    // bonus（直接把 key 當標籤，和 buildDetailHTML 對齊）
+    if (bonus){
+      for (var bk in bonus){
+        if(!Object.prototype.hasOwnProperty.call(bonus, bk)) continue;
+        var bv = bonus[bk];
+        if (typeof bv !== 'number' || !bv) continue;
+        var lbl = bk; // 例如：真元上限、氣血上限、物理攻擊、法術防禦 ...
+        parts.push(lbl + (bv>0?('+'+bv):bv));
+      }
+    }
+
+    // effect（常見欄位逐一加入）
+    if (effect){
+      function add(label, v){
+        if (typeof v !== 'number' || !v) return;
+        parts.push(label + (v>0?('+'+v):v));
+      }
+      add('氣血', effect.hp);
+      add('真元', effect.mp);
+      add('物攻', effect.atk);
+      add('法攻', effect.matk);
+      add('防禦', effect.def);
+      add('法防', effect.mdef);
+      add('命中', (effect.acc!=null?effect.acc:effect.hit));
+      add('閃避', (effect.eva!=null?effect.eva:effect.evd));
+      add('暴擊', (effect.crit!=null?effect.crit:effect.cri));
+      add('攻速', (effect.aspd!=null?effect.aspd:effect.spd));
+      add('力', effect.str);
+      add('體', effect.vit);
+      add('悟', effect.int);
+      add('敏', effect.agi);
+      if (typeof effect.dmg === 'number' && effect.dmg){
+        parts.push('傷害 ' + effect.dmg);
+      }
+    }
+
+    var subLeft = parts.length ? parts.join(' / ') : '無額外屬性';
+
     var price    = (o.price!=null ? o.price : (def.price||0));
 
     var row = document.createElement('div');
@@ -446,13 +549,102 @@ function openBagAction(type, idx){
     iconUrl = isUrl(o.icon) ? o.icon : (isUrl(def.icon) ? def.icon : null);
     subRight = '販售價格 ' + String(o.price != null ? o.price : (def.price || 0));
 
-    qs('#actTop').className = 'item-title equip';
-    qs('#actTop').innerHTML = ''
-      + '<span class="item-name">' + esc(name) + '</span>';
+qs('#actTop').className = 'item-title equip';
 
-    // 顯示完整屬性
-    qs('#actLeft').innerHTML   = buildDetailHTML('ornament', o, def);
-    qs('#actRight').textContent = subRight;
+// 先移除舊的比較方塊（避免殘留）
+var _oldCmp = document.getElementById('actCompareBox');
+if (_oldCmp && _oldCmp.parentNode) { _oldCmp.parentNode.removeChild(_oldCmp); }
+
+// 判斷這件是否耳環（只在耳環時顯示比較方塊）
+var _ornKind = '';
+if (window.ItemDB && ItemDB.getDef){
+  if (ItemDB.getDef('earrings', o.id)) { _ornKind = 'earrings'; }
+  else if (ItemDB.getDef('rings', o.id) || ItemDB.getDef('ornaments', o.id)) { _ornKind = 'rings'; }
+}
+
+// 若是耳環，插入「目前裝備（耳環）」比較方塊（含左右耳圖示＋屬性）
+if (_ornKind === 'earrings'){
+  var _eq = (state.player && state.player.equip && state.player.equip.earrings && state.player.equip.earrings.length)
+            ? state.player.equip.earrings : [null, null];
+  var _L = _eq[0] || null;
+  var _R = _eq[1] || null;
+
+  function _defOf(it){
+    if (!it) return {};
+    var d = ItemDB.getDef('earrings', it.id);
+    if (!d) d = ItemDB.getDef('ornaments', it.id);
+    if (!d) d = ItemDB.getDef('rings', it.id);
+    return d || {};
+  }
+  function _iconOf(it){
+    var d = _defOf(it);
+    var u = (it && isUrl(it.icon)) ? it.icon : (isUrl(d.icon) ? d.icon : null);
+    return u ? '<img src="'+esc(u)+'" alt="">' : '';
+  }
+  function _line(it){
+    if (!it) return '無裝備（耳環）';
+    var d = _defOf(it);
+    var b = (it && it.bonus) || (d && d.bonus) || {};
+    var e = (it && it.effect) || (d && d.effect) || {};
+    var arr = [];
+    var k, v;
+
+    for (k in b){
+      if(!Object.prototype.hasOwnProperty.call(b,k)) continue;
+      v = b[k];
+      if (typeof v==='number' && v){ arr.push(k + (v>0?('+'+v):v)); }
+    }
+    function add(lbl, val){ if (typeof val==='number' && val){ arr.push(lbl + (val>0?('+'+val):val)); } }
+    add('氣血', e.hp); add('真元', e.mp); add('物攻', e.atk); add('法攻', e.matk);
+    add('防禦', e.def); add('法防', e.mdef); add('命中', (e.acc!=null?e.acc:e.hit));
+    add('閃避', (e.eva!=null?e.eva:e.evd)); add('暴擊', (e.crit!=null?e.crit:e.cri));
+    add('攻速', (e.aspd!=null?e.aspd:e.spd)); add('力', e.str); add('體', e.vit);
+    add('悟', e.int); add('敏', e.agi);
+    if (typeof e.dmg==='number' && e.dmg){ arr.push('傷害 ' + e.dmg); }
+
+    var nm = esc(it.name || it.id);
+    return nm + ' — ' + (arr.length ? esc(arr.join(' / ')) : '無額外屬性');
+  }
+
+  var _box = document.createElement('div');
+  _box.id = 'actCompareBox';
+  _box.style.padding = '8px';
+  _box.style.border = '1px solid rgba(255,255,255,.18)';
+  _box.style.background = 'rgba(255,255,255,.06)';
+  _box.style.borderRadius = '10px';
+  _box.style.marginBottom = '8px';
+
+  var _grid = ''
+    + '<div style="font-weight:900;letter-spacing:2px;margin-bottom:6px;">目前裝備（耳環）</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
+    +   '<div style="display:grid;grid-template-columns:36px 1fr;gap:6px;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 6px;">'
+    +     '<div class="item-thumb" style="width:36px;height:36px;border-radius:8px;background:#1e293b;display:grid;place-items:center;">' + _iconOf(_L) + '</div>'
+    +     '<div class="item-sub" style="font-size:10px;"><div><b>左耳</b></div><div>' + _line(_L) + '</div></div>'
+    +   '</div>'
+    +   '<div style="display:grid;grid-template-columns:36px 1fr;gap:6px;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 6px;">'
+    +     '<div class="item-thumb" style="width:36px;height:36px;border-radius:8px;background:#1e293b;display:grid;place-items:center;">' + _iconOf(_R) + '</div>'
+    +     '<div class="item-sub" style="font-size:10px;"><div><b>右耳</b></div><div>' + _line(_R) + '</div></div>'
+    +   '</div>'
+    + '</div>';
+
+  _box.innerHTML = _grid;
+
+  var _body = m.querySelector('.body');
+  if (_body){
+    var _first = _body.firstChild;
+    if (_first){ _body.insertBefore(_box, _first); }
+    else { _body.appendChild(_box); }
+  }
+}
+
+// 仍保留原本標題（選中物品）
+qs('#actTop').innerHTML = ''
+  + '<span class="item-name">' + esc(name) + '</span>';
+
+// 顯示完整屬性
+qs('#actLeft').innerHTML   = buildDetailHTML('ornament', o, def);
+qs('#actRight').textContent = subRight;
+
 
 btnsHtml = ''
   + '<button class="opx primary" onclick="bagEquipOrnament('+idx+')" data-type="ornament" data-idx="'+idx+'">裝備</button>'
@@ -487,9 +679,16 @@ btnsHtml = ''
   qs('#actIcon').innerHTML = iconUrl ? ('<img src="'+esc(iconUrl)+'" alt="">') : '';
   qs('#actBtns').innerHTML = btnsHtml;
 
+  // 清理：若本次不是飾品，移除比較方塊
+  if (type !== 'ornament') {
+    var _oldCmp2 = document.getElementById('actCompareBox');
+    if (_oldCmp2 && _oldCmp2.parentNode) { _oldCmp2.parentNode.removeChild(_oldCmp2); }
+  }
+
   m.classList.add('show');
   m.setAttribute('aria-hidden', 'false');
 }
+
 
 function closeBagAction(){ const m = qs('#bagAction'); if(!m) return; m.classList.remove('show'); m.setAttribute('aria-hidden','true'); qs('#actBtns').innerHTML = ''; }
 
@@ -736,7 +935,13 @@ function bagEquipOrnament(i){
   var usedEquipModule = false;
   if (window.Equip && Equip.equipOrnament){
     usedEquipModule = !!Equip.equipOrnament(o);
+    if (!usedEquipModule) {
+      // 裝備失敗（例如：不可重複裝備相同飾品）
+      // → 不移除背包物品、不回收舊件，直接中止
+      return;
+    }
   } else {
+
     P.equip = P.equip || {};
     if (kind==='earrings' || kind==='rings'){
       var arr2 = Array.isArray(P.equip[kind]) ? P.equip[kind] : [null,null];
@@ -750,8 +955,13 @@ function bagEquipOrnament(i){
     if (typeof renderDerived === 'function') renderDerived();
   }
 
-  // 從背包移除剛裝備的
-  P.bag.ornaments.splice(i,1);
+  // 從背包移除剛裝備的（避免 Equip 模組先 unshift 舊件導致索引位移）
+  var _rmIdx = -1;
+  for (var _t=0; _t<P.bag.ornaments.length; _t++){
+    if (P.bag.ornaments[_t] === o){ _rmIdx = _t; break; }
+  }
+  if (_rmIdx >= 0){ P.bag.ornaments.splice(_rmIdx, 1); }
+
 
   // 若 Equip 模組已經把「被換下的舊件」丟回袋子，這裡就不要再丟一次（避免重複）
   if (!usedEquipModule && prev){

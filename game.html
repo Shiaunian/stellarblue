@@ -96,7 +96,7 @@
   }
 
   .divider{height:1px; background:rgba(255,255,255,.08); margin:6px 0;}
-  .main{flex:1; display:flex; flex-direction:column; gap:10px; padding:1px 12px 0; overflow:auto;}
+  .main{flex:1; display:flex; flex-direction:column; gap:10px; padding:1px 6px 0; overflow:auto;}
   .bars{display:grid; gap:0px;}
   .stat-row{display:grid; grid-template-columns:48px 1fr 56px; align-items:center; gap:8px;}
   .label{font-size:14px; color:#e2e8f0; text-align:right;}
@@ -112,19 +112,19 @@
   .actions{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding-top:6px;}
   .gbtn{padding:3px 0; text-align:center; border-radius:10px; font-size: 12px;  font-weight:800; letter-spacing:2px; color:#fff; background:linear-gradient(#a6783e,#7f5626); border:1px solid #5e3d1a; box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 2px 0 rgba(0,0,0,.2);}
   .title{text-align:center; color:#c7d2fe; font-weight:900; letter-spacing:6px; padding-top:4px;}
-  .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; padding-bottom:6px;}
-  .card{background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:2px; display:grid; grid-template-columns:52px 1fr; gap:10px; align-items:center;}
-  .thumb{width:40px; height:40px; border-radius:10px; overflow:hidden; display:grid; place-items:center; background:#1e293b;}
+  .grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding-bottom:6px;}
+  .card{background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:4px; display:grid; grid-template-columns:1fr; gap:4px; align-items:center; justify-items:center; text-align:center;}
+  .thumb{width:28px; height:28px; border-radius:10px; overflow:hidden; display:grid; place-items:center; background:#1e293b;}
   .thumb img{width:100%; height:100%; object-fit:cover; display:block;}
-  .ctitle{font-weight:800; font-size: 12px; letter-spacing:1px;} .csub{font-size:9px; color:var(--muted);}
+  .ctitle{font-weight:800; font-size: 10px; letter-spacing:1px;} .csub{font-size:9px; color:var(--muted);}
   .dock{padding:0 12px 10px;}
   .chatbox{background:#060a1a; border:1px solid rgba(255,255,255,.2); border-radius:10px; position:relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,.4);}
   .corner-btn{position:absolute; width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-top:12px solid #fff; right:10px;}
   .corner-btn.top{top:-6px;} .corner-btn.bottom{bottom:-6px; transform:rotate(180deg);}
-  .log{height:92px; overflow:auto; padding:8px 10px; font-size:12px;} .log .item{line-height:1.5} .log .ok{color:var(--ok)} .log .warn{color:var(--warn)} .log .muted{color:var(--muted)}
-  .speak{display:flex; gap:8px; border-top:1px solid rgba(255,255,255,.1); padding:8px; background:#0a1024; border-radius:0 0 10px 10px;}
-  .speak input{flex:1; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:#fff; color:#111;}
-  .speak button{padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-weight:700;}
+  .log{height:170px; overflow:auto; padding:8px 10px; font-size:12px;} .log .item{line-height:1.5} .log .ok{color:var(--ok)} .log .warn{color:var(--warn)} .log .muted{color:var(--muted)}
+  .speak{display:flex; gap:6px; border-top:1px solid rgba(255,255,255,.1); padding:6px; background:#0a1024; border-radius:0 0 10px 10px;}
+  .speak input{flex:1; padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:#fff; color:#111;}
+  .speak button{padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-weight:700;}
 
   /* Modal、Bag 與邏輯相關樣式保持原樣（從 v4 完整版沿用） */
   .stage, .log { overscroll-behavior: contain; }
@@ -530,14 +530,14 @@
       <div class="title">主 城</div>
 
       <div class="grid">
-        <div class="card" data-mod="cave"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758672981/%E6%B4%9E%E5%BA%9C_uwdego.png" alt="施工中"></div><div><div class="ctitle">洞府</div><div class="csub">目前待開發中</div></div></div>
-        <div class="card" data-mod="map"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757814967/%E9%87%8E%E5%A4%96%E5%9C%B0%E5%9C%96_hwvssk.png" alt="施工中"></div><div><div class="ctitle">野外地圖</div><div class="csub">充滿著未知個人冒險</div></div></div>
-        <div class="card" data-mod="library"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759627471/%E9%8A%80%E8%A1%8C_ralqzp.png" alt="施工中"></div><div><div class="ctitle">銀行</div><div class="csub">目前待開發中</div></div></div>
-        <div class="card" data-mod="tower"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E8%A9%A6%E7%85%89%E5%A1%94_ojkzmo.png" alt="施工中"></div><div><div class="ctitle">試煉塔</div><div class="csub">目前待開發中</div></div></div>
-        <div class="card" data-mod="war"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759543422/%E6%88%B0%E9%AC%A5_sjfkdq.png" alt="施工中"></div><div><div class="ctitle">規模戰</div><div class="csub">目前待開發中</div></div></div>
-        <div class="card" data-mod="collection"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758257795/%E5%8D%A1%E7%89%87%E8%92%90%E8%97%8F_ivhky7.png" alt="施工中"></div><div><div class="ctitle">卡片收藏</div><div class="csub">卡片收納與展示</div></div></div>
-        <div class="card" data-mod="dex"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E5%9C%96%E9%91%91_adcdkl.png" alt="施工中"></div><div><div class="ctitle">圖鑑</div><div class="csub">怪物圖鑑，裡面有各種掉落物</div></div></div>
-        <div class="card" data-mod="shop"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E5%95%86%E5%9F%8E_efzk1i.png" alt="施工中"></div><div><div class="ctitle">商城</div><div class="csub">目前待開發中</div></div></div>
+        <div class="card" data-mod="cave"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758672981/%E6%B4%9E%E5%BA%9C_uwdego.png" alt="洞府"></div><div class="ctitle">洞府</div></div>
+        <div class="card" data-mod="map"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1757814967/%E9%87%8E%E5%A4%96%E5%9C%B0%E5%9C%96_hwvssk.png" alt="野外地圖"></div><div class="ctitle">野外地圖</div></div>
+        <div class="card" data-mod="library"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759627471/%E9%8A%80%E8%A1%8C_ralqzp.png" alt="銀行"></div><div class="ctitle">銀行</div></div>
+        <div class="card" data-mod="tower"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E8%A9%A6%E7%85%89%E5%A1%94_ojkzmo.png" alt="試煉塔"></div><div class="ctitle">試煉塔</div></div>
+        <div class="card" data-mod="war"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759543422/%E6%88%B0%E9%AC%A5_sjfkdq.png" alt="規模戰"></div><div class="ctitle">規模戰</div></div>
+        <div class="card" data-mod="collection"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758257795/%E5%8D%A1%E7%89%87%E8%92%90%E8%97%8F_ivhky7.png" alt="卡片收藏"></div><div class="ctitle">卡片收藏</div></div>
+        <div class="card" data-mod="dex"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E5%9C%96%E9%91%91_adcdkl.png" alt="圖鑑"></div><div class="ctitle">圖鑑</div></div>
+        <div class="card" data-mod="shop"><div class="thumb"><img src="https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758292339/%E5%95%86%E5%9F%8E_efzk1i.png" alt="商城"></div><div class="ctitle">商城</div></div>
       </div>
 
       <div class="dock">
@@ -545,12 +545,13 @@
           <div class="corner-btn top"></div>
           <div class="log" id="log"></div>
           <div class="speak">
-            <input id="chatInput" type="text" placeholder="輸入文字..." />
-            <button id="btnSend">送出</button>
+            <input id="chatInput" placeholder="輸入聊天內容…" />
+            <button id="btnSend" class="btn">送出</button>
           </div>
           <div class="corner-btn bottom"></div>
         </div>
       </div>
+
 
 </div>
 </div>
@@ -1408,8 +1409,96 @@ function bagEquipOrnament(i){
 
 
 
-  function log(txt, cls=''){ const el=document.createElement('div'); el.className = `item ${cls}`; el.textContent = txt; const box=qs('#log'); if(!box) return; box.appendChild(el); box.scrollTop = box.scrollHeight; }
-  function sendChat(){ const inp = qs('#chatInput'); const msg = (inp?.value||'').trim(); if(!msg) return; log(`你：${msg}`,'ok'); inp.value=''; }
+  function log(txt, cls){ var el = document.createElement('div'); el.className = 'item ' + (cls || ''); el.textContent = txt; var box = qs('#log'); if(!box) return; box.appendChild(el); box.scrollTop = box.scrollHeight; }
+
+  (function(){
+    // Render helper for global chat (把物件渲染成 #log 裡的 HTML)
+    function renderGlobalLog(obj){
+      var html = '';
+      var keys = Object.keys(obj || {});
+      keys.sort(function(a,b){ return (obj[a].ts || 0) - (obj[b].ts || 0); });
+      for (var i=0;i<keys.length;i++){
+        var id = keys[i];
+        var m = obj[id] || {};
+        var av = m.fromAvatar || 'https://via.placeholder.com/28';
+        // 每則訊息：同一行顯示「頭像 + 訊息文字」，過長才自動換行，不顯示名稱
+        html += '<div class="item msg" data-msg-id="'+ id +'" style="display:flex; align-items:center; gap:8px; margin:6px 0; flex-wrap:wrap;">'
+             +   '<img src="'+ av +'" alt="avatar" style="width:28px; height:28px; border-radius:50%; object-fit:cover; flex:0 0 28px;">'
+             +   '<div style="flex:1 1 auto; min-width:0; line-height:1.4;">'+ (m.text || '') +'</div>'
+             + '</div>';
+      }
+      var box = qs('#log');
+      if (box){ box.innerHTML = html; box.scrollTop = box.scrollHeight; }
+
+    }
+
+    // 設定 Firebase 監聽（全域聊天）與保留上限 100 的邏輯（與 friends.js 的做法相同，但改為 100）
+    function setupGlobalListener(){
+      if (!window.DB || !DB.ref) return;
+      DB.ref('globalChat/messages').off();
+      DB.ref('globalChat/messages').on('value', function(snap){
+        var val = (snap && snap.exists()) ? snap.val() : {};
+        var items = [];
+        for (var k in val){
+          if (!val.hasOwnProperty(k)) continue;
+          var msg = val[k] || {};
+          var ts  = Number(msg.ts || 0);
+          items.push({ id:k, ts:ts, msg:msg });
+        }
+        items.sort(function(a,b){ return a.ts - b.ts; });
+
+        var over = items.length - 100;
+        var viewObj = {};
+        if (over > 0){
+          var keep = items.slice(items.length - 100);
+          for (var j=0;j<keep.length;j++){ viewObj[ keep[j].id ] = keep[j].msg; }
+          renderGlobalLog(viewObj);
+          // 刪除過舊（會實際從 DB 移除）
+          for (var t=0; t<over; t++){
+            var delId = items[t].id;
+            DB.ref('globalChat/messages/'+delId).remove();
+          }
+        } else {
+          for (var z=0; z<items.length; z++){ viewObj[ items[z].id ] = items[z].msg; }
+          renderGlobalLog(viewObj);
+        }
+      });
+    }
+
+    setupGlobalListener();
+
+    // 將送出行為改為寫入 globalChat/messages
+    window.sendChat = function(){
+      var inp = qs('#chatInput');
+      var msg = inp && inp.value ? String(inp.value).trim() : '';
+      if (!msg) return;
+      inp.value = '';
+      if (!window.DB || !DB.ref || !window.Auth || !Auth.currentUser){ log('無法發送訊息（尚未登入或連線）'); return; }
+      var me = Auth.currentUser();
+      if (!me || !me.username) { log('請先登入'); return; }
+      var ref = DB.ref('globalChat/messages').push();
+      DB.ref('characters/'+me.username).get().then(function(msnap){
+        var mdata = (msnap && msnap.exists()) ? msnap.val() : {};
+        var myNick = mdata.nickname || mdata.name || me.username;
+        var myAv   = (mdata.avatar && String(mdata.avatar).trim()) || (mdata.avatarUrl && String(mdata.avatarUrl).trim()) || 'https://via.placeholder.com/28';
+        ref.set({
+          from: me.username,
+          text: msg,
+          ts: Date.now(),
+          fromNickname: myNick,
+          fromAvatar: myAv
+        });
+      }).catch(function(){ log('送出失敗'); });
+    };
+
+    // 綁定 UI（按鈕、Enter）
+    var btn = qs('#btnSend');
+    if (btn){ btn.onclick = function(){ window.sendChat(); }; }
+    var inp = qs('#chatInput');
+    if (inp){ inp.onkeydown = function(e){ if (e.key === 'Enter') { window.sendChat(); } }; }
+
+  })();
+
 
   return {
     start(player){

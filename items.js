@@ -59,9 +59,16 @@
 
     // ---- 耳環（Earrings）----
     earrings: [
-      { id: "ear_smalljade", name: "小翠耳環", rarity: "普", level: 1, effect: { hp: 20 }, price: 80, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758465744/%E5%B0%8F%E7%BF%A0%E8%80%B3%E7%92%B01LV_ggjgpk.png", desc: "靈玉雕製的耳環，帶微靈氣。" },
-      { id: "ear_ice", name: "冰痕耳環", rarity: "普", level: 2, effect: { mp: 40, int: 1 }, price: 160, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759326369/%E5%86%B0%E7%97%95%E8%80%B3%E7%92%B02LV_q2vy4r.png", desc: "如霜凝結的冰晶耳飾，提升悟性。" },
-      { id: "ear_shadow", name: "影縛耳環", rarity: "普", level: 3, effect: { hp: 60, eva: 3 }, price: 300, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759326369/%E5%BD%B1%E7%B8%9B%E8%80%B3%E7%92%B03LV_ho36bt.png", desc: "由陰影之絲編製而成，強化反應力。" },
+      { id: "ear_smalljade", name: "小翠耳環", rarity: "普", level: 1, effect: { hp: 20 }, price: 80, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1758465744/%E5%B0%8F%E7%BF%A0%E8%80%B3%E7%92%B01LV_ggjgpk.png" },
+      { id: "ear_ice", name: "冰痕耳環", rarity: "普", level: 2, effect: { mp: 40, acc: 1 }, price: 160, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759326369/%E5%86%B0%E7%97%95%E8%80%B3%E7%92%B02LV_q2vy4r.png" },
+      { id: "ear_shadow", name: "影縛耳環", rarity: "普", level: 3, effect: { hp: 60, eva: 3 }, price: 300, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759326369/%E5%BD%B1%E7%B8%9B%E8%80%B3%E7%92%B03LV_ho36bt.png" },
+      { id: "earring_lime", name: "萊姆耳環", rarity: "稀", level: 3, effect: { hp: 70, mp: 40, eva: 4 }, price: 800, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759720712/%E8%90%8A%E5%A7%86%E8%80%B3%E7%92%B03LV_xjq56f.png" },
+      { id: "earring_firewood", name: "火林耳環", rarity: "稀", level: 6, effect: { hp: 105, mp: 60, eva: 5, acc: 1 }, price: 1800, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759720712/%E7%81%AB%E6%9E%97%E8%80%B3%E7%92%B06LV_g4awxg.png" },
+      { id: "earring_mossstone", name: "苔石耳環", rarity: "稀", level: 10, effect: { hp: 170, mp: 100, eva: 8, acc: 3 }, price: 3500, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759720712/%E8%8B%94%E7%9F%B3%E8%80%B3%E7%92%B010LV_fy383a.png" },
+      { id: "earring_wraith", name: "幽魂耳環", rarity: "稀", level: 15, effect: { hp: 240, mp: 150, atk: 2, matk: 7 }, price: 5500, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759720712/%E5%B9%BD%E9%AD%82%E8%80%B3%E7%92%B015LV_xoblz1.png" },
+      { id: "earring_obsidian", name: "黑曜耳環", rarity: "稀", level: 15, effect: { hp: 300, mp: 90, atk: 7, matk: 2 }, price: 5500, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759720713/%E9%BB%91%E6%9B%9C%E8%80%B3%E7%92%B015LV_nswfi7.png" },
+      { id: "earring_nightmare", name: "噩夢耳環", rarity: "稀", level: 20, effect: { hp: 400, mp: 120, atk: 12, matk: 4 }, price: 8500, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759720713/%E5%99%A9%E5%A4%A2%E8%80%B3%E7%92%B020LV_aewpuh.png" },
+      { id: "earring_bloodnight", name: "紅噩耳環", rarity: "稀", level: 20, effect: { hp: 350, mp: 160, atk: 2, matk: 12 }, price: 8500, icon: "https://res.cloudinary.com/dzj7ghbf6/image/upload/v1759720712/%E7%B4%85%E5%99%A9%E8%80%B3%E7%92%B020LV_xvtklb.png" },
     ],
 
     // ---- 披風（Cloaks）----
